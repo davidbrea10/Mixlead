@@ -1,29 +1,44 @@
 import { Link, Stack } from "expo-router";
 import { Pressable, View, Text, Image } from "react-native";
-import { Logo } from "../components/Logo";
 import { CircleInfoIcon } from "../components/Icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function Layout() {
   return (
-    <View className="flex-1">
+    <LinearGradient
+      colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
+      style={{ flex: 1 }}
+    >
       {/* Header */}
       <View
         style={{
+          paddingTop: 40,
           backgroundColor: "#FF9300",
         }}
-        className="flex-row justify-between items-center bg-orange-500 p-4 rounded-t-lg"
+        className="flex-row justify-between items-center p-4 rounded-t-lg"
       >
-        <Logo />
-        <Text className="text-white text-lg font-bold">HOME</Text>
+        <Image
+          source={require("../assets/icon.png")}
+          style={{ width: 50, height: 50 }}
+        />
+        <Text
+          style={{ fontFamily: "Overpass-Bold", fontSize: 24 }}
+          className="text-white"
+        >
+          HOME
+        </Text>
         <Link asChild href="/about">
           <Pressable>
-            <CircleInfoIcon />
+            <Image
+              source={require("../assets/logout.png")}
+              style={{ width: 50, height: 50 }}
+            />
           </Pressable>
         </Link>
       </View>
 
       {/* Main Buttons */}
-      <View className="flex-1 justify-center items-center bg-gradient-to-b from-blue-100 to-orange-100">
+      <View className="flex-1 justify-center items-center">
         <Pressable
           style={{
             width: 348,
@@ -90,6 +105,6 @@ export default function Layout() {
           />
         </Pressable>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
