@@ -9,6 +9,10 @@ export default function Home() {
     router.replace("/"); // Vuelve al Login
   };
 
+  const handleSettings = () => {
+    router.push("/settings"); // Vuelve al Login
+  };
+
   return (
     <LinearGradient
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
@@ -148,7 +152,7 @@ export default function Home() {
           elevation: 10,
         }}
       >
-        <Pressable>
+        <Pressable onPress={handleSettings}>
           <Image
             source={require("../assets/gear-icon.png")}
             style={{ width: 50, height: 50 }}
