@@ -11,6 +11,10 @@ export default function Layout() {
         name="home"
         options={{ title: "Home", headerShown: false }} // Sin header en home
       />
+      <Stack.Screen
+        name="register"
+        options={{ title: "Register", headerShown: false }} // Sin header en home
+      />
     </Stack>
   );
 }
