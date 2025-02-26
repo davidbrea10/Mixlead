@@ -146,6 +146,12 @@ export default function Login() {
           marginBottom: 20,
           marginTop: 10,
           fontSize: 18,
+          // SOMBRA (iOS y Android)
+          shadowColor: "#000", // Color de la sombra
+          shadowOffset: { width: 0, height: 12 }, // Extiende la sombra hacia abajo
+          shadowOpacity: 0.5, // Opacidad de la sombra
+          shadowRadius: 10, // Hace la sombra más difusa
+          elevation: 20, // Aumenta la sombra en Android
         }}
       >
         <Text style={{ color: "#fff", fontSize: 19 }}>Sign In</Text>

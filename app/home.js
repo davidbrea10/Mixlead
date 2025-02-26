@@ -15,6 +15,7 @@ export default function Home() {
       style={{ flex: 1 }}
     >
       {/* Header */}
+      {/* Header */}
       <View
         style={{
           paddingTop: 40,
@@ -23,6 +24,12 @@ export default function Home() {
           justifyContent: "space-between",
           alignItems: "center",
           padding: 16,
+          borderBottomStartRadius: 40,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 10,
+          elevation: 10,
         }}
       >
         <Image
@@ -30,10 +37,19 @@ export default function Home() {
           style={{ width: 50, height: 50 }}
         />
         <Text
-          style={{ fontFamily: "Overpass-Bold", fontSize: 24, color: "white" }}
+          style={{
+            fontSize: 24,
+            fontWeight: "bold",
+            color: "white",
+            letterSpacing: 2, // Cambia esto por una fuente personalizada si tienes una
+            textShadowColor: "black",
+            textShadowOffset: { width: 1, height: 1 },
+            textShadowRadius: 1,
+          }}
         >
           HOME
         </Text>
+
         <Pressable onPress={handleLogout}>
           <Image
             source={require("../assets/logout.png")}
@@ -53,6 +69,15 @@ export default function Home() {
             backgroundColor: "rgba(4, 4, 4, 0.6)",
             borderRadius: 50,
             alignItems: "center",
+            borderColor: "white",
+            borderWidth: 3,
+
+            // SOMBRA (iOS y Android)
+            shadowColor: "#000", // Color de la sombra
+            shadowOffset: { width: 0, height: 12 }, // Extiende la sombra hacia abajo
+            shadowOpacity: 0.5, // Opacidad de la sombra
+            shadowRadius: 10, // Hace la sombra más difusa
+            elevation: 20, // Aumenta la sombra en Android
           }}
         >
           <Text style={{ color: "white", fontSize: 18 }}>
@@ -69,6 +94,15 @@ export default function Home() {
             backgroundColor: "rgba(4, 4, 4, 0.6)",
             borderRadius: 50,
             alignItems: "center",
+            borderColor: "white",
+            borderWidth: 3,
+
+            // SOMBRA (iOS y Android)
+            shadowColor: "#000", // Color de la sombra
+            shadowOffset: { width: 0, height: 12 }, // Extiende la sombra hacia abajo
+            shadowOpacity: 0.5, // Opacidad de la sombra
+            shadowRadius: 10, // Hace la sombra más difusa
+            elevation: 20, // Aumenta la sombra en Android
           }}
         >
           <Text style={{ color: "white", fontSize: 18 }}>My Agenda</Text>
@@ -82,6 +116,15 @@ export default function Home() {
             backgroundColor: "rgba(4, 4, 4, 0.6)",
             borderRadius: 50,
             alignItems: "center",
+            borderColor: "white",
+            borderWidth: 3,
+
+            // SOMBRA (iOS y Android)
+            shadowColor: "#000", // Color de la sombra
+            shadowOffset: { width: 0, height: 12 }, // Extiende la sombra hacia abajo
+            shadowOpacity: 0.5, // Opacidad de la sombra
+            shadowRadius: 10, // Hace la sombra más difusa
+            elevation: 20, // Aumenta la sombra en Android
           }}
         >
           <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
@@ -91,11 +134,18 @@ export default function Home() {
       </View>
 
       {/* Footer */}
+      {/* Footer */}
       <View
         style={{
           backgroundColor: "#006892",
           padding: 16,
           alignItems: "flex-end",
+          borderTopEndRadius: 40,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 10,
+          elevation: 10,
         }}
       >
         <Pressable>
