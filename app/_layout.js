@@ -19,6 +19,10 @@ export default function Layout() {
         name="settings"
         options={{ title: "Settings", headerShown: false }} // Sin header en home
       />
+      <Stack.Screen
+        name="settings-profile"
+        options={{ title: "Profile", headerShown: false }} // Sin header en home
+      />
     </Stack>
   );
 }
