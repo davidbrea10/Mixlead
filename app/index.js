@@ -19,7 +19,7 @@ export default function Login() {
 
   const handleLogin = () => {
     if (email && password) {
-      router.replace("/home"); // Redirige al Home reemplazando el Login
+      router.replace("employee/home"); // Redirige al Home reemplazando el Login
     } else {
       alert("Please enter email and password");
     }

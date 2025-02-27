@@ -10,7 +10,7 @@ export default function Home() {
   };
 
   const handleSettings = () => {
-    router.push("/settings"); // Vuelve al Login
+    router.push("/settings/settings"); // Vuelve al Login
   };
 
   return (
@@ -37,7 +37,7 @@ export default function Home() {
         }}
       >
         <Image
-          source={require("../assets/icon.png")}
+          source={require("../../assets/icon.png")}
           style={{ width: 50, height: 50 }}
         />
         <Text
@@ -56,7 +56,7 @@ export default function Home() {
 
         <Pressable onPress={handleLogout}>
           <Image
-            source={require("../assets/logout.png")}
+            source={require("../../assets/logout.png")}
             style={{ width: 50, height: 50 }}
           />
         </Pressable>
@@ -154,7 +154,7 @@ export default function Home() {
       >
         <Pressable onPress={handleSettings}>
           <Image
-            source={require("../assets/gear-icon.png")}
+            source={require("../../assets/gear-icon.png")}
             style={{ width: 50, height: 50 }}
           />
         </Pressable>

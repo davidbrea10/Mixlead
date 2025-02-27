@@ -2,19 +2,19 @@ import { View, Text, Pressable, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 
-export default function Profile() {
+export default function Settings() {
   const router = useRouter();
 
   const handleBack = () => {
     router.back(); // Vuelve a la pantalla anterior
   };
 
-  const handleCompany = () => {
-    alert("Redirect to Company Screen");
+  const handleHome = () => {
+    router.replace("/employee/home"); // Vuelve al Home reemplazando el Settings
   };
 
-  const handleHome = () => {
-    router.replace("/home"); // Vuelve al Home reemplazando el Profile
+  const handleProfile = () => {
+    router.push("/settings/settings-profile"); // Redirige al Profile
   };
 
   return (
@@ -41,11 +41,10 @@ export default function Profile() {
       >
         <Pressable onPress={handleBack}>
           <Image
-            source={require("../assets/go-back.png")}
+            source={require("../../assets/go-back.png")}
             style={{ width: 50, height: 50 }}
           />
         </Pressable>
-
         <Text
           style={{
             fontSize: 24,
@@ -57,12 +56,11 @@ export default function Profile() {
             textShadowRadius: 1,
           }}
         >
-          Your Profile
+          SETTINGS
         </Text>
-
         <Pressable onPress={handleHome}>
           <Image
-            source={require("../assets/icon.png")}
+            source={require("../../assets/icon.png")}
             style={{ width: 50, height: 50 }}
           />
         </Pressable>
@@ -70,34 +68,42 @@ export default function Profile() {
 
       {/* Main Content */}
       <View style={{ flex: 1, padding: 20 }}>
-        {[
-          { label: "Name", value: "Name" },
-          { label: "Last Name", value: "Last Name" },
-          { label: "DNI/NIE", value: "DNI/NIE" },
-          { label: "Telephone", value: "telephone" },
-          { label: "Birth", value: "20/01/2020" },
-          { label: "Email", value: "email@gmail.com" },
-          { label: "Company", value: "Company X" },
-          { label: "Company Code", value: "Company X" },
-        ].map((item, index) => (
-          <View key={index} style={{ marginBottom: 10 }}>
-            <Text style={{ fontSize: 16, fontWeight: "bold" }}>
-              {item.label}
-            </Text>
-            <Text style={{ fontSize: 16, color: "grey", marginBottom: 5 }}>
-              {item.value}
-            </Text>
-            <View style={{ height: 1, backgroundColor: "black" }} />
-          </View>
-        ))}
-
-        {/* Company Question */}
-        <Text style={{ fontSize: 16, fontWeight: "bold", marginTop: 20 }}>
-          ¿You are part of a company?
-        </Text>
-        <Pressable onPress={handleCompany}>
-          <Text style={{ color: "blue", fontSize: 16 }}>Click Here.</Text>
+        {/* Profile Option */}
+        <Pressable
+          onPress={handleProfile}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 20,
+          }}
+        >
+          <Image
+            source={require("../../assets/profile.png")}
+            style={{ width: 40, height: 40, marginRight: 10 }}
+          />
+          <Text style={{ fontSize: 24, fontWeight: "500", marginLeft: 20 }}>
+            Profile
+          </Text>
         </Pressable>
+        <View style={{ height: 1, backgroundColor: "black" }} />
+
+        {/* Help & FAQ Option */}
+        <Pressable
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 20,
+          }}
+        >
+          <Image
+            source={require("../../assets/help.png")}
+            style={{ width: 40, height: 40, marginRight: 10 }}
+          />
+          <Text style={{ fontSize: 24, fontWeight: "500", marginLeft: 20 }}>
+            Help & FAQ
+          </Text>
+        </Pressable>
+        <View style={{ height: 1, backgroundColor: "black" }} />
       </View>
 
       {/* Footer */}
