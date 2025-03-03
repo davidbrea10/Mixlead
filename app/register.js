@@ -62,7 +62,7 @@ export default function Register() {
         return;
       }
       alert("Registration Successful");
-      router.replace("/home");
+      router.replace("employee/home");
     } else {
       alert("Please fill in all fields");
     }
