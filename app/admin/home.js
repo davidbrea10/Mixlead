@@ -74,11 +74,10 @@ export default function Home() {
           style={{
             width: 348,
             height: 76,
-            justifyContent: "center",
-            marginBottom: 68,
+            flexDirection: "row",
+            alignItems: "center",
             backgroundColor: "rgba(4, 4, 4, 0.6)",
             borderRadius: 50,
-            alignItems: "center",
             borderColor: "white",
             borderWidth: 3,
             shadowColor: "#000",
@@ -86,19 +85,39 @@ export default function Home() {
             shadowOpacity: 0.5,
             shadowRadius: 10,
             elevation: 20,
+            paddingLeft: 20, // Asegura que el icono no quede pegado al borde
+            marginBottom: 100,
           }}
         >
-          <Text style={{ color: "white", fontSize: 18 }}>Companies</Text>
+          <Image
+            source={require("../../assets/companies.png")}
+            style={{
+              width: 40,
+              height: 40,
+            }}
+          />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text
+              style={{
+                color: "white",
+                fontSize: 18,
+                textAlign: "center",
+                paddingHorizontal: 10, // Evita que el texto toque los bordes
+              }}
+            >
+              Companies
+            </Text>
+          </View>
         </Pressable>
 
         <Pressable
           style={{
             width: 348,
             height: 76,
-            justifyContent: "center",
+            flexDirection: "row",
+            alignItems: "center",
             backgroundColor: "rgba(4, 4, 4, 0.6)",
             borderRadius: 50,
-            alignItems: "center",
             borderColor: "white",
             borderWidth: 3,
             shadowColor: "#000",
@@ -106,11 +125,28 @@ export default function Home() {
             shadowOpacity: 0.5,
             shadowRadius: 10,
             elevation: 20,
+            paddingLeft: 20, // Asegura que el icono no quede pegado al borde
           }}
         >
-          <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
-            Employees
-          </Text>
+          <Image
+            source={require("../../assets/employees.png")}
+            style={{
+              width: 40,
+              height: 40,
+            }}
+          />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text
+              style={{
+                color: "white",
+                fontSize: 18,
+                textAlign: "center",
+                paddingHorizontal: 10, // Evita que el texto toque los bordes
+              }}
+            >
+              Employees
+            </Text>
+          </View>
         </Pressable>
       </View>
 

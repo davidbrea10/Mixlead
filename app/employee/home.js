@@ -74,6 +74,7 @@ export default function Home() {
           style={{
             width: 348,
             height: 76,
+            flexDirection: "row",
             justifyContent: "center",
             marginBottom: 68,
             backgroundColor: "rgba(4, 4, 4, 0.6)",
@@ -86,17 +87,35 @@ export default function Home() {
             shadowOpacity: 0.5,
             shadowRadius: 10,
             elevation: 20,
+            paddingLeft: 20, // Asegura que el icono no quede pegado al borde
           }}
         >
-          <Text style={{ color: "white", fontSize: 18 }}>
-            Perform inspection
-          </Text>
+          <Image
+            source={require("../../assets/radiacion-blanco.png")}
+            style={{
+              width: 40,
+              height: 40,
+            }}
+          />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text
+              style={{
+                color: "white",
+                fontSize: 18,
+                textAlign: "center",
+                paddingHorizontal: 10, // Evita que el texto toque los bordes
+              }}
+            >
+              Perform Inspection
+            </Text>
+          </View>
         </Pressable>
 
         <Pressable
           style={{
             width: 348,
             height: 76,
+            flexDirection: "row",
             justifyContent: "center",
             marginBottom: 68,
             backgroundColor: "rgba(4, 4, 4, 0.6)",
@@ -109,19 +128,38 @@ export default function Home() {
             shadowOpacity: 0.5,
             shadowRadius: 10,
             elevation: 20,
+            paddingLeft: 20, // Asegura que el icono no quede pegado al borde
           }}
         >
-          <Text style={{ color: "white", fontSize: 18 }}>My Agenda</Text>
+          <Image
+            source={require("../../assets/myAgenda.png")}
+            style={{
+              width: 40,
+              height: 40,
+            }}
+          />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text
+              style={{
+                color: "white",
+                fontSize: 18,
+                textAlign: "center",
+                paddingHorizontal: 10, // Evita que el texto toque los bordes
+              }}
+            >
+              My Agenda
+            </Text>
+          </View>
         </Pressable>
 
         <Pressable
           style={{
             width: 348,
             height: 76,
-            justifyContent: "center",
+            flexDirection: "row",
+            alignItems: "center",
             backgroundColor: "rgba(4, 4, 4, 0.6)",
             borderRadius: 50,
-            alignItems: "center",
             borderColor: "white",
             borderWidth: 3,
             shadowColor: "#000",
@@ -129,11 +167,28 @@ export default function Home() {
             shadowOpacity: 0.5,
             shadowRadius: 10,
             elevation: 20,
+            paddingLeft: 20, // Asegura espacio suficiente para el icono
           }}
         >
-          <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
-            Calculation of Necessary Distance/Thickness
-          </Text>
+          <Image
+            source={require("../../assets/calculation.png")}
+            style={{
+              width: 40,
+              height: 40,
+            }}
+          />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text
+              style={{
+                color: "white",
+                fontSize: 18,
+                textAlign: "center",
+                paddingHorizontal: 10, // Evita que el texto toque los bordes
+              }}
+            >
+              Calculation of Necessary Distance/Thickness
+            </Text>
+          </View>
         </Pressable>
       </View>
 
