@@ -10,6 +10,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { auth } from "../firebase/config"; // Importación de Firebase
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function Login() {
   const router = useRouter();
@@ -17,16 +19,28 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
-    if (email && password) {
-      router.replace("employee/home"); // Redirige al Home reemplazando el Login
-    } else {
+  const handleLogin = async () => {
+    if (!email || !password) {
       alert("Please enter email and password");
+      return;
+    }
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      console.log("Logged in:", userCredential.user);
+      alert("Login Successful");
+      router.replace("employee/home"); // Redirige al home después del login
+    } catch (error) {
+      alert("Login Failed: " + error.message);
     }
   };
 
   const handleRegister = () => {
-    router.push("/register"); // Redirige al Home reemplazando el Login
+    router.push("/register");
   };
 
   const handleRecoverPassword = () => {
@@ -68,7 +82,7 @@ export default function Login() {
         style={{ width: 193, height: 193, marginBottom: 30 }}
       />
 
-      {/* Email Input with Clear Icon */}
+      {/* Email Input */}
       <View style={{ position: "relative", marginBottom: 15 }}>
         <TextInput
           placeholder="Enter Email"
@@ -95,7 +109,7 @@ export default function Login() {
         )}
       </View>
 
-      {/* Password Input with Show/Hide Icon */}
+      {/* Password Input */}
       <View style={{ position: "relative", marginBottom: 10 }}>
         <TextInput
           placeholder="Password"
@@ -146,12 +160,11 @@ export default function Login() {
           marginBottom: 20,
           marginTop: 10,
           fontSize: 18,
-          // SOMBRA (iOS y Android)
-          shadowColor: "#000", // Color de la sombra
-          shadowOffset: { width: 0, height: 12 }, // Extiende la sombra hacia abajo
-          shadowOpacity: 0.5, // Opacidad de la sombra
-          shadowRadius: 10, // Hace la sombra más difusa
-          elevation: 20, // Aumenta la sombra en Android
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.5,
+          shadowRadius: 10,
+          elevation: 20,
         }}
       >
         <Text style={{ color: "#fff", fontSize: 19 }}>Sign In</Text>

@@ -1,16 +1,23 @@
 import { View, Text, Pressable, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { auth } from "../../firebase/config"; // Importa la configuración de Firebase
+import { signOut } from "firebase/auth";
 
 export default function Home() {
   const router = useRouter();
 
-  const handleLogout = () => {
-    router.replace("/"); // Vuelve al Login
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // Cierra sesión en Firebase
+      router.replace("/"); // Redirige al login
+    } catch (error) {
+      alert("Error logging out: " + error.message);
+    }
   };
 
   const handleSettings = () => {
-    router.push("/settings/settings"); // Vuelve al Login
+    router.push("/settings/settings");
   };
 
   return (
@@ -18,7 +25,6 @@ export default function Home() {
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
       style={{ flex: 1 }}
     >
-      {/* Header */}
       {/* Header */}
       <View
         style={{
@@ -45,7 +51,7 @@ export default function Home() {
             fontSize: 24,
             fontWeight: "bold",
             color: "white",
-            letterSpacing: 2, // Cambia esto por una fuente personalizada si tienes una
+            letterSpacing: 2,
             textShadowColor: "black",
             textShadowOffset: { width: 1, height: 1 },
             textShadowRadius: 1,
@@ -75,13 +81,11 @@ export default function Home() {
             alignItems: "center",
             borderColor: "white",
             borderWidth: 3,
-
-            // SOMBRA (iOS y Android)
-            shadowColor: "#000", // Color de la sombra
-            shadowOffset: { width: 0, height: 12 }, // Extiende la sombra hacia abajo
-            shadowOpacity: 0.5, // Opacidad de la sombra
-            shadowRadius: 10, // Hace la sombra más difusa
-            elevation: 20, // Aumenta la sombra en Android
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.5,
+            shadowRadius: 10,
+            elevation: 20,
           }}
         >
           <Text style={{ color: "white", fontSize: 18 }}>
@@ -100,13 +104,11 @@ export default function Home() {
             alignItems: "center",
             borderColor: "white",
             borderWidth: 3,
-
-            // SOMBRA (iOS y Android)
-            shadowColor: "#000", // Color de la sombra
-            shadowOffset: { width: 0, height: 12 }, // Extiende la sombra hacia abajo
-            shadowOpacity: 0.5, // Opacidad de la sombra
-            shadowRadius: 10, // Hace la sombra más difusa
-            elevation: 20, // Aumenta la sombra en Android
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.5,
+            shadowRadius: 10,
+            elevation: 20,
           }}
         >
           <Text style={{ color: "white", fontSize: 18 }}>My Agenda</Text>
@@ -122,13 +124,11 @@ export default function Home() {
             alignItems: "center",
             borderColor: "white",
             borderWidth: 3,
-
-            // SOMBRA (iOS y Android)
-            shadowColor: "#000", // Color de la sombra
-            shadowOffset: { width: 0, height: 12 }, // Extiende la sombra hacia abajo
-            shadowOpacity: 0.5, // Opacidad de la sombra
-            shadowRadius: 10, // Hace la sombra más difusa
-            elevation: 20, // Aumenta la sombra en Android
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.5,
+            shadowRadius: 10,
+            elevation: 20,
           }}
         >
           <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
@@ -137,7 +137,6 @@ export default function Home() {
         </Pressable>
       </View>
 
-      {/* Footer */}
       {/* Footer */}
       <View
         style={{

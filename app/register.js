@@ -12,18 +12,22 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+// Add a second document with a generated ID.
+import { auth, db } from "../firebase/config"; // Asegúrate de la ruta correcta
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { collection, doc, setDoc } from "firebase/firestore";
 
 export default function Register() {
   const router = useRouter();
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    dni: "",
-    phone: "",
-    birthDate: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+    firstName: "David",
+    lastName: "Brea",
+    dni: "11111111A",
+    phone: "111111111",
+    birthDate: "2025-03-03",
+    email: "david@gmail.com",
+    password: "DavidBrea",
+    confirmPassword: "DavidBrea",
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +39,7 @@ export default function Register() {
     setForm({ ...form, [field]: value });
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     const {
       firstName,
       lastName,
@@ -48,23 +52,50 @@ export default function Register() {
     } = form;
 
     if (
-      firstName &&
-      lastName &&
-      dni &&
-      phone &&
-      birthDate &&
-      email &&
-      password &&
-      confirmPassword
+      !firstName ||
+      !lastName ||
+      !dni ||
+      !phone ||
+      !birthDate ||
+      !email ||
+      !password ||
+      !confirmPassword
     ) {
-      if (password !== confirmPassword) {
-        alert("Passwords do not match");
-        return;
-      }
-      alert("Registration Successful");
-      router.replace("employee/home");
-    } else {
       alert("Please fill in all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    try {
+      // ✅ Crear usuario en Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      const user = userCredential.user;
+
+      // ✅ Guardar datos adicionales en Firestore
+      await setDoc(doc(db, "employees", user.uid), {
+        firstName,
+        lastName,
+        dni,
+        phone,
+        birthDate,
+        email,
+        createdAt: new Date(),
+      });
+
+      alert("Registration Successful");
+
+      // ✅ Redirigir a la pantalla de inicio
+      router.replace("/employee/home"); // Asegúrate de que esta ruta exista en tu app
+    } catch (error) {
+      alert(error.message);
     }
   };
 
