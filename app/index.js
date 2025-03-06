@@ -10,7 +10,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { auth } from "../firebase/config"; // Importación de Firebase
+import { doc, getDoc } from "firebase/firestore"; // Importa los métodos para acceder a Firestore
+import { auth, db } from "../firebase/config"; // Importación de Firebase
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function Login() {
@@ -32,8 +33,24 @@ export default function Login() {
         password,
       );
       console.log("Logged in:", userCredential.user);
-      alert("Login Successful");
-      router.replace("employee/home"); // Redirige al home después del login
+
+      // Obtener el rol del usuario desde Firestore
+      const userDocRef = doc(db, "employees", userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userRole = userData.role; // Obtienes el rol del usuario
+
+        // Redirigir según el rol del usuario
+        if (userRole === "admin") {
+          router.replace("/admin/home"); // Redirige a la pantalla de admin
+        } else {
+          router.replace("/employee/home"); // Redirige a la pantalla de empleado
+        }
+      } else {
+        alert("User data not found.");
+      }
     } catch (error) {
       alert("Login Failed: " + error.message);
     }

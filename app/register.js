@@ -83,10 +83,12 @@ export default function Register() {
       await setDoc(doc(db, "employees", user.uid), {
         firstName,
         lastName,
+        role: "employee",
         dni,
         phone,
         birthDate,
         email,
+        companyId: "", // Añade el ID de la empresa si es necesario
         createdAt: new Date(),
       });
 

@@ -6,16 +6,25 @@ import {
   getReactNativePersistence,
 } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  FIREBASE_API_KEY,
+  FIREBASE_AUTH_DOMAIN,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_STORAGE_BUCKET,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_APP_ID,
+  FIREBASE_MEASUREMENT_ID,
+} from "@env";
 
 // Configuración de Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyCSyYP0Al8mbfn3JSAOvq_TFryuEIkO-34",
-  authDomain: "mixlead-e7783.firebaseapp.com",
-  projectId: "mixlead-e7783",
-  storageBucket: "mixlead-e7783.appspot.com",
-  messagingSenderId: "705615556084",
-  appId: "1:705615556084:web:6a3bf1e694b6f7f1189da1",
-  measurementId: "G-YP4RVR5JD5",
+  apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
+  measurementId: FIREBASE_MEASUREMENT_ID,
 };
 
 // Inicializa Firebase

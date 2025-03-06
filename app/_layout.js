@@ -19,9 +19,15 @@ export default function Layout() {
         name="settings/settings-profile"
         options={{ title: "Profile", headerShown: false }} // Sin header en profile
       />
+      // Pantallas de admin
+      <Stack.Screen
+        name="admin/home"
+        options={{ title: "Home Admin", headerShown: false }} // Sin header en home
+      />
+      // Pantallas de empleado
       <Stack.Screen
         name="employee/home"
-        options={{ title: "Home", headerShown: false }} // Sin header en home
+        options={{ title: "Home Employee", headerShown: false }} // Sin header en home
       />
     </Stack>
   );
