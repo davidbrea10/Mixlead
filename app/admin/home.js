@@ -20,6 +20,10 @@ export default function Home() {
     router.push("/admin/settings");
   };
 
+  const handleCompanies = () => {
+    router.push("/admin/companies");
+  };
+
   return (
     <LinearGradient
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
@@ -71,6 +75,7 @@ export default function Home() {
       {/* Main Content */}
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Pressable
+          onPress={handleCompanies}
           style={{
             width: 348,
             height: 76,
@@ -125,7 +130,7 @@ export default function Home() {
             shadowOpacity: 0.5,
             shadowRadius: 10,
             elevation: 20,
-            paddingLeft: 20, // Asegura que el icono no quede pegado al borde
+            paddingLeft: 20,
           }}
         >
           <Image
