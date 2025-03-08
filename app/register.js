@@ -15,7 +15,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 // Add a second document with a generated ID.
 import { auth, db } from "../firebase/config"; // Asegúrate de la ruta correcta
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, doc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function Register() {
   const router = useRouter();

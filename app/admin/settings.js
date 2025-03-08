@@ -10,11 +10,11 @@ export default function Settings() {
   };
 
   const handleHome = () => {
-    router.replace("/employee/home"); // Vuelve al Home reemplazando el Settings
+    router.replace("/admin/home"); // Vuelve al Home reemplazando el Settings
   };
 
   const handleProfile = () => {
-    router.push("/settings/settings-profile"); // Redirige al Profile
+    router.push("/admin/settings-profile"); // Redirige al Profile
   };
 
   return (

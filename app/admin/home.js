@@ -17,7 +17,7 @@ export default function Home() {
   };
 
   const handleSettings = () => {
-    router.push("/settings/settings");
+    router.push("/admin/settings");
   };
 
   return (

@@ -30,7 +30,7 @@ const firebaseConfig = {
 // Inicializa Firebase
 const app = initializeApp(firebaseConfig);
 
-// Inicializa Firebase Auth con persistencia en AsyncStorage
+// Usa AsyncStorage para persistir la autenticación
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
