@@ -44,7 +44,7 @@ export default function CompanyDetailsScreen() {
       }
     };
     fetchCompany();
-  }, [id]);
+  });
 
   const handleInputChange = (field, value) => {
     setCompany({ ...company, [field]: value });

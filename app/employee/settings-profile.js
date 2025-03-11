@@ -38,7 +38,7 @@ export default function Profile() {
     };
 
     fetchUserData();
-  }, []);
+  });
 
   const handleBack = () => {
     router.back();
