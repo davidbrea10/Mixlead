@@ -10,7 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { db } from "../../firebase/config";
-import { doc, setDoc } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function AddCompany() {
@@ -40,25 +40,25 @@ export default function AddCompany() {
   };
 
   const handleRegisterCompany = async () => {
-    const { name, cif, telephone, contactPerson, securityNumber } = form;
+    const { Name, Cif, Telephone, ContactPerson, SecurityNumber } = form;
 
-    if (!name || !cif || !telephone || !contactPerson || !securityNumber) {
+    if (!Name || !Cif || !Telephone || !ContactPerson || !SecurityNumber) {
       alert("Please fill in all fields");
       return;
     }
 
     try {
-      await setDoc(doc(db, "companies", cif), {
-        name,
-        cif,
-        telephone,
-        contactPerson,
-        securityNumber,
+      await addDoc(collection(db, "companies"), {
+        Name,
+        Cif,
+        Telephone,
+        ContactPerson,
+        SecurityNumber,
         createdAt: new Date(),
       });
 
       alert("Company Registered Successfully");
-      router.replace("/company/home");
+      router.replace("/admin/companies");
     } catch (error) {
       alert(error.message);
     }
@@ -157,7 +157,6 @@ export default function AddCompany() {
         </ScrollView>
       </View>
 
-      {/* Footer */}
       <View
         style={{
           backgroundColor: "#006892",
@@ -199,11 +198,6 @@ const styles = {
   input: {
     flex: 1,
     fontSize: 18,
-  },
-  clearButton: {
-    fontSize: 18,
-    color: "red",
-    paddingHorizontal: 10,
   },
   button: {
     width: 366,

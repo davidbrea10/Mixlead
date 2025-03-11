@@ -13,7 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../firebase/config"; // Asegúrate de importar tu configuración de Firebase
+import { db } from "../../firebase/config";
 
 export default function CompaniesScreen() {
   const router = useRouter();
@@ -22,20 +22,22 @@ export default function CompaniesScreen() {
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Función para obtener las empresas desde Firestore
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "companies"));
-        const companyList = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const companyList = querySnapshot.docs.map((doc) => {
+          console.log(doc.data()); // Verificar qué campos se están obteniendo
+          return {
+            id: doc.id,
+            name: doc.data().name || doc.data().Name || "Nombre no disponible",
+          };
+        });
         setCompanies(companyList);
         setFilteredCompanies(companyList);
-        setLoading(false);
       } catch (error) {
         console.error("Error fetching companies:", error);
+      } finally {
         setLoading(false);
       }
     };
@@ -43,25 +45,23 @@ export default function CompaniesScreen() {
     fetchCompanies();
   }, []);
 
-  // Filtrar empresas en tiempo real
   const handleSearch = (text) => {
     setSearchText(text);
-    if (text.trim() === "") {
-      setFilteredCompanies(companies);
-    } else {
-      const filtered = companies.filter((company) =>
-        company.name.toLowerCase().includes(text.toLowerCase()),
-      );
-      setFilteredCompanies(filtered);
-    }
+    const filtered =
+      text.trim() === ""
+        ? companies
+        : companies.filter((company) =>
+            company.name.toLowerCase().includes(text.toLowerCase()),
+          );
+    setFilteredCompanies(filtered);
   };
 
   const handleBack = () => {
-    router.back(); // Vuelve a la pantalla anterior
+    router.replace("/admin/home");
   };
 
   const handleHome = () => {
-    router.replace("/admin/home"); // Vuelve al Home reemplazando el Settings
+    router.replace("/admin/home");
   };
 
   return (
@@ -69,7 +69,6 @@ export default function CompaniesScreen() {
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
       style={{ flex: 1 }}
     >
-      {/* Header */}
       <View
         style={{
           paddingTop: 40,
@@ -113,7 +112,6 @@ export default function CompaniesScreen() {
         </Pressable>
       </View>
 
-      {/* Barra de búsqueda */}
       <View
         style={{
           flexDirection: "row",
@@ -145,7 +143,6 @@ export default function CompaniesScreen() {
         )}
       </View>
 
-      {/* Lista de empresas */}
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -173,19 +170,18 @@ export default function CompaniesScreen() {
                 style={{ width: 40, height: 40, marginRight: 10 }}
               />
               <Text style={{ fontSize: 18, flex: 1, fontWeight: "bold" }}>
-                {item.name}
+                {item.name || "Nombre no disponible"}
               </Text>
             </TouchableOpacity>
           )}
         />
       )}
 
-      {/* Botón flotante para agregar empresa (parte inferior izquierda) */}
       <TouchableOpacity
         style={{
           position: "absolute",
-          bottom: 80, // Se coloca por encima del footer
-          right: 20, // Lo posiciona en la parte inferior izquierda
+          bottom: 80,
+          right: 20,
           backgroundColor: "#006892",
           width: 70,
           height: 70,
@@ -206,7 +202,6 @@ export default function CompaniesScreen() {
         />
       </TouchableOpacity>
 
-      {/* Footer */}
       <View
         style={{
           backgroundColor: "#006892",

@@ -6,16 +6,23 @@ import {
   Pressable,
   ActivityIndicator,
   Image,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../firebase/config";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function CompanyDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const [company, setCompany] = useState(null);
+  const [company, setCompany] = useState({
+    Name: "",
+    Cif: "",
+    Telephone: "",
+    ContactPerson: "",
+    SecurityNumber: "",
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,23 +50,42 @@ export default function CompanyDetailsScreen() {
     setCompany({ ...company, [field]: value });
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
-  const handleHome = () => {
-    router.push("/admin/home");
-  };
-
   const handleSave = async () => {
     try {
       const docRef = doc(db, "companies", id);
       await updateDoc(docRef, company);
       alert("Company updated successfully");
-      router.back();
+      router.push({ pathname: "/admin/companies", params: { refresh: true } });
     } catch (error) {
       alert("Error updating company");
     }
+  };
+
+  const handleDelete = async () => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this company?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const docRef = doc(db, "companies", id);
+              await deleteDoc(docRef);
+              alert("Company deleted successfully");
+              router.push("/admin/home");
+            } catch (error) {
+              alert("Error deleting company");
+            }
+          },
+        },
+      ],
+    );
   };
 
   if (loading) {
@@ -77,7 +103,6 @@ export default function CompanyDetailsScreen() {
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
       style={{ flex: 1 }}
     >
-      {/* Header */}
       <View
         style={{
           paddingTop: 40,
@@ -94,7 +119,7 @@ export default function CompanyDetailsScreen() {
           elevation: 10,
         }}
       >
-        <Pressable onPress={handleBack}>
+        <Pressable onPress={() => router.replace("/admin/companies")}>
           <Image
             source={require("../../../assets/go-back.png")}
             style={{ width: 50, height: 50 }}
@@ -114,7 +139,6 @@ export default function CompanyDetailsScreen() {
           >
             Companies
           </Text>
-
           <Text
             style={{
               fontSize: 24,
@@ -125,10 +149,10 @@ export default function CompanyDetailsScreen() {
               textShadowRadius: 1,
             }}
           >
-            {company?.name || "Company Details"}
+            {company?.Name || "Company Details"}
           </Text>
         </View>
-        <Pressable onPress={handleHome}>
+        <Pressable onPress={() => router.push("/admin/home")}>
           <Image
             source={require("../../../assets/icon.png")}
             style={{ width: 50, height: 50 }}
@@ -136,47 +160,61 @@ export default function CompanyDetailsScreen() {
         </Pressable>
       </View>
 
-      {/* Contenedor principal para formulario */}
       <View style={{ flex: 1, padding: 20 }}>
-        {Object.keys(company).map((key) => (
-          <View key={key} style={{ marginBottom: 15 }}>
-            <Text
-              style={{ fontSize: 18, marginBottom: 5, textTransform: "none" }}
-            >
-              {key.replace(/([A-Z])/g, " $1").trim()}
-            </Text>
-            <TextInput
-              value={company[key]}
-              onChangeText={(text) => handleInputChange(key, text)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                width: "100%",
-                height: 55,
-                borderWidth: 1,
-                borderColor: "#ccc",
-                borderRadius: 10,
-                paddingHorizontal: 10,
-                backgroundColor: "white",
-                fontSize: 18,
-              }}
-            />
-          </View>
-        ))}
-        <Pressable
-          onPress={handleSave}
-          style={{
-            backgroundColor: "#006892",
-            padding: 15,
-            borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "white", fontSize: 18 }}>Save Changes</Text>
-        </Pressable>
+        {["Name", "Cif", "Telephone", "ContactPerson", "SecurityNumber"].map(
+          (key) => (
+            <View key={key} style={{ marginBottom: 15 }}>
+              <Text style={{ fontSize: 18, marginBottom: 5 }}>{key}</Text>
+              <TextInput
+                value={company[key]}
+                onChangeText={(text) => handleInputChange(key, text)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  width: "100%",
+                  height: 55,
+                  borderWidth: 1,
+                  borderColor: "#ccc",
+                  borderRadius: 10,
+                  paddingHorizontal: 10,
+                  backgroundColor: "white",
+                  fontSize: 18,
+                }}
+              />
+            </View>
+          ),
+        )}
+
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Pressable
+            onPress={handleSave}
+            style={{
+              backgroundColor: "#006892",
+              padding: 15,
+              borderRadius: 10,
+              alignItems: "center",
+              flex: 1,
+              marginRight: 10,
+            }}
+          >
+            <Text style={{ color: "white", fontSize: 18 }}>Save Changes</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleDelete}
+            style={{
+              backgroundColor: "#D32F2F",
+              padding: 15,
+              borderRadius: 10,
+              alignItems: "center",
+              flex: 1,
+            }}
+          >
+            <Text style={{ color: "white", fontSize: 18 }}>Delete Company</Text>
+          </Pressable>
+        </View>
       </View>
 
-      {/* Footer (Siempre abajo) */}
       <View
         style={{
           backgroundColor: "#006892",
