@@ -1,17 +1,69 @@
-import { View, Text, Pressable, Image } from "react-native";
+import { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  Image,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase/config";
 
 export default function Profile() {
   const router = useRouter();
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+
+        if (!user) {
+          Alert.alert("Error", "No user is authenticated");
+          return;
+        }
+
+        const docRef = doc(db, "employees", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          setUserData(docSnap.data());
+        } else {
+          Alert.alert("Error", "User data not found");
+        }
+      } catch (error) {
+        Alert.alert("Error fetching user data", error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const handleBack = () => {
-    router.back(); // Vuelve a la pantalla anterior
+    router.back();
   };
 
   const handleHome = () => {
-    router.replace("admin/home"); // Vuelve al Home reemplazando el Profile
+    router.replace("admin/home");
   };
+
+  if (loading) {
+    return (
+      <ActivityIndicator
+        size="large"
+        color="#FF8C00"
+        style={{ marginTop: 20 }}
+      />
+    );
+  }
 
   return (
     <LinearGradient
@@ -66,24 +118,25 @@ export default function Profile() {
 
       {/* Main Content */}
       <View style={{ flex: 1, padding: 20 }}>
-        {[
-          { label: "Name", value: "Name" },
-          { label: "Last Name", value: "Last Name" },
-          { label: "DNI/NIE", value: "DNI/NIE" },
-          { label: "Telephone", value: "telephone" },
-          { label: "Birth", value: "20/01/2020" },
-          { label: "Email", value: "email@gmail.com" },
-        ].map((item, index) => (
-          <View key={index} style={{ marginBottom: 10 }}>
-            <Text style={{ fontSize: 16, fontWeight: "bold" }}>
-              {item.label}
-            </Text>
-            <Text style={{ fontSize: 16, color: "grey", marginBottom: 5 }}>
-              {item.value}
-            </Text>
-            <View style={{ height: 1, backgroundColor: "black" }} />
-          </View>
-        ))}
+        {userData &&
+          [
+            { label: "Name", value: userData.firstName },
+            { label: "Last Name", value: userData.lastName },
+            { label: "DNI/NIE", value: userData.dni },
+            { label: "Telephone", value: userData.phone },
+            { label: "Birth", value: userData.birthDate },
+            { label: "Email", value: userData.email },
+          ].map((item, index) => (
+            <View key={index} style={{ marginBottom: 10 }}>
+              <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                {item.label}
+              </Text>
+              <Text style={{ fontSize: 16, color: "grey", marginBottom: 5 }}>
+                {item.value || "N/A"}
+              </Text>
+              <View style={{ height: 1, backgroundColor: "black" }} />
+            </View>
+          ))}
       </View>
 
       {/* Footer */}

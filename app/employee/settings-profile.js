@@ -1,21 +1,64 @@
-import { View, Text, Pressable, Image } from "react-native";
+import { View, Text, Pressable, Image, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { getAuth } from "firebase/auth";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 export default function Profile() {
   const router = useRouter();
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const auth = getAuth();
+  const db = getFirestore();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const docRef = doc(db, "employees", user.uid);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            setUserData(docSnap.data());
+          } else {
+            setError("No user data found.");
+          }
+        } else {
+          setError("No authenticated user.");
+        }
+      } catch (err) {
+        setError("Error fetching user data: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const handleBack = () => {
-    router.back(); // Vuelve a la pantalla anterior
+    router.back();
+  };
+
+  const handleHome = () => {
+    router.replace("employee/home");
   };
 
   const handleCompany = () => {
     alert("Redirect to Company Screen");
   };
 
-  const handleHome = () => {
-    router.replace("employee/home"); // Vuelve al Home reemplazando el Profile
-  };
+  if (loading) {
+    return <ActivityIndicator size="large" color="#FF9300" />;
+  }
+
+  if (error) {
+    return <Text style={{ color: "red", padding: 20 }}>{error}</Text>;
+  }
 
   return (
     <LinearGradient
@@ -71,14 +114,16 @@ export default function Profile() {
       {/* Main Content */}
       <View style={{ flex: 1, padding: 20 }}>
         {[
-          { label: "Name", value: "Name" },
-          { label: "Last Name", value: "Last Name" },
-          { label: "DNI/NIE", value: "DNI/NIE" },
-          { label: "Telephone", value: "telephone" },
-          { label: "Birth", value: "20/01/2020" },
-          { label: "Email", value: "email@gmail.com" },
-          { label: "Company", value: "Company X" },
-          { label: "Company Code", value: "Company X" },
+          { label: "Name", value: userData?.firstName || "N/A" },
+          { label: "Last Name", value: userData?.lastName || "N/A" },
+          { label: "DNI/NIE", value: userData?.dni || "N/A" },
+          { label: "Telephone", value: userData?.phone || "N/A" },
+          { label: "Birth", value: userData?.birthDate || "N/A" },
+          { label: "Email", value: userData?.email || "N/A" },
+          {
+            label: "Company Code",
+            value: userData?.companyId || "No company assigned",
+          },
         ].map((item, index) => (
           <View key={index} style={{ marginBottom: 10 }}>
             <Text style={{ fontSize: 16, fontWeight: "bold" }}>
@@ -91,13 +136,17 @@ export default function Profile() {
           </View>
         ))}
 
-        {/* Company Question */}
-        <Text style={{ fontSize: 16, fontWeight: "bold", marginTop: 20 }}>
-          ¿You are part of a company?
-        </Text>
-        <Pressable onPress={handleCompany}>
-          <Text style={{ color: "blue", fontSize: 16 }}>Click Here.</Text>
-        </Pressable>
+        {/* Company Question if companyId is empty */}
+        {!userData?.companyId && (
+          <>
+            <Text style={{ fontSize: 16, fontWeight: "bold", marginTop: 20 }}>
+              ¿You are part of a company?
+            </Text>
+            <Pressable onPress={handleCompany}>
+              <Text style={{ color: "blue", fontSize: 16 }}>Click Here.</Text>
+            </Pressable>
+          </>
+        )}
       </View>
 
       {/* Footer */}
