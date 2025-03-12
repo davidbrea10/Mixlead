@@ -24,6 +24,10 @@ export default function Home() {
     router.push("/admin/companies");
   };
 
+  const handleEmployees = () => {
+    router.push("/admin/employees");
+  };
+
   return (
     <LinearGradient
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
@@ -116,6 +120,7 @@ export default function Home() {
         </Pressable>
 
         <Pressable
+          onPress={handleEmployees}
           style={{
             width: 348,
             height: 76,
