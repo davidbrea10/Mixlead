@@ -159,17 +159,27 @@ export default function CompaniesScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: "#CCC",
+                backgroundColor: "rgba(4, 4, 4, 0.6)",
+                borderColor: "white",
+                borderWidth: 2,
                 padding: 15,
                 borderRadius: 10,
                 marginTop: 10,
+                marginHorizontal: 10,
               }}
             >
               <Image
                 source={require("../../assets/radiacion-blanco.png")}
                 style={{ width: 40, height: 40, marginRight: 10 }}
               />
-              <Text style={{ fontSize: 18, flex: 1, fontWeight: "bold" }}>
+              <Text
+                style={{
+                  fontSize: 18,
+                  color: "white",
+                  flex: 1,
+                  fontWeight: "bold",
+                }}
+              >
                 {item.name || "Nombre no disponible"}
               </Text>
             </TouchableOpacity>

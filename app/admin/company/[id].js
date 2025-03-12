@@ -44,7 +44,7 @@ export default function CompanyDetailsScreen() {
       }
     };
     fetchCompany();
-  });
+  }, [id]);
 
   const handleInputChange = (field, value) => {
     setCompany({ ...company, [field]: value });
@@ -177,6 +177,7 @@ export default function CompanyDetailsScreen() {
                   borderColor: "#ccc",
                   borderRadius: 10,
                   paddingHorizontal: 10,
+                  marginBottom: 10,
                   backgroundColor: "white",
                   fontSize: 18,
                 }}
@@ -195,6 +196,15 @@ export default function CompanyDetailsScreen() {
               alignItems: "center",
               flex: 1,
               marginRight: 10,
+
+              // Sombra para iOS
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+
+              // Elevación para Android
+              elevation: 5,
             }}
           >
             <Text style={{ color: "white", fontSize: 18 }}>Save Changes</Text>
@@ -208,6 +218,15 @@ export default function CompanyDetailsScreen() {
               borderRadius: 10,
               alignItems: "center",
               flex: 1,
+
+              // Sombra para iOS
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+
+              // Elevación para Android
+              elevation: 5,
             }}
           >
             <Text style={{ color: "white", fontSize: 18 }}>Delete Company</Text>

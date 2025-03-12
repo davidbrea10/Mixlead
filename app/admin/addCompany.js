@@ -194,6 +194,7 @@ const styles = {
     borderRadius: 10,
     paddingHorizontal: 10,
     backgroundColor: "white",
+    marginBottom: 10,
   },
   input: {
     flex: 1,
@@ -206,6 +207,15 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 10,
-    marginTop: 80,
+    marginTop: 20,
+
+    // Sombra para iOS
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+
+    // Elevación para Android
+    elevation: 5,
   },
 };
