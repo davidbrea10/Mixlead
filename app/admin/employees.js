@@ -75,6 +75,14 @@ export default function EmployeesScreen() {
     fetchData();
   }, []);
 
+  const handleBack = () => {
+    router.replace("/admin/home");
+  };
+
+  const handleHome = () => {
+    router.replace("/admin/home");
+  };
+
   const handleSearch = (text) => {
     setSearchText(text);
     filterEmployees(text, selectedCompany);
@@ -124,16 +132,26 @@ export default function EmployeesScreen() {
           elevation: 10,
         }}
       >
-        <Pressable onPress={() => router.replace("/admin/home")}>
+        <Pressable onPress={handleBack}>
           <Image
             source={require("../../assets/go-back.png")}
             style={{ width: 50, height: 50 }}
           />
         </Pressable>
-        <Text style={{ fontSize: 24, fontWeight: "bold", color: "white" }}>
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: "bold",
+            color: "white",
+            letterSpacing: 2,
+            textShadowColor: "black",
+            textShadowOffset: { width: 1, height: 1 },
+            textShadowRadius: 1,
+          }}
+        >
           Employees
         </Text>
-        <Pressable onPress={() => router.replace("/admin/home")}>
+        <Pressable onPress={handleHome}>
           <Image
             source={require("../../assets/icon.png")}
             style={{ width: 50, height: 50 }}

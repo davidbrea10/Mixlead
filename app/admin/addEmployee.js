@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
@@ -37,6 +38,17 @@ export default function AddEmployee() {
   const [companies, setCompanies] = useState([]);
   const [isCompanyModalVisible, setCompanyModalVisible] = useState(false);
   const [isRoleModalVisible, setRoleModalVisible] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [birthDate, setBirthDate] = useState(new Date());
+
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      setForm({ ...form, birthDate: formattedDate });
+      setBirthDate(selectedDate);
+    }
+  };
 
   const roles = ["admin", "coordinator", "employee"];
 
@@ -68,6 +80,10 @@ export default function AddEmployee() {
     setForm({ ...form, [field]: value });
   };
 
+  const handleClearField = (field) => {
+    setForm({ ...form, [field]: "" });
+  };
+
   const handleCompanySelect = (company) => {
     setForm({
       ...form,
@@ -78,7 +94,7 @@ export default function AddEmployee() {
   };
 
   const handleBack = () => {
-    router.back();
+    router.replace("/admin/employees");
   };
 
   const handleHome = () => {
@@ -192,7 +208,10 @@ export default function AddEmployee() {
             keyboardShouldPersistTaps="handled"
           >
             {Object.entries(form).map(([key, value]) =>
-              key !== "companyId" && key !== "companyName" && key !== "role" ? (
+              key !== "companyId" &&
+              key !== "companyName" &&
+              key !== "role" &&
+              key !== "birthDate" ? ( // Excluir birthDate aquí
                 <View key={key} style={{ width: 366, marginBottom: 15 }}>
                   <Text style={styles.label}>{key}</Text>
                   <View style={styles.inputContainer}>
@@ -202,11 +221,58 @@ export default function AddEmployee() {
                       onChangeText={(text) => handleInputChange(key, text)}
                       style={styles.input}
                     />
+                    {form[key] ? (
+                      <Pressable onPress={() => handleClearField(key)}>
+                        <Ionicons name="close-circle" size={24} color="gray" />
+                      </Pressable>
+                    ) : null}
                   </View>
                 </View>
               ) : null,
             )}
 
+            {/* Birth Date */}
+            <View style={{ width: 366, marginBottom: 15 }}>
+              <Text style={{ fontSize: 18, marginBottom: 5 }}>Birth Date</Text>
+              <View style={{ position: "relative" }}>
+                <TouchableOpacity
+                  onPress={() => setShowDatePicker(true)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#ccc",
+                    borderRadius: 10,
+                    padding: 15,
+                    backgroundColor: "white",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: form.birthDate ? "black" : "gray",
+                      fontSize: 18,
+                    }}
+                  >
+                    {form.birthDate || "Select Birth Date"}
+                  </Text>
+                </TouchableOpacity>
+                {form.birthDate && (
+                  <TouchableOpacity
+                    onPress={() => setForm({ ...form, birthDate: "" })}
+                    style={{ position: "absolute", right: 10, top: 15 }}
+                  >
+                    <Ionicons name="close-circle" size={24} color="gray" />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={birthDate}
+                  mode="date"
+                  display="default"
+                  onChange={onDateChange}
+                  maximumDate={new Date()}
+                />
+              )}
+            </View>
             {/* Role Selection */}
             <Pressable
               onPress={() => setRoleModalVisible(true)}
@@ -343,6 +409,15 @@ const styles = {
     alignItems: "center",
     borderRadius: 10,
     marginTop: 20,
+
+    // Sombra para iOS
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+
+    // Elevación para Android
+    elevation: 5,
   },
   modalContainer: {
     flex: 1,

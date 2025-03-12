@@ -26,13 +26,17 @@ export default function CompaniesScreen() {
     const fetchCompanies = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "companies"));
-        const companyList = querySnapshot.docs.map((doc) => {
-          console.log(doc.data()); // Verificar qué campos se están obteniendo
-          return {
-            id: doc.id,
-            name: doc.data().name || doc.data().Name || "Nombre no disponible",
-          };
-        });
+        const companyList = querySnapshot.docs
+          .map((doc) => {
+            console.log(doc.data()); // Verificar qué campos se están obteniendo
+            return {
+              id: doc.id,
+              name:
+                doc.data().name || doc.data().Name || "Nombre no disponible",
+            };
+          })
+          .sort((a, b) => a.name.localeCompare(b.name)); // Ordenar alfabéticamente
+
         setCompanies(companyList);
         setFilteredCompanies(companyList);
       } catch (error) {
