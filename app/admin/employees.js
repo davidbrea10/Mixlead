@@ -211,7 +211,8 @@ export default function EmployeesScreen() {
           data={filteredEmployees}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View
+            <Pressable
+              onPress={() => router.push(`/admin/employee/${item.id}`)}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -254,7 +255,7 @@ export default function EmployeesScreen() {
                   {item.companyName}
                 </Text>
               </View>
-            </View>
+            </Pressable>
           )}
         />
       )}

@@ -31,8 +31,7 @@ export default function AddEmployee() {
     phone: "",
     role: "",
     birthDate: "",
-    companyId: null,
-    companyName: "",
+    companyId: "",
   });
 
   const [companies, setCompanies] = useState([]);
@@ -88,7 +87,6 @@ export default function AddEmployee() {
     setForm({
       ...form,
       companyId: company.id,
-      companyName: company.id ? company.name : "",
     });
     setCompanyModalVisible(false);
   };
@@ -288,7 +286,8 @@ export default function AddEmployee() {
               style={styles.inputContainer}
             >
               <Text style={styles.input}>
-                {form.companyName || "No company"}
+                {companies.find((c) => c.id === form.companyId)?.name ||
+                  "No company"}
               </Text>
               <Ionicons name="chevron-down" size={24} color="gray" />
             </Pressable>
