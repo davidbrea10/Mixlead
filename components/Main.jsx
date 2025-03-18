@@ -22,7 +22,7 @@ export function Main() {
   return (
     <Screen>
       {games.length === 0 ? (
-        <ActivityIndicator color={"#fff"} size={"large"} />
+        <ActivityIndicator color={"#fff"} size={50} />
       ) : (
         <FlatList
           data={games}

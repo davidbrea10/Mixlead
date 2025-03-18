@@ -57,11 +57,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <ActivityIndicator
-        size="large"
-        color="#FF8C00"
-        style={{ marginTop: 20 }}
-      />
+      <ActivityIndicator size={50} color="#FF8C00" style={{ marginTop: 20 }} />
     );
   }
 

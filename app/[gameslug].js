@@ -30,15 +30,10 @@ export default function Detail() {
       />
       <View>
         {gameInfo === null ? (
-          <ActivityIndicator color={"#fff"} size={"large"} />
+          <ActivityIndicator color={"#fff"} size={50} />
         ) : (
           <ScrollView>
             <View className="justify-center items-center text-center">
-              <Image
-                className="mb-4 rounded"
-                source={{ uri: gameInfo.img }}
-                style={{ width: 214, height: 294 }}
-              />
               <Score score={gameInfo.score} maxScore={100} />
               <Text className="text-white text-center font-bold text-xl">
                 {gameInfo.title}

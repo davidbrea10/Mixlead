@@ -202,7 +202,7 @@ export default function EmployeesScreen() {
 
       {loading ? (
         <ActivityIndicator
-          size="large"
+          size={50}
           color="#FF8C00"
           style={{ marginTop: 20 }}
         />

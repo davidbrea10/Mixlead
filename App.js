@@ -1,24 +1,29 @@
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { Main } from "./components/Main";
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <View style={styles.container}>
-        <StatusBar style="light" />
-        <Main />
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <StatusBar style="light" translucent backgroundColor="transparent" />
+          <Main />
+        </View>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
   container: {
     flex: 1,
-    backgroundColor: "#000",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
