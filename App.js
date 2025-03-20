@@ -1,31 +1,32 @@
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useEffect } from "react";
+import * as NavigationBar from "expo-navigation-bar";
 
 import { Main } from "./components/Main";
 
 export default function App() {
+  useEffect(() => {
+    NavigationBar.setVisibilityAsync("hidden");
+    NavigationBar.setBehaviorAsync("inset-swipe"); // Permite mostrarla con un gesto
+  }, []);
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
-          <StatusBar style="light" translucent backgroundColor="transparent" />
-          <Main />
-        </View>
-      </SafeAreaView>
+      <View style={styles.container}>
+        <StatusBar hidden />
+        <Main />
+      </View>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
   container: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
+    backgroundColor: "#FFFFFF",
   },
 });

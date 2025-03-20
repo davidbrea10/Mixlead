@@ -20,8 +20,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "androidStatusBar": {
+        "backgroundColor": "transparent",
+        "hidden": true
+      },  
       "package": "com.davidbrea_10.mixlead",
-      "newArchEnabled": true
+      "newArchEnabled": true,
+      "systemUiVisibility": "immersive"
     },
     "web": {
       "favicon": "./assets/favicon.png"
