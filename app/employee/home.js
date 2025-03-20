@@ -16,6 +16,10 @@ export default function Home() {
     }
   };
 
+  const handleCalculation = () => {
+    router.push("/employee/calculation");
+  };
+
   const handleSettings = () => {
     router.push("/employee/settings");
   };
@@ -153,6 +157,7 @@ export default function Home() {
         </Pressable>
 
         <Pressable
+          onPress={handleCalculation} // Agrega el evento onPress
           style={{
             width: 348,
             height: 76,
