@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -31,6 +32,17 @@ const OPTIONS = {
   limits: ["1.1µSv/h", "0.5µSv/h"],
 };
 
+const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
+const COLLIMATOR_EFFECT = { "192Ir": 3, "75Se": 12.5, No: 0 };
+const ATTENUATION_COEFFICIENT = {
+  Mixlead: { "192Ir": 0.292, "75Se": 4.0 },
+  Steel: { "192Ir": 0.659, "75Se": 0.864 },
+  Concrete: { "192Ir": 0.16, "75Se": 0.198 },
+  Aluminum: { "192Ir": 0.227, "75Se": 0.281 },
+  Lead: { "192Ir": 0.826, "75Se": 4.57 },
+  Tungsten: { "192Ir": 2.657, "75Se": 6.237 },
+};
+
 export default function Calculation() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -44,6 +56,81 @@ export default function Calculation() {
     limit: "Set Limit dose rate",
   });
 
+  const calculateAndNavigate = () => {
+    if (!form.isotope || !form.activity || !form.material || !form.value) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+
+    const A = parseFloat(form.activity) * 37; // Convertir Ci a GBq
+    const Γ = GAMMA_FACTOR[form.isotope];
+    const Y = form.collimator === "Yes" ? COLLIMATOR_EFFECT[form.isotope] : 0;
+    const T = form.limit === "1.1µSv/h" ? 0.011 : 0.0005;
+    const µ =
+      form.material === "Other"
+        ? parseFloat(form.attenuation)
+        : ATTENUATION_COEFFICIENT[form.material][form.isotope];
+    const inputValue = parseFloat(form.value);
+
+    console.log("A:", A);
+    console.log("Γ:", Γ);
+    console.log("Y:", Y);
+    console.log("T:", T);
+    console.log("µ:", µ);
+    console.log("inputValue:", inputValue);
+    console.log("Type:", form.thicknessOrDistance);
+
+    // Validar que ningún valor sea NaN o indefinido
+    if (
+      isNaN(A) ||
+      isNaN(Γ) ||
+      isNaN(Y) ||
+      isNaN(T) ||
+      isNaN(µ) ||
+      isNaN(inputValue)
+    ) {
+      Alert.alert("Error", "Invalid input values. Please check your inputs.");
+      return;
+    }
+
+    let result;
+
+    if (form.thicknessOrDistance === "Thickness") {
+      result =
+        Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
+        (Math.log(2) / µ) *
+        (1 / inputValue);
+    } else {
+      result =
+        Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
+        (Math.log(2) / µ) *
+        (1 / inputValue);
+    }
+
+    console.log("Result:", result);
+
+    if (isNaN(result)) {
+      Alert.alert("Error", "Calculation resulted in NaN. Please check inputs.");
+      return;
+    }
+
+    router.push({
+      pathname: "employee/calculationSummary",
+      params: {
+        isotope: form.isotope,
+        collimator: form.collimator,
+        value: form.value,
+        activity: form.activity,
+        material: form.material,
+        attenuation: form.attenuation,
+        limit: form.limit,
+        calculationType:
+          form.thicknessOrDistance === "Thickness" ? "distance" : "thickness",
+        result: result.toFixed(3),
+      },
+    });
+  };
+
   const [modal, setModal] = useState({ open: false, field: "", options: [] });
 
   const openModal = (field, options) =>
@@ -55,45 +142,12 @@ export default function Calculation() {
     closeModal();
   };
 
-  const handleInputChange = (field, value) => {
-    setForm({ ...form, [field]: value });
-  };
-
-  const handleClearField = (field) => {
-    setForm({ ...form, [field]: "" });
-  };
-
   const handleBack = () => {
     router.back();
   };
 
   const handleHome = () => {
     router.replace("/employee/home");
-  };
-
-  const handleRegisterCompany = async () => {
-    const { Name, Cif, Telephone, ContactPerson, SecurityNumber } = form;
-
-    if (!Name || !Cif || !Telephone || !ContactPerson || !SecurityNumber) {
-      alert("Please fill in all fields");
-      return;
-    }
-
-    try {
-      await addDoc(collection(db, "companies"), {
-        Name,
-        Cif,
-        Telephone,
-        ContactPerson,
-        SecurityNumber,
-        createdAt: new Date(),
-      });
-
-      alert("Company Registered Successfully");
-      router.replace("/employee/companies");
-    } catch (error) {
-      alert(error.message);
-    }
   };
 
   return (
@@ -253,7 +307,7 @@ export default function Calculation() {
           </View>
 
           {/* Submit Button */}
-          <Pressable style={styles.button}>
+          <Pressable style={styles.button} onPress={calculateAndNavigate}>
             <Text style={{ color: "#FFF", fontSize: 18 }}>
               {form.thicknessOrDistance === "Thickness"
                 ? "Calculate Distance"
