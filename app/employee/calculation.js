@@ -273,27 +273,38 @@ export default function Calculation() {
             />
           </View>
 
-          {/* Material */}
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+          {/* Material y Attenuation Coefficient en una misma fila */}
+          <View
+            style={{ flexDirection: "row", alignItems: "center", width: "93%" }}
+          >
             <Text style={styles.label}>Material:</Text>
+
+            {/* Selector de Material */}
             <Pressable
               onPress={() => openModal("material", OPTIONS.materials)}
-              style={styles.inputContainer}
+              style={[
+                styles.inputContainer,
+                { flex: form.material === "Other" ? 0.6 : 1 },
+              ]}
             >
               <Text style={styles.input}>{form.material}</Text>
             </Pressable>
-          </View>
 
-          {/* Attenuation Coefficient (if 'Other' is selected) */}
-          {form.material === "Other" && (
-            <TextInput
-              style={[styles.inputContainer, styles.input]}
-              placeholder="µ in m^-1"
-              keyboardType="numeric"
-              value={form.attenuation}
-              onChangeText={(text) => setForm({ ...form, attenuation: text })}
-            />
-          )}
+            {/* Campo de atenuación si el material es "Other" */}
+            {form.material === "Other" && (
+              <TextInput
+                style={[
+                  styles.inputContainer,
+                  styles.input,
+                  { flex: 0.4, marginLeft: 10 }, // Espaciado a la derecha
+                ]}
+                placeholder="µ in m^-1"
+                keyboardType="numeric"
+                value={form.attenuation}
+                onChangeText={(text) => setForm({ ...form, attenuation: text })}
+              />
+            )}
+          </View>
 
           {/* T Limit For */}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
