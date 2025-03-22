@@ -13,9 +13,6 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { db } from "../../firebase/config";
-import { collection, addDoc } from "firebase/firestore";
-import { Ionicons } from "@expo/vector-icons";
 
 const OPTIONS = {
   isotopes: ["192Ir", "75Se"],

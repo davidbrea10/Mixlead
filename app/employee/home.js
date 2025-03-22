@@ -16,6 +16,10 @@ export default function Home() {
     }
   };
 
+  const handleInspection = () => {
+    router.push("/employee/inspection");
+  };
+
   const handleCalculation = () => {
     router.push("/employee/calculation");
   };
@@ -75,6 +79,7 @@ export default function Home() {
       {/* Main Content */}
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Pressable
+          onPress={handleInspection}
           style={{
             width: 348,
             height: 76,
