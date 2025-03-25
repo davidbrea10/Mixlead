@@ -14,6 +14,10 @@ export default function CalculationSummary() {
     router.replace("/employee/home");
   };
 
+  const handleInspection = () => {
+    router.push("/employee/inspection");
+  };
+
   // Determinar si el valor ingresado es distancia o espesor
   const isDistance = params.calculationType === "distance"; // Asumiendo que se pasa un tipo de cálculo
 
@@ -138,7 +142,7 @@ export default function CalculationSummary() {
             }}
           >
             <Pressable
-              onPress={() => router.handleInspection()}
+              onPress={handleInspection}
               style={styles.inspectionButton}
             >
               <Text style={{ color: "#fff", fontSize: 19 }}>

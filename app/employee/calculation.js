@@ -26,7 +26,7 @@ const OPTIONS = {
     "Tungsten",
     "Other",
   ],
-  limits: ["1.1µSv/h", "0.5µSv/h"],
+  limits: ["11µSv/h", "0.5µSv/h"],
 };
 
 const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
@@ -62,7 +62,7 @@ export default function Calculation() {
     const A = parseFloat(form.activity) * 37; // Convertir Ci a GBq
     const Γ = GAMMA_FACTOR[form.isotope];
     const Y = form.collimator === "Yes" ? COLLIMATOR_EFFECT[form.isotope] : 0;
-    const T = form.limit === "1.1µSv/h" ? 0.011 : 0.0005;
+    const T = form.limit === "11µSv/h" ? 0.011 : 0.0005;
     const µ =
       form.material === "Other"
         ? parseFloat(form.attenuation)
@@ -214,6 +214,18 @@ export default function Calculation() {
             </Pressable>
           </View>
 
+          {/* Activity */}
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            <Text style={styles.label}>Activity:</Text>
+            <TextInput
+              style={[styles.inputContainer, styles.input]}
+              placeholder="Value of Ci"
+              keyboardType="numeric"
+              value={form.activity}
+              onChangeText={(text) => setForm({ ...form, activity: text })}
+            />
+          </View>
+
           {/* Collimator */}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             <Text style={styles.label}>Collimator:</Text>
@@ -225,49 +237,15 @@ export default function Calculation() {
             </Pressable>
           </View>
 
-          {/* Thickness / Distance Switch */}
-          <View
-            style={{
-              width: "93%",
-              flexDirection: "row",
-              justifyContent: "center",
-            }}
-          >
-            <Pressable
-              onPress={() =>
-                setForm({
-                  ...form,
-                  thicknessOrDistance:
-                    form.thicknessOrDistance === "Thickness"
-                      ? "Distance"
-                      : "Thickness",
-                })
-              }
-              style={styles.switchButton}
-            >
-              <Text style={styles.label}>{form.thicknessOrDistance}</Text>
-            </Pressable>
-
-            {/* Value Input */}
-            <TextInput
-              style={[styles.inputContainer, styles.input]}
-              placeholder={`Value in ${form.thicknessOrDistance === "Thickness" ? "mm" : "m"}`}
-              keyboardType="numeric"
-              value={form.value}
-              onChangeText={(text) => setForm({ ...form, value: text })}
-            />
-          </View>
-
-          {/* Activity */}
+          {/* T Limit For */}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.label}>Activity:</Text>
-            <TextInput
-              style={[styles.inputContainer, styles.input]}
-              placeholder="Value of Ci"
-              keyboardType="numeric"
-              value={form.activity}
-              onChangeText={(text) => setForm({ ...form, activity: text })}
-            />
+            <Text style={styles.label}>T Limit For:</Text>
+            <Pressable
+              onPress={() => openModal("limit", OPTIONS.limits)}
+              style={styles.inputContainer}
+            >
+              <Text style={styles.input}>{form.limit}</Text>
+            </Pressable>
           </View>
 
           {/* Material y Attenuation Coefficient en una misma fila */}
@@ -303,15 +281,37 @@ export default function Calculation() {
             )}
           </View>
 
-          {/* T Limit For */}
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.label}>T Limit For:</Text>
+          {/* Thickness / Distance Switch */}
+          <View
+            style={{
+              width: "93%",
+              flexDirection: "row",
+              justifyContent: "center",
+            }}
+          >
             <Pressable
-              onPress={() => openModal("limit", OPTIONS.limits)}
-              style={styles.inputContainer}
+              onPress={() =>
+                setForm({
+                  ...form,
+                  thicknessOrDistance:
+                    form.thicknessOrDistance === "Thickness"
+                      ? "Distance"
+                      : "Thickness",
+                })
+              }
+              style={styles.switchButton}
             >
-              <Text style={styles.input}>{form.limit}</Text>
+              <Text style={styles.label}>{form.thicknessOrDistance}</Text>
             </Pressable>
+
+            {/* Value Input */}
+            <TextInput
+              style={[styles.inputContainer, styles.input]}
+              placeholder={`Value in ${form.thicknessOrDistance === "Thickness" ? "mm" : "m"}`}
+              keyboardType="numeric"
+              value={form.value}
+              onChangeText={(text) => setForm({ ...form, value: text })}
+            />
           </View>
 
           {/* Submit Button */}

@@ -7,29 +7,20 @@ import { signOut } from "firebase/auth";
 export default function Home() {
   const router = useRouter();
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth); // Cierra sesión en Firebase
-      router.replace("/"); // Redirige al login
-    } catch (error) {
-      alert("Error logging out: " + error.message);
-    }
+  const handleBack = () => {
+    router.back();
   };
 
-  const handleMyAgenda = () => {
-    router.push("/employee/myAgenda");
+  const handleHome = () => {
+    router.replace("/employee/home");
   };
 
-  const handleInspection = () => {
-    router.push("/employee/inspection");
+  const handleDoseData = () => {
+    router.push("/employee/doseData");
   };
 
-  const handleCalculation = () => {
-    router.push("/employee/calculation");
-  };
-
-  const handleSettings = () => {
-    router.push("/employee/settings");
+  const handleDataManually = () => {
+    router.push("/employee/dataManually");
   };
 
   return (
@@ -43,7 +34,6 @@ export default function Home() {
           paddingTop: 40,
           backgroundColor: "#FF9300",
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           padding: 16,
           borderBottomStartRadius: 40,
@@ -52,29 +42,37 @@ export default function Home() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
+          marginBottom: 20,
         }}
       >
-        <Image
-          source={require("../../assets/icon.png")}
-          style={{ width: 50, height: 50 }}
-        />
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: "bold",
-            color: "white",
-            letterSpacing: 2,
-            textShadowColor: "black",
-            textShadowOffset: { width: 1, height: 1 },
-            textShadowRadius: 1,
-          }}
-        >
-          HOME
-        </Text>
-
-        <Pressable onPress={handleLogout}>
+        <Pressable onPress={handleBack}>
           <Image
-            source={require("../../assets/logout.png")}
+            source={require("../../assets/go-back.png")}
+            style={{ width: 50, height: 50 }}
+          />
+        </Pressable>
+
+        {/* Contenedor centrado */}
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <Text
+            style={{
+              fontSize: 24,
+              fontWeight: "bold",
+              color: "white",
+              textAlign: "center",
+              letterSpacing: 2,
+              textShadowColor: "black",
+              textShadowOffset: { width: 1, height: 1 },
+              textShadowRadius: 1,
+            }}
+          >
+            My Agenda
+          </Text>
+        </View>
+
+        <Pressable onPress={handleHome}>
+          <Image
+            source={require("../../assets/icon.png")}
             style={{ width: 50, height: 50 }}
           />
         </Pressable>
@@ -83,7 +81,7 @@ export default function Home() {
       {/* Main Content */}
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Pressable
-          onPress={handleInspection}
+          onPress={handleDoseData}
           style={{
             width: 348,
             height: 76,
@@ -119,13 +117,13 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              Perform Inspection
+              Dose Data
             </Text>
           </View>
         </Pressable>
 
         <Pressable
-          onPress={handleMyAgenda} // Agrega el evento onPress
+          onPress={handleDataManually} // Agrega el evento onPress
           style={{
             width: 348,
             height: 76,
@@ -161,47 +159,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              My Agenda
-            </Text>
-          </View>
-        </Pressable>
-
-        <Pressable
-          onPress={handleCalculation} // Agrega el evento onPress
-          style={{
-            width: 348,
-            height: 76,
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "rgba(4, 4, 4, 0.6)",
-            borderRadius: 50,
-            borderColor: "white",
-            borderWidth: 3,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.5,
-            shadowRadius: 10,
-            elevation: 20,
-            paddingLeft: 20, // Asegura espacio suficiente para el icono
-          }}
-        >
-          <Image
-            source={require("../../assets/calculation.png")}
-            style={{
-              width: 40,
-              height: 40,
-            }}
-          />
-          <View style={{ flex: 1, alignItems: "center" }}>
-            <Text
-              style={{
-                color: "white",
-                fontSize: 18,
-                textAlign: "center",
-                paddingHorizontal: 10, // Evita que el texto toque los bordes
-              }}
-            >
-              Calculation of Necessary Distance/Thickness
+              Add Today's Data Manually
             </Text>
           </View>
         </Pressable>
@@ -211,7 +169,7 @@ export default function Home() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 16,
+          padding: 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",
@@ -220,14 +178,7 @@ export default function Home() {
           shadowRadius: 10,
           elevation: 10,
         }}
-      >
-        <Pressable onPress={handleSettings}>
-          <Image
-            source={require("../../assets/gear-icon.png")}
-            style={{ width: 50, height: 50 }}
-          />
-        </Pressable>
-      </View>
+      ></View>
     </LinearGradient>
   );
 }
