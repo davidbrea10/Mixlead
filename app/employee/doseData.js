@@ -3,40 +3,24 @@ import {
   Text,
   Pressable,
   Image,
-  TextInput,
   TouchableOpacity,
-  Modal,
-  Alert,
-  TouchableWithoutFeedback,
-  Keyboard,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { db, auth } from "../../firebase/config";
-import {
-  collection,
-  doc,
-  addDoc,
-  getDocs,
-  getDoc,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
+import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 
 export default function Home() {
   const router = useRouter();
 
-  const [doses, setDoses] = useState([]);
-  const [exposures, setExposures] = useState([]);
-  const [exposureCount, setExposureCount] = useState(1);
-  const [currentDoseId, setCurrentDoseId] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [dose, setDose] = useState("");
-  const [modifiedExposureCount, setModifiedExposureCount] =
-    useState(exposureCount);
-  const [totalTime, setTotalTime] = useState(0);
-  const [totalExposures, setTotalExposures] = useState(0);
+  const [monthlyDoses, setMonthlyDoses] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState([]);
+  const [totalAnnualDose, setTotalAnnualDose] = useState(0);
 
   const handleBack = () => {
     router.back();
@@ -46,166 +30,77 @@ export default function Home() {
     router.replace("/employee/home");
   };
 
-  const handleDoseData = () => {
-    router.push("/employee/doseData");
-  };
-
-  const handleSaveDose = async () => {
-    if (
-      !dose.trim() || // Evita valores vacíos
-      isNaN(parseFloat(dose)) ||
-      parseFloat(dose) <= 0 ||
-      isNaN(parseInt(totalExposures, 10)) ||
-      parseInt(totalExposures, 10) <= 0 ||
-      isNaN(parseInt(totalTime, 10)) ||
-      parseInt(totalTime, 10) <= 0
-    ) {
-      Alert.alert("Error", "All fields must be filled and greater than zero.");
-      return;
-    }
-
-    const user = auth.currentUser;
-    if (!user) {
-      Alert.alert("Error", "User not authenticated.");
-      return;
-    }
-
-    try {
-      const today = new Date();
-      const day = today.getDate();
-      const month = today.getMonth() + 1;
-      const year = today.getFullYear();
-
-      const doseRef = doc(db, "employees", user.uid, "doses", currentDoseId);
-      const doseSnap = await getDoc(doseRef);
-
-      const saveData = async () => {
-        await setDoc(doseRef, {
-          dose: parseFloat(dose),
-          totalExposures: parseInt(totalExposures, 10),
-          totalTime: parseInt(totalTime, 10),
-          day,
-          month,
-          year,
-          timestamp: serverTimestamp(),
-        });
-
-        Alert.alert("Success", "Dose data has been saved.");
-        setModalVisible(false);
-      };
-
-      if (doseSnap.exists()) {
-        const existingData = doseSnap.data();
-
-        // Si la dosis guardada en el día es 0, preguntar antes de sobrescribir
-        if (
-          existingData.day === day &&
-          existingData.month === month &&
-          existingData.year === year &&
-          existingData.dose !== 0
-        ) {
-          Alert.alert(
-            "Confirm Replacement",
-            "There's already a dose you were receiving today. Do you want to replace it?",
-            [
-              { text: "Cancel", style: "cancel" },
-              { text: "Replace", onPress: saveData },
-            ],
-          );
-        } else {
-          // Si la dosis no es 0 o es de otro día, guardar directamente
-          await saveData();
-        }
-      } else {
-        // No existe ningún dato previo, guardar directamente
-        await saveData();
-      }
-    } catch (error) {
-      console.error("❌ Error saving dose data:", error);
-      Alert.alert("Error", "Could not save the dose data.");
-    }
-  };
-
-  const loadCurrentDose = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-    const day = today.getDate();
-
-    const dosesRef = collection(db, "employees", user.uid, "doses");
-    const snapshot = await getDocs(dosesRef);
-    let existingDose = null;
-
-    for (const docSnap of snapshot.docs) {
-      const data = docSnap.data();
-      if (data.year === year && data.month === month && data.day === day) {
-        existingDose = { id: docSnap.id, ...data };
-      }
-    }
-
-    if (existingDose) {
-      setCurrentDoseId(existingDose.id);
-      setTotalExposures(existingDose.totalExposures || 0);
-      setExposureCount((existingDose.totalExposures || 0) + 1); // Ajustar exposición al siguiente número
-      await loadExposures(existingDose.id);
-    } else {
-      const newDoseRef = await addDoc(dosesRef, {
-        year,
-        month,
-        day,
-        totalTime: 0,
-        totalExposures: 0,
-        dose: 0,
-        createdAt: serverTimestamp(),
-      });
-      setCurrentDoseId(newDoseRef.id);
-      setTotalExposures(0);
-      setExposureCount(1); // Empezar en 1 si no hay exposiciones previas
-    }
-  };
-
-  const loadExposures = async (doseId) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const exposuresRef = collection(
-      db,
-      "employees",
-      user.uid,
-      "doses",
-      doseId,
-      "exposures",
-    );
-    const snapshot = await getDocs(exposuresRef);
-
-    let totalExposures = 0;
-    let totalTime = 0;
-    let exposuresList = [];
-
-    snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      exposuresList.push({
-        id: docSnap.id, // 🔥 Agregar el id del documento
-        ...data,
-      });
-      totalExposures += 1;
-      totalTime += data.time;
-    });
-
-    setExposures(exposuresList);
-    setTotalExposures(totalExposures);
-    setTotalTime(totalTime);
-
-    // 📌 Ajustar el número de exposición
-    setExposureCount(totalExposures + 1);
-  };
+  useEffect(() => {
+    loadMonthlyDoses();
+  }, []);
 
   useEffect(() => {
-    loadCurrentDose();
-  }, []);
+    calculateTotalAnnualDose();
+  }, [monthlyDoses, selectedYear]);
+
+  const loadMonthlyDoses = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const dosesRef = collection(db, "employees", user.uid, "doses");
+      const snapshot = await getDocs(dosesRef);
+
+      let doseData = {};
+      let yearsSet = new Set();
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.dose && data.month && data.year) {
+          yearsSet.add(data.year);
+          const key = `${data.year}-${data.month}`;
+          if (!doseData[key]) {
+            doseData[key] = {
+              totalDose: 0,
+              month: data.month,
+              year: data.year,
+            };
+          }
+          doseData[key].totalDose += data.dose;
+        }
+      });
+
+      console.log("Years set:", yearsSet); // <-- Añadido para depurar los años
+
+      setAvailableYears([...yearsSet].sort((a, b) => a - b));
+      setMonthlyDoses(Object.values(doseData));
+    } catch (error) {
+      console.error("Error loading monthly doses:", error);
+    }
+  };
+
+  const calculateTotalAnnualDose = () => {
+    const total = monthlyDoses
+      .filter((item) => item.year === selectedYear)
+      .reduce((sum, item) => sum + item.totalDose, 0);
+    setTotalAnnualDose(total);
+  };
+
+  const handleViewDetails = (month, year) => {
+    router.push(`/employee/doseDetails?month=${month}&year=${year}`);
+  };
+
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  console.log("📊 monthlyDoses:", monthlyDoses);
 
   return (
     <LinearGradient
@@ -270,9 +165,110 @@ export default function Home() {
       </View>
 
       {/* Main Content */}
+      <View style={{ padding: 16 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "#fff",
+            borderWidth: 1,
+            borderColor: "#ddd",
+            borderRadius: 5,
+            paddingHorizontal: 10,
+          }}
+        >
+          <Text style={{ fontSize: 20, fontWeight: "bold", marginRight: 10 }}>
+            Select Year
+          </Text>
+          <Picker
+            selectedValue={selectedYear}
+            onValueChange={(itemValue) => setSelectedYear(itemValue)}
+            style={{ flex: 1, marginLeft: 70 }}
+          >
+            {availableYears.map((year) => (
+              <Picker.Item
+                key={year}
+                label={year.toString()}
+                value={year}
+                style={{ textAlign: "right", fontSize: 20 }} // Alinea el texto a la derecha
+              />
+            ))}
+          </Picker>
+        </View>
+      </View>
+      {/* Cabecera de la tabla */}
+      <ScrollView style={{ borderRadius: 10, minWidth: "100%" }}>
+        {/* Cabecera de la tabla */}
+        <View style={[styles.row, styles.headerRow]}>
+          <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
+            Dose
+          </Text>
+          <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
+            Month
+          </Text>
+          <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
+        </View>
+
+        {/* Datos */}
+        {monthlyDoses
+          .filter((item) => item.year === selectedYear)
+          .sort((a, b) => a.month - b.month).length === 0 ? ( // Ordenar por mes de enero a diciembre
+          <Text style={{ textAlign: "center", fontSize: 16, color: "#666" }}>
+            No dose data available for {selectedYear}.
+          </Text>
+        ) : (
+          monthlyDoses
+            .filter((item) => item.year === selectedYear)
+            .sort((a, b) => a.month - b.month) // Ordenar por mes de enero a diciembre
+            .map((item, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.row,
+                  { backgroundColor: index % 2 === 0 ? "#fff" : "#f9f9f9" },
+                ]}
+              >
+                <Text style={[styles.cell, styles.cellBorder, { flex: 1 }]}>
+                  {item.totalDose.toFixed(2)} μSv
+                </Text>
+                <Text style={[styles.cell, styles.cellBorder, { flex: 1 }]}>
+                  {item.month ? monthNames[item.month - 1] : "Unknown"}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.cell, styles.eyeButton, { flex: 0.5 }]}
+                  onPress={() => handleViewDetails(item.month, item.year)}
+                >
+                  <Ionicons name="eye" size={22} color="#007AFF" />
+                </TouchableOpacity>
+              </View>
+            ))
+        )}
+      </ScrollView>
+
+      {/* Equivalente dosis anual */}
       <View
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-      ></View>
+        style={{
+          flexDirection: "column",
+          alignItems: "center",
+          marginBottom: 20,
+        }}
+      >
+        <View style={styles.annualDoseContainer}>
+          <View style={{ flex: 1, marginRight: 10 }}>
+            <Text style={styles.annualDoseText}>
+              Equivalent dose data from annual report:
+            </Text>
+          </View>
+          <View style={styles.annualDoseContainerText}>
+            <Text style={styles.annualDoseValue}>
+              {totalAnnualDose.toFixed(2)} μSv
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity style={styles.downloadButton} onPress={() => {}}>
+          <Text style={styles.downloadButtonText}>Download Annual Data</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Footer */}
       <View
@@ -293,6 +289,69 @@ export default function Home() {
 }
 
 const styles = {
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 2,
+    borderColor: "#ddd",
+  },
+  headerRow: {
+    backgroundColor: "white",
+    borderBottomWidth: 2,
+    borderColor: "#ddd",
+  },
+  headerCell: {
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#333",
+    paddingVertical: 12,
+  },
+  cell: {
+    fontSize: 20,
+    textAlign: "center",
+    paddingVertical: 12,
+    color: "#444",
+  },
+  cellBorder: {
+    borderRightWidth: 1,
+    borderColor: "#ddd",
+  },
+  eyeButton: {
+    alignItems: "center",
+  },
+  noDataText: {
+    textAlign: "center",
+    fontSize: 20,
+    color: "#666",
+    marginTop: 20,
+  },
+  annualDoseContainer: {
+    flexDirection: "row", // Cambiado de "row" a "column"
+    justifyContent: "center", // Cambiado de "space-between" a "center"
+    alignItems: "center", // Añadido para centrar el contenido
+    padding: 16,
+  },
+  annualDoseContainerText: {
+    justifyContent: "center", // Cambiado de "space-between" a "center"
+    alignItems: "center", // Añadido para centrar el contenido
+    padding: 8,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 20,
+  },
+  annualDoseText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center", // Añadido para centrar el texto
+  },
+  annualDoseValue: {
+    fontSize: 18,
+    color: "#000000",
+    textAlign: "center", // Añadido para centrar el texto
+    backgroundColor: "#fff",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -340,6 +399,17 @@ const styles = {
   buttonText: {
     color: "white",
     fontSize: 16,
+    textAlign: "center",
+  },
+  downloadButton: {
+    width: "60%",
+    backgroundColor: "#C32427",
+    padding: 15,
+    borderRadius: 5,
+  },
+  downloadButtonText: {
+    color: "white",
+    fontSize: 20,
     textAlign: "center",
   },
 };
