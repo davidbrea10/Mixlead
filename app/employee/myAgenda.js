@@ -305,14 +305,14 @@ export default function Home() {
                     style={[styles.cancelButton, { flex: 1, marginRight: 5 }]}
                     onPress={() => setModalVisible(false)}
                   >
-                    <Text style={styles.buttonText}>Continue Inspection</Text>
+                    <Text style={styles.buttonText}>Cancel</Text>
                   </Pressable>
 
                   <TouchableOpacity
                     style={[styles.modalButton, { flex: 1, marginLeft: 5 }]}
                     onPress={handleSaveDose}
                   >
-                    <Text style={styles.buttonText}>Finish Inspection</Text>
+                    <Text style={styles.buttonText}>Save Dose</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -342,7 +342,7 @@ export default function Home() {
           }}
         >
           <Image
-            source={require("../../assets/radiacion-blanco.png")}
+            source={require("../../assets/doseData.png")}
             style={{
               width: 40,
               height: 40,
@@ -384,7 +384,7 @@ export default function Home() {
           }}
         >
           <Image
-            source={require("../../assets/myAgenda.png")}
+            source={require("../../assets/addDoseManually.png")}
             style={{
               width: 40,
               height: 40,
@@ -444,12 +444,12 @@ const styles = {
   },
   input: {
     width: "100%",
-    height: 40,
     borderWidth: 1,
     borderColor: "gray",
     borderRadius: 5,
-    paddingHorizontal: 10,
-    marginTop: 5,
+    padding: 10,
+    marginTop: 10,
+    fontSize: 16,
   },
   buttonContainer: {
     flexDirection: "row",
@@ -458,13 +458,15 @@ const styles = {
   },
   cancelButton: {
     backgroundColor: "gray",
-    padding: 10,
+    padding: 15,
     borderRadius: 5,
+    marginTop: 10,
   },
   modalButton: {
     backgroundColor: "#006892",
-    padding: 10,
+    padding: 15,
     borderRadius: 5,
+    marginTop: 10,
   },
   buttonText: {
     color: "white",
