@@ -201,18 +201,17 @@ export default function Home() {
         </View>
       </View>
       {/* Cabecera de la tabla */}
+      <View style={[styles.row, styles.headerRow]}>
+        <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
+          Dose
+        </Text>
+        <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
+          Month
+        </Text>
+        <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
+      </View>
+      {/* Cabecera de la tabla */}
       <ScrollView style={{ borderRadius: 10, minWidth: "100%" }}>
-        {/* Cabecera de la tabla */}
-        <View style={[styles.row, styles.headerRow]}>
-          <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-            Dose
-          </Text>
-          <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-            Month
-          </Text>
-          <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
-        </View>
-
         {/* Datos */}
         {monthlyDoses
           .filter((item) => item.year === selectedYear)

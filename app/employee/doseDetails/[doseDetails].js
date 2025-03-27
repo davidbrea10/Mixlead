@@ -101,6 +101,15 @@ export default function DoseDetails() {
     return dailyDoses.reduce((total, item) => total + item.dose, 0);
   };
 
+  const formatTime = (totalSeconds) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
   return (
     <LinearGradient
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
@@ -164,18 +173,17 @@ export default function DoseDetails() {
       </View>
 
       {/* Main Content */}
+      {/* Cabecera de la tabla */}
+      <View style={[styles.row, styles.headerRow]}>
+        <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
+          Dose
+        </Text>
+        <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
+          Date
+        </Text>
+        <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
+      </View>
       <ScrollView style={{ borderRadius: 10, minWidth: "100%" }}>
-        {/* Cabecera de la tabla */}
-        <View style={[styles.row, styles.headerRow]}>
-          <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-            Dose
-          </Text>
-          <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-            Date
-          </Text>
-          <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
-        </View>
-
         {/* Datos */}
         {dailyDoses.length === 0 ? (
           <Text style={{ textAlign: "center", fontSize: 16, color: "#666" }}>
@@ -210,7 +218,7 @@ export default function DoseDetails() {
               {expandedRows[index] && (
                 <View style={[styles.expandedRow]}>
                   <Text style={[styles.expandedText, { marginBottom: 10 }]}>
-                    Total Time: {item.totalTime}
+                    Total Time: {formatTime(item.totalTime)}
                   </Text>
                   <Text style={styles.expandedText}>
                     Total Exposures: {item.totalExposures}
