@@ -177,11 +177,17 @@ export default function Home() {
             backgroundColor: "#fff",
             borderWidth: 1,
             borderColor: "#ddd",
-            borderRadius: 5,
+            borderRadius: 20,
             paddingHorizontal: 10,
           }}
         >
-          <Text style={{ fontSize: 20, fontWeight: "bold", marginRight: 10 }}>
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "bold",
+              marginRight: 10,
+            }}
+          >
             Select Year
           </Text>
           <Picker
@@ -211,7 +217,7 @@ export default function Home() {
         <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
       </View>
       {/* Cabecera de la tabla */}
-      <ScrollView style={{ borderRadius: 10, minWidth: "100%" }}>
+      <ScrollView style={{ minWidth: "100%" }}>
         {/* Datos */}
         {monthlyDoses
           .filter((item) => item.year === selectedYear)

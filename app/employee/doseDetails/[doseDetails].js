@@ -183,7 +183,7 @@ export default function DoseDetails() {
         </Text>
         <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
       </View>
-      <ScrollView style={{ borderRadius: 10, minWidth: "100%" }}>
+      <ScrollView style={{ minWidth: "100%" }}>
         {/* Datos */}
         {dailyDoses.length === 0 ? (
           <Text style={{ textAlign: "center", fontSize: 16, color: "#666" }}>
