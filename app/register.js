@@ -20,14 +20,14 @@ import { doc, setDoc } from "firebase/firestore";
 export default function Register() {
   const router = useRouter();
   const [form, setForm] = useState({
-    firstName: "David",
-    lastName: "Brea",
-    dni: "11111111A",
-    phone: "111111111",
-    birthDate: "2025-03-03",
-    email: "david@gmail.com",
-    password: "DavidBrea",
-    confirmPassword: "DavidBrea",
+    firstName: "",
+    lastName: "",
+    dni: "",
+    phone: "",
+    birthDate: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);

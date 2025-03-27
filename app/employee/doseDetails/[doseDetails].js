@@ -1,93 +1,26 @@
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  Pressable,
-  Image,
   TouchableOpacity,
   ScrollView,
+  StyleSheet,
+  Pressable,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
-import { db, auth } from "../../firebase/config";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { db, auth } from "../../../firebase/config";
 import { collection, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
 
-export default function Home() {
+export default function DoseDetails() {
   const router = useRouter();
-
-  const [monthlyDoses, setMonthlyDoses] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [availableYears, setAvailableYears] = useState([]);
-  const [totalAnnualDose, setTotalAnnualDose] = useState(0);
-
-  const handleBack = () => {
-    router.back();
-  };
-
-  const handleHome = () => {
-    router.replace("/employee/home");
-  };
-
-  useEffect(() => {
-    loadMonthlyDoses();
-  }, []);
-
-  useEffect(() => {
-    calculateTotalAnnualDose();
-  }, [monthlyDoses, selectedYear]);
-
-  const loadMonthlyDoses = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    try {
-      const dosesRef = collection(db, "employees", user.uid, "doses");
-      const snapshot = await getDocs(dosesRef);
-
-      let doseData = {};
-      let yearsSet = new Set();
-
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.dose && data.month && data.year) {
-          yearsSet.add(data.year);
-          const key = `${data.year}-${data.month}`;
-          if (!doseData[key]) {
-            doseData[key] = {
-              totalDose: 0,
-              month: data.month,
-              year: data.year,
-            };
-          }
-          doseData[key].totalDose += data.dose;
-        }
-      });
-
-      console.log("Years set:", yearsSet); // <-- Añadido para depurar los años
-
-      setAvailableYears([...yearsSet].sort((a, b) => a - b));
-      setMonthlyDoses(Object.values(doseData));
-    } catch (error) {
-      console.error("Error loading monthly doses:", error);
-    }
-  };
-
-  const calculateTotalAnnualDose = () => {
-    const total = monthlyDoses
-      .filter((item) => item.year === selectedYear)
-      .reduce((sum, item) => sum + item.totalDose, 0);
-    setTotalAnnualDose(total);
-  };
-
-  const handleViewDetails = (month, year) => {
-    console.log("📅 Viewing details for:", { month, year });
-    router.push({
-      pathname: "/employee/doseDetails/[doseDetails]",
-      params: { month: month.toString(), year: year.toString() },
-    });
-  };
+  const { month, year } = useLocalSearchParams();
+  const parsedMonth = parseInt(month, 10);
+  const parsedYear = parseInt(year, 10);
+  const [dailyDoses, setDailyDoses] = useState([]);
+  const [expandedRows, setExpandedRows] = useState({});
 
   const monthNames = [
     "January",
@@ -104,7 +37,69 @@ export default function Home() {
     "December",
   ];
 
-  console.log("📊 monthlyDoses:", monthlyDoses);
+  useEffect(() => {
+    loadDailyDoses();
+  }, [month, year]);
+
+  const loadDailyDoses = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const dosesRef = collection(db, "employees", user.uid, "doses");
+      const snapshot = await getDocs(dosesRef);
+
+      let doseData = [];
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        console.log("Raw data:", data); // Muestra los datos sin modificaciones
+
+        console.log(
+          `Comparing: month=${data.month} (${typeof data.month}) vs ${month} (${typeof month}), 
+           year=${data.year} (${typeof data.year}) vs ${year} (${typeof year})`,
+        );
+
+        if (
+          data.dose &&
+          data.day &&
+          parseInt(data.month) === parsedMonth &&
+          parseInt(data.year) === parsedYear
+        ) {
+          doseData.push({
+            dose: data.dose,
+            day: data.day,
+            month: data.month,
+            year: data.year,
+            totalTime: data.totalTime,
+            totalExposures: data.totalExposures,
+          });
+        }
+      });
+
+      doseData.sort((a, b) => a.day - b.day); // Ordena los datos por día
+
+      console.log(doseData);
+      setDailyDoses(doseData);
+    } catch (error) {
+      console.error("Error loading daily doses:", error);
+    }
+  };
+
+  const handleExpandRow = (index) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  const formatDate = (day, month, year) => {
+    return `${day.toString().padStart(2, "0")}/${month.toString().padStart(2, "0")}/${year}`;
+  };
+
+  const totalMonthlyDose = () => {
+    return dailyDoses.reduce((total, item) => total + item.dose, 0);
+  };
 
   return (
     <LinearGradient
@@ -127,9 +122,9 @@ export default function Home() {
           elevation: 10,
         }}
       >
-        <Pressable onPress={handleBack}>
+        <Pressable onPress={() => router.back()}>
           <Image
-            source={require("../../assets/go-back.png")}
+            source={require("../../../assets/go-back.png")}
             style={{ width: 50, height: 50 }}
           />
         </Pressable>
@@ -145,7 +140,7 @@ export default function Home() {
               textShadowRadius: 1,
             }}
           >
-            My Agenda
+            Dose Details
           </Text>
           <Text
             style={{
@@ -157,50 +152,18 @@ export default function Home() {
               textShadowRadius: 1,
             }}
           >
-            Annual Dose Data
+            {monthNames[month - 1]} {year}
           </Text>
         </View>
-        <Pressable onPress={handleHome}>
+        <Pressable onPress={() => router.replace("/employee/home")}>
           <Image
-            source={require("../../assets/icon.png")}
+            source={require("../../../assets/icon.png")}
             style={{ width: 50, height: 50 }}
           />
         </Pressable>
       </View>
 
       {/* Main Content */}
-      <View style={{ padding: 16 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "#fff",
-            borderWidth: 1,
-            borderColor: "#ddd",
-            borderRadius: 5,
-            paddingHorizontal: 10,
-          }}
-        >
-          <Text style={{ fontSize: 20, fontWeight: "bold", marginRight: 10 }}>
-            Select Year
-          </Text>
-          <Picker
-            selectedValue={selectedYear}
-            onValueChange={(itemValue) => setSelectedYear(itemValue)}
-            style={{ flex: 1, marginLeft: 70 }}
-          >
-            {availableYears.map((year) => (
-              <Picker.Item
-                key={year}
-                label={year.toString()}
-                value={year}
-                style={{ textAlign: "right", fontSize: 20 }} // Alinea el texto a la derecha
-              />
-            ))}
-          </Picker>
-        </View>
-      </View>
-      {/* Cabecera de la tabla */}
       <ScrollView style={{ borderRadius: 10, minWidth: "100%" }}>
         {/* Cabecera de la tabla */}
         <View style={[styles.row, styles.headerRow]}>
@@ -208,48 +171,59 @@ export default function Home() {
             Dose
           </Text>
           <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-            Month
+            Date
           </Text>
           <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
         </View>
 
         {/* Datos */}
-        {monthlyDoses
-          .filter((item) => item.year === selectedYear)
-          .sort((a, b) => a.month - b.month).length === 0 ? ( // Ordenar por mes de enero a diciembre
+        {dailyDoses.length === 0 ? (
           <Text style={{ textAlign: "center", fontSize: 16, color: "#666" }}>
-            No dose data available for {selectedYear}.
+            No dose data available for this period.
           </Text>
         ) : (
-          monthlyDoses
-            .filter((item) => item.year === selectedYear)
-            .sort((a, b) => a.month - b.month) // Ordenar por mes de enero a diciembre
-            .map((item, index) => (
+          dailyDoses.map((item, index) => (
+            <View key={index}>
               <View
-                key={index}
                 style={[
                   styles.row,
                   { backgroundColor: index % 2 === 0 ? "#fff" : "#f9f9f9" },
                 ]}
               >
                 <Text style={[styles.cell, styles.cellBorder, { flex: 1 }]}>
-                  {item.totalDose.toFixed(2)} μSv
+                  {item.dose.toFixed(2)} μSv
                 </Text>
                 <Text style={[styles.cell, styles.cellBorder, { flex: 1 }]}>
-                  {item.month ? monthNames[item.month - 1] : "Unknown"}
+                  {formatDate(item.day, item.month, item.year)}
                 </Text>
                 <TouchableOpacity
                   style={[styles.cell, styles.eyeButton, { flex: 0.5 }]}
-                  onPress={() => handleViewDetails(item.month, item.year)}
+                  onPress={() => handleExpandRow(index)}
                 >
-                  <Ionicons name="eye" size={22} color="#007AFF" />
+                  <Ionicons
+                    name={expandedRows[index] ? "eye-off" : "eye"}
+                    size={22}
+                    color="#007AFF"
+                  />
                 </TouchableOpacity>
               </View>
-            ))
+              {expandedRows[index] && (
+                <View style={[styles.expandedRow]}>
+                  <Text style={[styles.expandedText, { marginBottom: 10 }]}>
+                    Total Time: {item.totalTime}
+                  </Text>
+                  <Text style={styles.expandedText}>
+                    Total Exposures: {item.totalExposures}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ))
         )}
       </ScrollView>
 
       {/* Equivalente dosis anual */}
+      {/* Equivalente dosis mensual */}
       <View
         style={{
           flexDirection: "column",
@@ -260,17 +234,17 @@ export default function Home() {
         <View style={styles.annualDoseContainer}>
           <View style={{ flex: 1, marginRight: 10 }}>
             <Text style={styles.annualDoseText}>
-              Equivalent dose data from annual report:
+              Equivalent dose data for the month:
             </Text>
           </View>
           <View style={styles.annualDoseContainerText}>
             <Text style={styles.annualDoseValue}>
-              {totalAnnualDose.toFixed(2)} μSv
+              {totalMonthlyDose().toFixed(2)} μSv
             </Text>
           </View>
         </View>
         <TouchableOpacity style={styles.downloadButton} onPress={() => {}}>
-          <Text style={styles.downloadButtonText}>Download Annual Data</Text>
+          <Text style={styles.downloadButtonText}>Download Monthly Data</Text>
         </TouchableOpacity>
       </View>
 
@@ -292,7 +266,7 @@ export default function Home() {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -324,11 +298,16 @@ const styles = {
   eyeButton: {
     alignItems: "center",
   },
-  noDataText: {
-    textAlign: "center",
-    fontSize: 20,
+  expandedRow: {
+    backgroundColor: "#f9f9f9",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderColor: "#ddd",
+  },
+  expandedText: {
     color: "#666",
-    marginTop: 20,
+    fontSize: 18,
+    textAlign: "center",
   },
   annualDoseContainer: {
     flexDirection: "row", // Cambiado de "row" a "column"
@@ -356,55 +335,6 @@ const styles = {
     textAlign: "center", // Añadido para centrar el texto
     backgroundColor: "#fff",
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    width: "90%",
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 10,
-  },
-  input: {
-    width: "100%",
-    height: 40,
-    borderWidth: 1,
-    borderColor: "gray",
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    marginTop: 5,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    marginTop: 20,
-    width: "100%",
-  },
-  cancelButton: {
-    backgroundColor: "gray",
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 10,
-  },
-  modalButton: {
-    backgroundColor: "#006892",
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 10,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    textAlign: "center",
-  },
   downloadButton: {
     width: "60%",
     backgroundColor: "#C32427",
@@ -416,4 +346,4 @@ const styles = {
     fontSize: 20,
     textAlign: "center",
   },
-};
+});
