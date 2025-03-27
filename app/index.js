@@ -45,6 +45,8 @@ export default function Login() {
         // Redirigir según el rol del usuario
         if (userRole === "admin") {
           router.replace("/admin/home"); // Redirige a la pantalla de admin
+        } else if (userRole === "coordinator") {
+          router.replace("/coordinator/home"); // Redirige a la pantalla de coordinador
         } else {
           router.replace("/employee/home"); // Redirige a la pantalla de empleado
         }

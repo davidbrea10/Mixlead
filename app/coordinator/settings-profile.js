@@ -58,7 +58,7 @@ export default function Profile() {
   };
 
   const handleHome = () => {
-    router.replace("employee/home");
+    router.replace("coordinator/home");
   };
 
   const handleCompany = () => {
