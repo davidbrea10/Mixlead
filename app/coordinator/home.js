@@ -33,15 +33,15 @@ export default function Home() {
   };
 
   const handleApplications = () => {
-    router.push("/company/applications");
+    router.push("/coordinator/applications");
   };
 
   const handleEmployees = () => {
-    router.push("/company/employees");
+    router.push("/coordinator/myEmployees");
   };
 
   const handleEmployeeAgenda = () => {
-    router.push("/company/employeeAgenda");
+    router.push("/coordinator/employeeAgenda");
   };
 
   return (
