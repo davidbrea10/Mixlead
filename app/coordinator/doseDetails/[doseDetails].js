@@ -16,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function DoseDetails() {
   const router = useRouter();
-  const { month, year } = useLocalSearchParams();
+  const { uid, month, year } = useLocalSearchParams();
   const parsedMonth = parseInt(month, 10);
   const parsedYear = parseInt(year, 10);
   const [dailyDoses, setDailyDoses] = useState([]);
@@ -42,11 +42,10 @@ export default function DoseDetails() {
   }, [month, year]);
 
   const loadDailyDoses = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!uid) return;
 
     try {
-      const dosesRef = collection(db, "employees", user.uid, "doses");
+      const dosesRef = collection(db, "employees", uid, "doses");
       const snapshot = await getDocs(dosesRef);
 
       let doseData = [];

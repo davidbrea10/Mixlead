@@ -163,7 +163,12 @@ export default function EmployeesScreen() {
         <ActivityIndicator
           size={50}
           color="#FF8C00"
-          style={{ marginTop: 20 }}
+          style={{
+            marginTop: 20,
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         />
       ) : (
         <FlatList
@@ -211,6 +216,20 @@ export default function EmployeesScreen() {
           )}
         />
       )}
+      {/* Footer */}
+      <View
+        style={{
+          backgroundColor: "#006892",
+          padding: 40,
+          alignItems: "flex-end",
+          borderTopEndRadius: 40,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 10,
+          elevation: 10,
+        }}
+      ></View>
     </LinearGradient>
   );
 }

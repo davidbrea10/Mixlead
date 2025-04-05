@@ -83,48 +83,6 @@ export default function Home() {
       {/* Main Content */}
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Pressable
-          onPress={handleInspection}
-          style={{
-            width: 348,
-            height: 76,
-            flexDirection: "row",
-            justifyContent: "center",
-            marginBottom: 68,
-            backgroundColor: "rgba(4, 4, 4, 0.6)",
-            borderRadius: 50,
-            alignItems: "center",
-            borderColor: "white",
-            borderWidth: 3,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.5,
-            shadowRadius: 10,
-            elevation: 20,
-            paddingLeft: 20, // Asegura que el icono no quede pegado al borde
-          }}
-        >
-          <Image
-            source={require("../../assets/radiacion-blanco.png")}
-            style={{
-              width: 40,
-              height: 40,
-            }}
-          />
-          <View style={{ flex: 1, alignItems: "center" }}>
-            <Text
-              style={{
-                color: "white",
-                fontSize: 18,
-                textAlign: "center",
-                paddingHorizontal: 10, // Evita que el texto toque los bordes
-              }}
-            >
-              Perform Inspection
-            </Text>
-          </View>
-        </Pressable>
-
-        <Pressable
           onPress={handleMyAgenda} // Agrega el evento onPress
           style={{
             width: 348,
