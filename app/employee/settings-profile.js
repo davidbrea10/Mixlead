@@ -1,9 +1,19 @@
-import { View, Text, Pressable, Image, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Image,
+  ActivityIndicator,
+  TextInput,
+  Modal,
+  Animated,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Profile() {
   const router = useRouter();
@@ -11,6 +21,12 @@ export default function Profile() {
   const [companyName, setCompanyName] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [companyCode, setCompanyCode] = useState("");
+  const [codeSubmitted, setCodeSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const fadeErrorAnim = useRef(new Animated.Value(1)).current;
 
   const auth = getAuth();
   const db = getFirestore();
@@ -62,7 +78,7 @@ export default function Profile() {
   };
 
   const handleCompany = () => {
-    alert("Redirect to Company Screen");
+    setModalVisible(true);
   };
 
   if (loading) {
@@ -88,10 +104,6 @@ export default function Profile() {
           alignItems: "center",
           padding: 16,
           borderBottomStartRadius: 40,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.3,
-          shadowRadius: 10,
           elevation: 10,
         }}
       >
@@ -108,9 +120,6 @@ export default function Profile() {
             fontWeight: "bold",
             color: "white",
             letterSpacing: 2,
-            textShadowColor: "black",
-            textShadowOffset: { width: 1, height: 1 },
-            textShadowRadius: 1,
           }}
         >
           Your Profile
@@ -155,7 +164,6 @@ export default function Profile() {
             </View>
           ))}
 
-        {/* Company Question if companyId is empty */}
         {!userData?.companyId && (
           <>
             <Text style={{ fontSize: 16, fontWeight: "bold", marginTop: 20 }}>
@@ -168,6 +176,167 @@ export default function Profile() {
         )}
       </View>
 
+      {/* Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.5)",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "white",
+              padding: 24,
+              borderRadius: 16,
+              width: "85%",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 5,
+            }}
+          >
+            <Text
+              style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}
+            >
+              Are you part of a company?
+            </Text>
+            <Text style={{ fontSize: 14, marginBottom: 20 }}>
+              Enter your company code to confirm your request. Please note that
+              you will be sharing your personal data with them. If you don’t
+              know it right now, you can change it from the settings.
+            </Text>
+            <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 8 }}>
+              Company Code
+            </Text>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
+              <TextInput
+                value={companyCode}
+                onChangeText={(text) => {
+                  setCompanyCode(text);
+                  setErrorMessage("");
+                  setCodeSubmitted(false);
+                  fadeAnim.setValue(1); // Reinicia la opacidad al escribir
+                }}
+                placeholder="Ex: A12345678"
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: "#ccc",
+                  borderRadius: 8,
+                  padding: 10,
+                  fontSize: 16,
+                }}
+              />
+              <Pressable
+                onPress={() => {
+                  if (companyCode.trim() === "") {
+                    setErrorMessage("Company code cannot be empty.");
+                    fadeErrorAnim.setValue(1); // Reinicia opacidad
+
+                    setTimeout(() => {
+                      Animated.timing(fadeErrorAnim, {
+                        toValue: 0,
+                        duration: 1000,
+                        useNativeDriver: true,
+                      }).start(() => setErrorMessage(""));
+                    }, 3000);
+
+                    return;
+                  }
+
+                  setCodeSubmitted(true);
+                  setErrorMessage("");
+
+                  // Fade out message after 3 seconds
+                  setTimeout(() => {
+                    Animated.timing(fadeAnim, {
+                      toValue: 0,
+                      duration: 1000,
+                      useNativeDriver: true,
+                    }).start(() => setCodeSubmitted(false));
+                  }, 3000);
+                }}
+                style={{
+                  backgroundColor: "#0077B6",
+                  padding: 10,
+                  borderRadius: 8,
+                  marginLeft: 8,
+                }}
+              >
+                <Ionicons name="arrow-forward" size={20} color="white" />
+              </Pressable>
+            </View>
+
+            {/* Error message */}
+            {errorMessage !== "" && (
+              <Animated.View style={{ opacity: fadeErrorAnim }}>
+                <Text
+                  style={{
+                    color: "red",
+                    marginBottom: 10,
+                    textAlign: "center",
+                    fontWeight: "600",
+                  }}
+                >
+                  {errorMessage}
+                </Text>
+              </Animated.View>
+            )}
+
+            {/* Success message */}
+            {codeSubmitted && (
+              <Animated.View style={{ opacity: fadeAnim }}>
+                <Text
+                  style={{
+                    color: "#2E7D32",
+                    marginBottom: 10,
+                    textAlign: "center",
+                    fontWeight: "600",
+                  }}
+                >
+                  If the company code is correct you will receive news soon.
+                </Text>
+              </Animated.View>
+            )}
+
+            <Pressable
+              onPress={() => setModalVisible(false)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                alignSelf: "center",
+              }}
+            >
+              <Text style={{ color: "blue", fontSize: 16 }}>
+                Continue as a guest
+              </Text>
+              <Ionicons
+                name="arrow-forward-outline"
+                size={16}
+                color="blue"
+                style={{ marginLeft: 4 }}
+              />
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       {/* Footer */}
       <View
         style={{
@@ -175,13 +344,9 @@ export default function Profile() {
           padding: 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -10 },
-          shadowOpacity: 0.3,
-          shadowRadius: 10,
           elevation: 10,
         }}
-      ></View>
+      />
     </LinearGradient>
   );
 }

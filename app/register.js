@@ -15,7 +15,14 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 // Add a second document with a generated ID.
 import { auth, db } from "../firebase/config"; // Asegúrate de la ruta correcta
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 
 export default function Register() {
   const router = useRouter();
@@ -30,16 +37,129 @@ export default function Register() {
     confirmPassword: "",
   });
 
+  const [errors, setErrors] = useState({
+    dni: "",
+    phone: "",
+    birthDate: "",
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [birthDate, setBirthDate] = useState(new Date());
 
+  const validatePassword = (password) => {
+    // Expresión regular: al menos 8 caracteres, una letra y un número
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (!password) {
+      setErrors((prev) => ({ ...prev, password: "Password is required." }));
+    } else if (!passwordRegex.test(password)) {
+      setErrors((prev) => ({
+        ...prev,
+        password:
+          "Password must be at least 8 characters long and include at least one letter and one number.",
+      }));
+    } else {
+      setErrors((prev) => ({ ...prev, password: "" }));
+    }
+  };
+
   const handleInputChange = (field, value) => {
     setForm({ ...form, [field]: value });
+
+    // Validaciones en vivo
+    if (field === "dni") {
+      validateDni(value);
+    } else if (field === "phone") {
+      validatePhone(value);
+    } else if (field === "birthDate") {
+      validateAge(value);
+    } else if (field === "password") {
+      validatePassword(value);
+    } else if (field === "confirmPassword") {
+      validateConfirmPassword(value);
+    }
+  };
+
+  const validateConfirmPassword = (confirmPassword) => {
+    if (confirmPassword !== form.password) {
+      setErrors((prev) => ({
+        ...prev,
+        confirmPassword: "Passwords do not match.",
+      }));
+    } else {
+      setErrors((prev) => ({ ...prev, confirmPassword: "" }));
+    }
+  };
+
+  const validateDni = async (dni) => {
+    if (!dni) {
+      setErrors((prev) => ({ ...prev, dni: "DNI is required." }));
+      return;
+    }
+
+    try {
+      const dniQuery = query(
+        collection(db, "employees"),
+        where("dni", "==", dni),
+      );
+      const dniSnapshot = await getDocs(dniQuery);
+
+      if (!dniSnapshot.empty) {
+        setErrors((prev) => ({ ...prev, dni: "DNI is already registered." }));
+      } else {
+        setErrors((prev) => ({ ...prev, dni: "" }));
+      }
+    } catch (error) {
+      console.error("Error validating DNI:", error);
+    }
+  };
+
+  const validatePhone = (phone) => {
+    const phoneRegex = /^[0-9]{9}$/; // Ejemplo: 9 dígitos
+    if (!phone) {
+      setErrors((prev) => ({ ...prev, phone: "Phone number is required." }));
+    } else if (!phoneRegex.test(phone)) {
+      setErrors((prev) => ({ ...prev, phone: "Invalid phone number format." }));
+    } else {
+      setErrors((prev) => ({ ...prev, phone: "" }));
+    }
+  };
+
+  const validateAge = (birthDate) => {
+    const birthDateObj = new Date(birthDate);
+    const today = new Date();
+    const age = today.getFullYear() - birthDateObj.getFullYear();
+    const monthDiff = today.getMonth() - birthDateObj.getMonth();
+    const dayDiff = today.getDate() - birthDateObj.getDate();
+
+    if (
+      age < 18 ||
+      (age === 18 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))
+    ) {
+      setErrors((prev) => ({
+        ...prev,
+        birthDate: "You must be at least 18 years old.",
+      }));
+    } else {
+      setErrors((prev) => ({ ...prev, birthDate: "" }));
+    }
+  };
+
+  const onDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || birthDate;
+    setShowDatePicker(Platform.OS === "ios");
+    setBirthDate(currentDate);
+    handleInputChange("birthDate", currentDate.toISOString().split("T")[0]);
   };
 
   const handleRegister = async () => {
+    // Validar que no haya errores antes de registrar
+    if (errors.dni || errors.phone || errors.birthDate) {
+      alert("Please fix the errors before submitting.");
+      return;
+    }
     const {
       firstName,
       lastName,
@@ -70,7 +190,34 @@ export default function Register() {
       return;
     }
 
+    // Validar que el usuario sea mayor de 18 años
+    const birthDateObj = new Date(birthDate);
+    const today = new Date();
+    const age = today.getFullYear() - birthDateObj.getFullYear();
+    const monthDiff = today.getMonth() - birthDateObj.getMonth();
+    const dayDiff = today.getDate() - birthDateObj.getDate();
+
+    if (
+      age < 18 ||
+      (age === 18 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))
+    ) {
+      alert("You must be at least 18 years old to register.");
+      return;
+    }
+
     try {
+      // Validar que el DNI sea único
+      const dniQuery = query(
+        collection(db, "employees"),
+        where("dni", "==", dni),
+      );
+      const dniSnapshot = await getDocs(dniQuery);
+
+      if (!dniSnapshot.empty) {
+        alert("The DNI is already registered.");
+        return;
+      }
+
       // ✅ Crear usuario en Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -103,13 +250,6 @@ export default function Register() {
 
   const handleLanguageChange = () => {
     alert("Change Language");
-  };
-
-  const onDateChange = (event, selectedDate) => {
-    const currentDate = selectedDate || birthDate;
-    setShowDatePicker(Platform.OS === "ios");
-    setBirthDate(currentDate);
-    handleInputChange("birthDate", currentDate.toISOString().split("T")[0]);
   };
 
   return (
@@ -208,6 +348,9 @@ export default function Register() {
                 </TouchableOpacity>
               )}
             </View>
+            {errors.dni ? (
+              <Text style={styles.errorText}>{errors.dni}</Text>
+            ) : null}
           </View>
 
           {/* Phone */}
@@ -230,6 +373,9 @@ export default function Register() {
                 </TouchableOpacity>
               )}
             </View>
+            {errors.phone ? (
+              <Text style={styles.errorText}>{errors.phone}</Text>
+            ) : null}
           </View>
 
           {/* Birth Date */}
@@ -267,6 +413,9 @@ export default function Register() {
                 maximumDate={new Date()}
               />
             )}
+            {errors.birthDate ? (
+              <Text style={styles.errorText}>{errors.birthDate}</Text>
+            ) : null}
           </View>
 
           {/* Email */}
@@ -299,7 +448,10 @@ export default function Register() {
                 placeholder="Password"
                 secureTextEntry={!showPassword}
                 value={form.password}
-                onChangeText={(text) => handleInputChange("password", text)}
+                onChangeText={(text) => {
+                  handleInputChange("password", text);
+                  validatePassword(text); // Validación en vivo
+                }}
                 style={styles.input}
               />
               <TouchableOpacity
@@ -313,6 +465,9 @@ export default function Register() {
                 />
               </TouchableOpacity>
             </View>
+            {errors.password ? (
+              <Text style={styles.errorText}>{errors.password}</Text>
+            ) : null}
           </View>
 
           {/* Confirm Password */}
@@ -339,6 +494,9 @@ export default function Register() {
                 />
               </TouchableOpacity>
             </View>
+            {errors.confirmPassword ? (
+              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+            ) : null}
           </View>
 
           {/* Register Button */}
@@ -365,6 +523,13 @@ const styles = {
     fontSize: 18,
     marginBottom: 5,
   },
+
+  errorText: {
+    color: "red",
+    fontSize: 14,
+    marginTop: 5,
+  },
+
   input: {
     width: "100%",
     height: 55,

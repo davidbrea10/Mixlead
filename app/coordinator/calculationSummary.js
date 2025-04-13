@@ -146,17 +146,9 @@ export default function CalculationSummary() {
             style={{
               flexDirection: "column",
               alignItems: "center",
-              marginTop: 20,
+              marginTop: 40,
             }}
           >
-            <Pressable
-              onPress={handleInspection}
-              style={styles.inspectionButton}
-            >
-              <Text style={{ color: "#fff", fontSize: 19 }}>
-                Perform Inspection
-              </Text>
-            </Pressable>
             <Pressable onPress={handleGraph} style={styles.button}>
               <Text style={{ color: "#fff", fontSize: 19 }}>Graph</Text>
             </Pressable>
