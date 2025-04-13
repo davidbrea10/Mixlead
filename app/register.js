@@ -41,6 +41,9 @@ export default function Register() {
     dni: "",
     phone: "",
     birthDate: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -94,8 +97,13 @@ export default function Register() {
   };
 
   const validateDni = async (dni) => {
+    const dniRegex = /^[0-9]{8}[A-Z]$/;
+
     if (!dni) {
       setErrors((prev) => ({ ...prev, dni: "DNI is required." }));
+      return;
+    } else if (!dniRegex.test(dni)) {
+      setErrors((prev) => ({ ...prev, dni: "DNI format is invalid." }));
       return;
     }
 
@@ -124,6 +132,18 @@ export default function Register() {
       setErrors((prev) => ({ ...prev, phone: "Invalid phone number format." }));
     } else {
       setErrors((prev) => ({ ...prev, phone: "" }));
+    }
+  };
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email) {
+      setErrors((prev) => ({ ...prev, email: "Email is required." }));
+    } else if (!emailRegex.test(email)) {
+      setErrors((prev) => ({ ...prev, email: "Invalid email format." }));
+    } else {
+      setErrors((prev) => ({ ...prev, email: "" }));
     }
   };
 
@@ -337,8 +357,10 @@ export default function Register() {
                 placeholder="DNI"
                 value={form.dni}
                 onChangeText={(text) => handleInputChange("dni", text)}
+                onBlur={() => validateDni(form.dni)} // <-- Solo se ejecuta al salir del campo
                 style={styles.input}
               />
+
               {form.dni.length > 0 && (
                 <TouchableOpacity
                   onPress={() => handleInputChange("dni", "")}
@@ -427,8 +449,14 @@ export default function Register() {
                 keyboardType="email-address"
                 value={form.email}
                 onChangeText={(text) => handleInputChange("email", text)}
+                onBlur={() => validateEmail(form.email)} // <-- Solo se ejecuta al salir del campo
                 style={styles.input}
               />
+
+              {errors.email ? (
+                <Text style={styles.errorText}>{errors.email}</Text>
+              ) : null}
+
               {form.email.length > 0 && (
                 <TouchableOpacity
                   onPress={() => handleInputChange("email", "")}
