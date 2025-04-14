@@ -12,7 +12,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState, useRef } from "react";
 import { getAuth } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  where,
+  getDocs,
+  query,
+} from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function Profile() {
@@ -244,11 +253,10 @@ export default function Profile() {
                 }}
               />
               <Pressable
-                onPress={() => {
+                onPress={async () => {
                   if (companyCode.trim() === "") {
                     setErrorMessage("Company code cannot be empty.");
-                    fadeErrorAnim.setValue(1); // Reinicia opacidad
-
+                    fadeErrorAnim.setValue(1);
                     setTimeout(() => {
                       Animated.timing(fadeErrorAnim, {
                         toValue: 0,
@@ -256,21 +264,78 @@ export default function Profile() {
                         useNativeDriver: true,
                       }).start(() => setErrorMessage(""));
                     }, 3000);
-
                     return;
                   }
 
-                  setCodeSubmitted(true);
-                  setErrorMessage("");
+                  try {
+                    if (!auth.currentUser) {
+                      setErrorMessage("User not logged in.");
+                      return;
+                    }
 
-                  // Fade out message after 3 seconds
-                  setTimeout(() => {
-                    Animated.timing(fadeAnim, {
-                      toValue: 0,
-                      duration: 1000,
-                      useNativeDriver: true,
-                    }).start(() => setCodeSubmitted(false));
-                  }, 3000);
+                    const user = auth.currentUser;
+                    const userId = user.uid;
+
+                    const employeesRef = collection(db, "employees");
+                    const coordinatorsQuery = query(
+                      employeesRef,
+                      where("companyId", "==", companyCode),
+                      where("role", "==", "coordinator"),
+                    );
+
+                    const coordinatorsSnap = await getDocs(coordinatorsQuery);
+
+                    if (coordinatorsSnap.empty) {
+                      setErrorMessage("No coordinators found in this company.");
+                      return;
+                    }
+
+                    let alreadyApplied = false;
+
+                    for (const docSnap of coordinatorsSnap.docs) {
+                      const coordinatorId = docSnap.id;
+
+                      const applicationRef = doc(
+                        db,
+                        "employees",
+                        coordinatorId,
+                        "applications",
+                        userId,
+                      );
+
+                      const existingApp = await getDoc(applicationRef);
+
+                      if (!existingApp.exists()) {
+                        await setDoc(applicationRef, {
+                          id: userId,
+                          firstName: userData.firstName,
+                          lastName: userData.lastName,
+                          dni: userData.dni,
+                          createdAt: new Date(),
+                        });
+                      } else {
+                        alreadyApplied = true;
+                      }
+                    }
+
+                    if (alreadyApplied) {
+                      setErrorMessage("You already sent a request.");
+                    } else {
+                      setCodeSubmitted(true);
+                      setErrorMessage("");
+
+                      setTimeout(() => {
+                        Animated.timing(fadeAnim, {
+                          toValue: 0,
+                          duration: 1000,
+                          useNativeDriver: true,
+                        }).start(() => setCodeSubmitted(false));
+                      }, 3000);
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    setErrorMessage("Something went wrong. Try again.");
+                  }
                 }}
                 style={{
                   backgroundColor: "#0077B6",
