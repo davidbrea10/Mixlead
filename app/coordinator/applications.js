@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Pressable,
   Image,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -28,6 +29,8 @@ export default function DoseDetails() {
   const [expandedRows, setExpandedRows] = useState({});
   const [applications, setApplications] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState(null);
 
   const loadApplications = async () => {
     const user = auth.currentUser;
@@ -111,6 +114,54 @@ export default function DoseDetails() {
       loadApplications();
     } catch (error) {
       console.error("Error accepting application:", error);
+    }
+  };
+
+  const handleConfirmDecline = async () => {
+    try {
+      if (!selectedApplication) return;
+
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      const currentUserRef = doc(db, "employees", currentUser.uid);
+      const currentUserSnap = await getDoc(currentUserRef);
+      if (!currentUserSnap.exists()) throw new Error("User not found.");
+
+      const currentCompanyId = currentUserSnap.data().companyId;
+
+      const employeesRef = collection(db, "employees");
+      const coordinatorsQuery = query(
+        employeesRef,
+        where("companyId", "==", currentCompanyId),
+        where("role", "==", "coordinator"),
+      );
+
+      const coordinatorsSnap = await getDocs(coordinatorsQuery);
+
+      const deletePromises = coordinatorsSnap.docs.map((docSnap) => {
+        const coordinatorId = docSnap.id;
+        const appRef = doc(
+          db,
+          "employees",
+          coordinatorId,
+          "applications",
+          selectedApplication.id,
+        );
+        return deleteDoc(appRef);
+      });
+
+      await Promise.all(deletePromises);
+
+      setSuccessMessage("Application successfully declined");
+      // eslint-disable-next-line no-undef
+      setTimeout(() => setSuccessMessage(""), 3000);
+
+      setIsModalVisible(false);
+      setSelectedApplication(null);
+      loadApplications();
+    } catch (error) {
+      console.error("Error declining application:", error);
     }
   };
 
@@ -241,7 +292,10 @@ export default function DoseDetails() {
                         borderRadius: 10,
                         marginRight: 5,
                       }}
-                      onPress={() => console.log("Declined", item.id)}
+                      onPress={() => {
+                        setSelectedApplication(item);
+                        setIsModalVisible(true);
+                      }}
                     >
                       <Text
                         style={{
@@ -316,6 +370,69 @@ export default function DoseDetails() {
           elevation: 10,
         }}
       ></View>
+
+      <Modal
+        transparent
+        visible={isModalVisible}
+        animationType="fade"
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.6)",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#1F1F1F",
+              padding: 24,
+              borderRadius: 20,
+              width: 300,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                color: "white",
+                fontSize: 18,
+                textAlign: "center",
+                marginBottom: 24,
+              }}
+            >
+              Are you sure you want to deny this user?
+            </Text>
+
+            <View style={{ flexDirection: "row", gap: 16 }}>
+              <Pressable
+                onPress={() => setIsModalVisible(false)}
+                style={{
+                  backgroundColor: "#2D2D2D",
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderRadius: 10,
+                }}
+              >
+                <Text style={{ color: "white", fontSize: 16 }}>No</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleConfirmDecline}
+                style={{
+                  backgroundColor: "#2B4B76",
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderRadius: 10,
+                }}
+              >
+                <Text style={{ color: "white", fontSize: 16 }}>yes</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
