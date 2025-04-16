@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -23,6 +24,8 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
+import { useTranslation } from "react-i18next";
+import i18n from "./locales/i18n"; // Importa la configuración de i18next
 
 export default function Register() {
   const router = useRouter();
@@ -51,17 +54,24 @@ export default function Register() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [birthDate, setBirthDate] = useState(new Date());
 
+  const flag =
+    i18n.language === "es"
+      ? require("../assets/es.png")
+      : require("../assets/en.png");
+
+  // Initialize i18n
+  const { t } = useTranslation();
+
   const validatePassword = (password) => {
     // Expresión regular: al menos 8 caracteres, una letra y un número
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
 
     if (!password) {
-      setErrors((prev) => ({ ...prev, password: "Password is required." }));
+      setErrors((prev) => ({ ...prev, password: t("errors.required") }));
     } else if (!passwordRegex.test(password)) {
       setErrors((prev) => ({
         ...prev,
-        password:
-          "Password must be at least 8 characters long and include at least one letter and one number.",
+        password: t("errors.invalidPassword"),
       }));
     } else {
       setErrors((prev) => ({ ...prev, password: "" }));
@@ -89,7 +99,7 @@ export default function Register() {
     if (confirmPassword !== form.password) {
       setErrors((prev) => ({
         ...prev,
-        confirmPassword: "Passwords do not match.",
+        confirmPassword: t("errors.passwordsMismatch"),
       }));
     } else {
       setErrors((prev) => ({ ...prev, confirmPassword: "" }));
@@ -100,10 +110,10 @@ export default function Register() {
     const dniRegex = /^[0-9]{8}[A-Z]$/;
 
     if (!dni) {
-      setErrors((prev) => ({ ...prev, dni: "DNI is required." }));
+      setErrors((prev) => ({ ...prev, dni: t("errors.required") }));
       return;
     } else if (!dniRegex.test(dni)) {
-      setErrors((prev) => ({ ...prev, dni: "DNI format is invalid." }));
+      setErrors((prev) => ({ ...prev, dni: t("errors.invalidDni") }));
       return;
     }
 
@@ -115,7 +125,7 @@ export default function Register() {
       const dniSnapshot = await getDocs(dniQuery);
 
       if (!dniSnapshot.empty) {
-        setErrors((prev) => ({ ...prev, dni: "DNI is already registered." }));
+        setErrors((prev) => ({ ...prev, dni: t("errors.dniExists") }));
       } else {
         setErrors((prev) => ({ ...prev, dni: "" }));
       }
@@ -127,9 +137,9 @@ export default function Register() {
   const validatePhone = (phone) => {
     const phoneRegex = /^[0-9]{9}$/; // Ejemplo: 9 dígitos
     if (!phone) {
-      setErrors((prev) => ({ ...prev, phone: "Phone number is required." }));
+      setErrors((prev) => ({ ...prev, phone: t("errors.required") }));
     } else if (!phoneRegex.test(phone)) {
-      setErrors((prev) => ({ ...prev, phone: "Invalid phone number format." }));
+      setErrors((prev) => ({ ...prev, phone: t("errors.invalidPhone") }));
     } else {
       setErrors((prev) => ({ ...prev, phone: "" }));
     }
@@ -139,9 +149,9 @@ export default function Register() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!email) {
-      setErrors((prev) => ({ ...prev, email: "Email is required." }));
+      setErrors((prev) => ({ ...prev, email: t("errors.required") }));
     } else if (!emailRegex.test(email)) {
-      setErrors((prev) => ({ ...prev, email: "Invalid email format." }));
+      setErrors((prev) => ({ ...prev, email: t("errors.invalidEmail") }));
     } else {
       setErrors((prev) => ({ ...prev, email: "" }));
     }
@@ -160,7 +170,7 @@ export default function Register() {
     ) {
       setErrors((prev) => ({
         ...prev,
-        birthDate: "You must be at least 18 years old.",
+        birthDate: t("errors.ageRestriction"),
       }));
     } else {
       setErrors((prev) => ({ ...prev, birthDate: "" }));
@@ -269,7 +279,8 @@ export default function Register() {
   };
 
   const handleLanguageChange = () => {
-    alert("Change Language");
+    const newLang = i18n.language === "en" ? "es" : "en";
+    i18n.changeLanguage(newLang);
   };
 
   return (
@@ -278,30 +289,57 @@ export default function Register() {
       style={{ flex: 1 }}
     >
       <View style={{ flex: 1 }}>
-        {/* Header with Back and Language Buttons */}
-        <View style={styles.headerIcons}>
-          {/* Back Button */}
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={28} color="black" />
-          </TouchableOpacity>
-
-          {/* Language Selector */}
-          <TouchableOpacity onPress={handleLanguageChange}>
-            <Ionicons name="globe-outline" size={28} color="black" />
-          </TouchableOpacity>
-        </View>
-
-        <Text
+        <View
           style={{
-            fontSize: 32,
-            fontWeight: "bold",
-            textAlign: "center",
-            paddingTop: 80,
-            color: "#444B59",
+            backgroundColor: "#FF9300",
+            padding: 16,
+            borderBottomStartRadius: 40,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.3,
+            shadowRadius: 10,
+            elevation: 10,
           }}
         >
-          USER REGISTER
-        </Text>
+          {/* Header with Back and Language Buttons */}
+          <View style={styles.headerIcons}>
+            {/* Back Button */}
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={28} color="black" />
+            </TouchableOpacity>
+
+            {/* Language Selector */}
+            <TouchableOpacity
+              onPress={handleLanguageChange}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Image
+                source={flag}
+                style={{ width: 28, height: 28, borderRadius: 14 }}
+                resizeMode="contain"
+              />
+              <Text style={{ marginLeft: 8, fontSize: 16 }}>
+                {t("change_language")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text
+            style={{
+              marginTop: 20,
+              fontSize: 32,
+              fontWeight: "bold",
+              textAlign: "center",
+              paddingTop: 60,
+              color: "#000000",
+            }}
+          >
+            {t("register.title")}
+          </Text>
+        </View>
 
         <ScrollView
           contentContainerStyle={{ alignItems: "center", paddingVertical: 20 }}
@@ -309,10 +347,10 @@ export default function Register() {
         >
           {/* First Name */}
           <View style={{ width: 366, marginBottom: 15 }}>
-            <Text style={styles.label}>First Name</Text>
+            <Text style={styles.label}>{t("register.firstName")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
-                placeholder="First Name"
+                placeholder={t("register.firstName")}
                 value={form.firstName}
                 onChangeText={(text) => handleInputChange("firstName", text)}
                 style={styles.input}
@@ -330,10 +368,10 @@ export default function Register() {
 
           {/* Last Name */}
           <View style={{ width: 366, marginBottom: 15 }}>
-            <Text style={styles.label}>Last Name</Text>
+            <Text style={styles.label}>{t("register.lastName")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
-                placeholder="Last Name"
+                placeholder={t("register.lastName")}
                 value={form.lastName}
                 onChangeText={(text) => handleInputChange("lastName", text)}
                 style={styles.input}
@@ -351,10 +389,10 @@ export default function Register() {
 
           {/* DNI */}
           <View style={{ width: 366, marginBottom: 15 }}>
-            <Text style={styles.label}>DNI</Text>
+            <Text style={styles.label}>{t("register.dni")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
-                placeholder="DNI"
+                placeholder={t("register.dni")}
                 value={form.dni}
                 onChangeText={(text) => handleInputChange("dni", text)}
                 onBlur={() => validateDni(form.dni)} // <-- Solo se ejecuta al salir del campo
@@ -377,10 +415,10 @@ export default function Register() {
 
           {/* Phone */}
           <View style={{ width: 366, marginBottom: 15 }}>
-            <Text style={styles.label}>Phone</Text>
+            <Text style={styles.label}>{t("register.phone")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
-                placeholder="Phone"
+                placeholder={t("register.phone")}
                 keyboardType="phone-pad"
                 value={form.phone}
                 onChangeText={(text) => handleInputChange("phone", text)}
@@ -402,7 +440,7 @@ export default function Register() {
 
           {/* Birth Date */}
           <View style={{ width: 366, marginBottom: 15 }}>
-            <Text style={styles.label}>Birth Date</Text>
+            <Text style={styles.label}>{t("register.birthDate")}</Text>
             <View style={{ position: "relative" }}>
               <TouchableOpacity
                 onPress={() => setShowDatePicker(true)}
@@ -414,7 +452,7 @@ export default function Register() {
                     fontSize: 18,
                   }}
                 >
-                  {form.birthDate || "Select Birth Date"}
+                  {form.birthDate || t("register.selectBirthDate")}
                 </Text>
               </TouchableOpacity>
               {form.birthDate.length > 0 && (
@@ -442,10 +480,10 @@ export default function Register() {
 
           {/* Email */}
           <View style={{ width: 366, marginBottom: 15 }}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{t("register.email")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
-                placeholder="Email"
+                placeholder={t("register.email")}
                 keyboardType="email-address"
                 value={form.email}
                 onChangeText={(text) => handleInputChange("email", text)}
@@ -470,10 +508,10 @@ export default function Register() {
 
           {/* Password */}
           <View style={{ width: 366, marginBottom: 15 }}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{t("register.password")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
-                placeholder="Password"
+                placeholder={t("register.password")}
                 secureTextEntry={!showPassword}
                 value={form.password}
                 onChangeText={(text) => {
@@ -500,10 +538,10 @@ export default function Register() {
 
           {/* Confirm Password */}
           <View style={{ width: 366, marginBottom: 15 }}>
-            <Text style={styles.label}>Confirm Password</Text>
+            <Text style={styles.label}>{t("register.confirmPassword")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
-                placeholder="Confirm Password"
+                placeholder={t("register.confirmPassword")}
                 secureTextEntry={!showConfirmPassword}
                 value={form.confirmPassword}
                 onChangeText={(text) =>
@@ -529,9 +567,26 @@ export default function Register() {
 
           {/* Register Button */}
           <Pressable onPress={handleRegister} style={styles.button}>
-            <Text style={{ color: "#fff", fontSize: 19 }}>Register</Text>
+            <Text style={{ color: "#fff", fontSize: 19 }}>
+              {t("register.button")}
+            </Text>
           </Pressable>
         </ScrollView>
+
+        {/* Footer */}
+        <View
+          style={{
+            backgroundColor: "#006892",
+            padding: 40,
+            alignItems: "flex-end",
+            borderTopEndRadius: 40,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -10 },
+            shadowOpacity: 0.3,
+            shadowRadius: 10,
+            elevation: 10,
+          }}
+        ></View>
       </View>
     </LinearGradient>
   );

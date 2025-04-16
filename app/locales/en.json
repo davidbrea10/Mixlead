@@ -9,6 +9,30 @@
     "change_language": "Change Language",
     "login_failed": "Login Failed: ",
     "please_enter_credentials": "Please enter email and password",
-    "user_not_found": "User data not found."
+    "user_not_found": "User data not found.",
+
+    "register.title": "USER REGISTER",
+    "register.firstName": "First Name",
+    "register.lastName": "Last Name",
+    "register.dni": "DNI",
+    "register.phone": "Phone",
+    "register.birthDate": "Birth Date",
+    "register.selectBirthDate": "Select Birth Date",
+    "register.email": "Email",
+    "register.password": "Password",
+    "register.confirmPassword": "Confirm Password",
+    "register.button": "Register",
+    "errors.required": "This field is required.",
+    "errors.invalidDni": "DNI format is invalid.",
+    "errors.dniExists": "DNI is already registered.",
+    "errors.invalidPhone": "Invalid phone number format.",
+    "errors.invalidEmail": "Invalid email format.",
+    "errors.invalidPassword": "Password must be at least 8 characters long and include at least one letter and one number.",
+    "errors.passwordsMismatch": "Passwords do not match.",
+    "errors.ageRestriction": "You must be at least 18 years old.",
+    "errors.fixBeforeSubmit": "Please fix the errors before submitting.",
+    "errors.fillAllFields": "Please fill in all fields",
+    "errors.registrationFailed": "Registration failed",
+    "success.registration": "Registration Successful"
   }
   

@@ -9,6 +9,30 @@
     "change_language": "Cambiar idioma",
     "login_failed": "Error de inicio de sesión: ",
     "please_enter_credentials": "Por favor ingresa correo y contraseña",
-    "user_not_found": "Datos de usuario no encontrados."
+    "user_not_found": "Datos de usuario no encontrados.",
+
+    "register.title": "REGISTRO DE USUARIO",
+    "register.firstName": "Nombre",
+    "register.lastName": "Apellidos",
+    "register.dni": "DNI",
+    "register.phone": "Teléfono",
+    "register.birthDate": "Fecha de nacimiento",
+    "register.selectBirthDate": "Selecciona fecha de nacimiento",
+    "register.email": "Correo electrónico",
+    "register.password": "Contraseña",
+    "register.confirmPassword": "Confirmar contraseña",
+    "register.button": "Registrar",
+    "errors.required": "Este campo es obligatorio.",
+    "errors.invalidDni": "El formato del DNI es inválido.",
+    "errors.dniExists": "El DNI ya está registrado.",
+    "errors.invalidPhone": "El formato del número de teléfono no es válido.",
+    "errors.invalidEmail": "El formato del correo electrónico no es válido.",
+    "errors.invalidPassword": "La contraseña debe tener al menos 8 caracteres e incluir al menos una letra y un número.",
+    "errors.passwordsMismatch": "Las contraseñas no coinciden.",
+    "errors.ageRestriction": "Debes tener al menos 18 años.",
+    "errors.fixBeforeSubmit": "Por favor, corrige los errores antes de enviar.",
+    "errors.fillAllFields": "Por favor, rellena todos los campos",
+    "errors.registrationFailed": "El registro falló",
+    "success.registration": "Registro exitoso"
   }
   
