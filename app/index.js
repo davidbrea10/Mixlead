@@ -13,12 +13,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { doc, getDoc } from "firebase/firestore"; // Importa los métodos para acceder a Firestore
 import { auth, db } from "../firebase/config"; // Importación de Firebase
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { useTranslation } from "react-i18next";
+import i18n from "./locales/i18n"; // Importa la configuración de i18next
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const flag =
+    i18n.language === "es"
+      ? require("../assets/es.png")
+      : require("../assets/en.png");
+
+  // Initialize i18n
+  const { t } = useTranslation();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -67,7 +77,8 @@ export default function Login() {
   };
 
   const handleLanguageChange = () => {
-    alert("Change Language");
+    const newLang = i18n.language === "en" ? "es" : "en";
+    i18n.changeLanguage(newLang);
   };
 
   return (
@@ -78,9 +89,22 @@ export default function Login() {
       {/* Language Selector */}
       <TouchableOpacity
         onPress={handleLanguageChange}
-        style={{ position: "absolute", top: 50, right: 20 }}
+        style={{
+          position: "absolute",
+          top: 50,
+          right: 20,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
       >
-        <Ionicons name="globe-outline" size={28} color="black" />
+        <Image
+          source={flag}
+          style={{ width: 28, height: 28, borderRadius: 14 }}
+          resizeMode="contain"
+        />
+        <Text style={{ marginLeft: 8, fontSize: 16 }}>
+          {t("change_language")}
+        </Text>
       </TouchableOpacity>
 
       {/* Welcome Text */}
@@ -92,7 +116,7 @@ export default function Login() {
           color: "#444B59",
         }}
       >
-        WELCOME BACK!
+        {t("welcome_back")}
       </Text>
 
       {/* Logo */}
@@ -104,7 +128,7 @@ export default function Login() {
       {/* Email Input */}
       <View style={{ position: "relative", marginBottom: 15 }}>
         <TextInput
-          placeholder="Enter Email"
+          placeholder={t("enter_email")}
           value={email}
           onChangeText={setEmail}
           style={{
@@ -131,7 +155,7 @@ export default function Login() {
       {/* Password Input */}
       <View style={{ position: "relative", marginBottom: 10 }}>
         <TextInput
-          placeholder="Password"
+          placeholder={t("password")}
           secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
@@ -156,15 +180,17 @@ export default function Login() {
             color="gray"
           />
         </TouchableOpacity>
-      </View>
 
-      {/* Recover Password Link */}
-      <TouchableOpacity
-        onPress={handleRecoverPassword}
-        style={{ alignSelf: "flex-end", marginRight: 24, marginBottom: 20 }}
-      >
-        <Text style={{ color: "gray", fontSize: 16 }}>Recover Password?</Text>
-      </TouchableOpacity>
+        {/* Recover Password Link */}
+        <TouchableOpacity
+          onPress={handleRecoverPassword}
+          style={{ alignSelf: "flex-end", marginBottom: 20, marginTop: 10 }}
+        >
+          <Text style={{ color: "gray", fontSize: 16 }}>
+            {t("recover_password")}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Sign In Button */}
       <Pressable
@@ -186,7 +212,7 @@ export default function Login() {
           elevation: 20,
         }}
       >
-        <Text style={{ color: "#fff", fontSize: 19 }}>Sign In</Text>
+        <Text style={{ color: "#fff", fontSize: 19 }}>{t("sign_in")}</Text>
       </Pressable>
 
       {/* Register Link */}
@@ -198,11 +224,10 @@ export default function Login() {
           textAlign: "center",
         }}
       >
-        If you don’t have an account {""}
+        {t("no_account")}{" "}
         <Text style={{ color: "blue" }} onPress={handleRegister}>
-          Register here
+          {t("register_here")}
         </Text>
-        !
       </Text>
     </LinearGradient>
   );

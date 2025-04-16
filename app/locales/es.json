@@ -1,0 +1,14 @@
+{
+    "welcome_back": "¡BIENVENIDO DE NUEVO!",
+    "enter_email": "Ingresa tu correo electrónico",
+    "password": "Contraseña",
+    "recover_password": "¿Recuperar contraseña?",
+    "sign_in": "Iniciar sesión",
+    "no_account": "¿No tienes una cuenta?",
+    "register_here": "¡Regístrate aquí!",
+    "change_language": "Cambiar idioma",
+    "login_failed": "Error de inicio de sesión: ",
+    "please_enter_credentials": "Por favor ingresa correo y contraseña",
+    "user_not_found": "Datos de usuario no encontrados."
+  }
+  

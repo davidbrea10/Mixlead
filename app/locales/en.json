@@ -1,0 +1,14 @@
+{
+    "welcome_back": "WELCOME BACK!",
+    "enter_email": "Enter Email",
+    "password": "Password",
+    "recover_password": "Recover Password?",
+    "sign_in": "Sign In",
+    "no_account": "If you don’t have an account",
+    "register_here": "Register here!",
+    "change_language": "Change Language",
+    "login_failed": "Login Failed: ",
+    "please_enter_credentials": "Please enter email and password",
+    "user_not_found": "User data not found."
+  }
+  

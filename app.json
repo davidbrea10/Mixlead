@@ -23,7 +23,7 @@
       "androidStatusBar": {
         "backgroundColor": "transparent",
         "hidden": true
-      },  
+      },
       "package": "com.davidbrea_10.mixlead",
       "newArchEnabled": true,
       "systemUiVisibility": "immersive"
@@ -32,7 +32,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-localization"
     ],
     "extra": {
       "router": {
