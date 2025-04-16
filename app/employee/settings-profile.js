@@ -257,6 +257,7 @@ export default function Profile() {
                   if (companyCode.trim() === "") {
                     setErrorMessage("Company code cannot be empty.");
                     fadeErrorAnim.setValue(1);
+                    // eslint-disable-next-line no-undef
                     setTimeout(() => {
                       Animated.timing(fadeErrorAnim, {
                         toValue: 0,
@@ -324,6 +325,7 @@ export default function Profile() {
                       setCodeSubmitted(true);
                       setErrorMessage("");
 
+                      // eslint-disable-next-line no-undef
                       setTimeout(() => {
                         Animated.timing(fadeAnim, {
                           toValue: 0,
