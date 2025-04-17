@@ -23,6 +23,7 @@ import {
 } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 export default function EmployeeDetail() {
   const { id } = useLocalSearchParams();
@@ -41,6 +42,9 @@ export default function EmployeeDetail() {
   const [isRoleModalVisible, setRoleModalVisible] = useState(false);
   const [isCompanyModalVisible, setCompanyModalVisible] = useState(false);
   const [companies, setCompanies] = useState([]);
+
+  // Initialize i18n
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchEmployee = async () => {
@@ -79,14 +83,14 @@ export default function EmployeeDetail() {
   }, [id]);
 
   const fieldLabels = {
-    firstName: "First Name",
-    lastName: "Last Name",
-    dni: "DNI/NIE",
-    email: "Email",
-    phone: "Telephone",
-    birthDate: "Birthdate",
-    role: "Role",
-    companyId: "Company ID",
+    firstName: t("employee_details.firstName"),
+    lastName: t("employee_details.lastName"),
+    dni: t("employee_details.dni"),
+    email: t("employee_details.email"),
+    phone: t("employee_details.phone"),
+    birthDate: t("employee_details.birthDate"),
+    role: t("employee_details.role"),
+    companyId: t("employee_details.companyId"),
   };
 
   const handleInputChange = (field, value) => {
@@ -118,15 +122,15 @@ export default function EmployeeDetail() {
 
   const handleDelete = async () => {
     Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this employee?",
+      t("employee_details.confirmDeleteTitle"),
+      t("employee_details.confirmDelete"),
       [
         {
-          text: "Cancel",
+          text: t("employee_details.cancel"),
           style: "cancel",
         },
         {
-          text: "Delete",
+          text: t("employee_details.delete1"),
           style: "destructive",
           onPress: async () => {
             try {
@@ -188,7 +192,7 @@ export default function EmployeeDetail() {
               textShadowRadius: 1,
             }}
           >
-            Employees
+            {t("employee_details.employeesTitle")}
           </Text>
           <Text
             style={{
@@ -200,7 +204,8 @@ export default function EmployeeDetail() {
               textShadowRadius: 1,
             }}
           >
-            {`${employee.firstName} ${employee.lastName}` || "Employee Details"}
+            {`${employee.firstName} ${employee.lastName}` ||
+              t("employee_details.employeeDetailsTitle")}
           </Text>
         </View>
         <Pressable onPress={() => router.push("/admin/home")}>
@@ -240,7 +245,9 @@ export default function EmployeeDetail() {
 
           {/* Role Selection */}
           <View style={{ marginBottom: 15 }}>
-            <Text style={{ fontSize: 18, marginBottom: 5 }}>Role</Text>
+            <Text style={{ fontSize: 18, marginBottom: 5 }}>
+              {t("employee_details.role")}
+            </Text>
             <Pressable
               onPress={() => setRoleModalVisible(true)}
               style={{
@@ -263,7 +270,7 @@ export default function EmployeeDetail() {
                   color: employee.role ? "black" : "gray",
                 }}
               >
-                {employee.role || "Select role"}
+                {employee.role || t("employee_details.selectRole")}
               </Text>
               <Ionicons name="chevron-down" size={24} color="gray" />
             </Pressable>
@@ -293,7 +300,7 @@ export default function EmployeeDetail() {
                 <Text
                   style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}
                 >
-                  Select Role
+                  {t("employee_details.selectRole")}
                 </Text>
 
                 {roles.map((role) => (
@@ -320,7 +327,9 @@ export default function EmployeeDetail() {
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ color: "white" }}>Close</Text>
+                  <Text style={{ color: "white" }}>
+                    {t("employee_details.close")}
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -345,7 +354,9 @@ export default function EmployeeDetail() {
                 elevation: 5,
               }}
             >
-              <Text style={{ color: "white", fontSize: 18 }}>Save Changes</Text>
+              <Text style={{ color: "white", fontSize: 18 }}>
+                {t("employee_details.save")}
+              </Text>
             </Pressable>
 
             <Pressable
@@ -364,7 +375,7 @@ export default function EmployeeDetail() {
               }}
             >
               <Text style={{ color: "white", fontSize: 18 }}>
-                Delete Employee
+                {t("employee_details.delete")}
               </Text>
             </Pressable>
           </View>

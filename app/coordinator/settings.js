@@ -81,7 +81,7 @@ export default function Settings() {
             source={require("../../assets/profile.png")}
             style={{ width: 40, height: 40, marginRight: 10 }}
           />
-          <Text style={{ fontSize: 24, fontWeight: "500", marginLeft: 20 }}>
+          <Text style={{ fontSize: 20, fontWeight: "500", marginLeft: 20 }}>
             Profile
           </Text>
         </Pressable>
@@ -99,7 +99,7 @@ export default function Settings() {
             source={require("../../assets/help.png")}
             style={{ width: 40, height: 40, marginRight: 10 }}
           />
-          <Text style={{ fontSize: 24, fontWeight: "500", marginLeft: 20 }}>
+          <Text style={{ fontSize: 20, fontWeight: "500", marginLeft: 20 }}>
             Help & FAQ
           </Text>
         </Pressable>

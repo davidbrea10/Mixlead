@@ -33,6 +33,133 @@
     "errors.fixBeforeSubmit": "Please fix the errors before submitting.",
     "errors.fillAllFields": "Please fill in all fields",
     "errors.registrationFailed": "Registration failed",
-    "success.registration": "Registration Successful"
-  }
+    "success.registration": "Registration Successful",
+
+    "company_details.title": "Companies",
+    "company_details.subtitle": "Company Details",
+    "company_details.fields.Name": "Name",
+    "company_details.fields.Cif": "CIF",
+    "company_details.fields.Telephone": "Telephone",
+    "company_details.fields.ContactPerson": "Contact Person",
+    "company_details.fields.SecurityNumber": "Security Number",
+    "company_details.save": "Save Changes",
+    "company_details.delete": "Delete Company",
+    "company_details.loading": "Loading...",
+    "company_details.alert.not_found": "Company not found",
+    "company_details.alert.fetch_error": "Error fetching company",
+    "company_details.alert.update_success": "Company updated successfully",
+    "company_details.alert.update_error": "Error updating company",
+    "company_details.alert.delete_confirm1": "Confirm Delete",
+    "company_details.alert.delete_confirm": "Are you sure you want to delete this company?",
+    "company_details.alert.delete_success": "Company deleted successfully",
+    "company_details.alert.delete_error": "Error deleting company",
+    "company_details.confirm.cancel": "Cancel",
+    "company_details.confirm.delete": "Delete",
+
+    "employee_details": {
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "dni": "DNI/NIE",
+      "email": "Email",
+      "phone": "Telephone",
+      "birthDate": "Birthdate",
+      "role": "Role",
+      "companyId": "Company ID",
+      "selectRole": "Select Role",
+      "selectRolePlaceholder": "Select role",
+      "save": "Save Changes",
+      "delete": "Delete Employee",
+      "cancel": "Cancel",
+      "delete1": "Delete",
+      "confirmDeleteTitle": "Confirm Delete",
+      "confirmDelete": "Are you sure you want to delete this employee?",
+      "employeesTitle": "Employees",
+      "employeeDetailsTitle": "Employee Details",
+      "close": "Close"
+    },
+
+    "add_company": {
+      "title": "Add Company",
+      "companiesTitle": "Companies",
+      "name": "Name",
+      "cif": "CIF",
+      "telephone": "Telephone",
+      "contactPerson": "Contact Person",
+      "securityNumber": "Social Security Number",
+      "placeholder_name": "Enter name",
+      "placeholder_cif": "Enter CIF",
+      "placeholder_telephone": "Enter telephone",
+      "placeholder_contactPerson": "Enter contact person",
+      "placeholder_securityNumber": "Enter social security number",
+      "addButton": "Add Company",
+      "errorIncomplete": "Please fill in all fields",
+      "success": "Company Registered Successfully"
+    },
+
+    "add_employee": {
+      "title": "Add Employee",
+      "employeesTitle": "Employees",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "dni": "DNI",
+      "email": "Email",
+      "phone": "Phone",
+      "role": "Role",
+      "birthDate": "Birth Date",
+      "company": "Company",
+      "selectRole": "Select Role",
+      "selectCompany": "Select Company",
+      "selectBirthDate": "Select Birth Date",
+      "addButton": "Add Employee",
+      "noCompany": "No company",
+      "validationError": "Please fill in all required fields",
+      "successMessage": "Employee Registered Successfully",
+      "errorFetchingCompanies": "Error fetching companies",
+      "password": "Password"
+    },
+
+    "companies": {
+      "title": "Companies",
+      "searchPlaceholder": "Search",
+      "noName": "Name not available",
+      "successMessage": "Company created successfully",
+      "errorFetching": "Error fetching companies"
+    },
+
+    "employees": {
+      "title": "Employees",
+      "searchPlaceholder": "Search",
+      "selectCompany": "Select a company",
+      "noName": "Name not available",
+      "companyLabel": "Company",
+      "withoutCompany": "Without company",
+      "filterAll": "All"
+    },
+
+    "home": {
+      "title": "HOME",
+      "companiesButton": "Companies",
+      "employeesButton": "Employees",
+      "logoutError": "Error logging out: "
+    },
+
+    "adminSettings": {
+      "title": "Settings",
+      "profile": "Profile",
+      "helpFaq": "Help & FAQ"
+    },
+
+    "profile": {
+      "title": "Your Profile",
+      "name": "Name",
+      "lastName": "Last Name",
+      "dni": "DNI/NIE",
+      "telephone": "Telephone",
+      "birth": "Birth Date",
+      "email": "Email",
+      "userNotAuthenticated": "Error: No user is authenticated",
+      "userDataNotFound": "Error: User data not found",
+      "fetchUserDataError": "Error fetching user data"
+    }
+}
   

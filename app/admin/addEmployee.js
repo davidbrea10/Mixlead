@@ -16,12 +16,16 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
-import { db } from "../../firebase/config";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { db, auth } from "../../firebase/config";
+import { collection, addDoc, getDocs, doc, setDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 export default function AddEmployee() {
   const router = useRouter();
+
+  const { t } = useTranslation();
 
   const [form, setForm] = useState({
     firstName: "",
@@ -32,6 +36,7 @@ export default function AddEmployee() {
     role: "",
     birthDate: "",
     companyId: "",
+    password: "",
   });
 
   const [companies, setCompanies] = useState([]);
@@ -68,7 +73,7 @@ export default function AddEmployee() {
         // Agregar "No company" al principio
         setCompanies([{ id: null, name: "No company" }, ...sortedCompanies]);
       } catch (error) {
-        Alert.alert("Error fetching companies", error.message);
+        Alert.alert(t("add_employee.errorFetchingCompanies"), error.message);
       }
     };
 
@@ -105,7 +110,17 @@ export default function AddEmployee() {
   };
 
   const handleRegisterEmployee = async () => {
-    const { firstName, lastName, dni, email, phone, role, birthDate } = form;
+    const {
+      firstName,
+      lastName,
+      dni,
+      email,
+      phone,
+      role,
+      birthDate,
+      password,
+      companyId,
+    } = form;
 
     if (
       !firstName ||
@@ -114,19 +129,33 @@ export default function AddEmployee() {
       !email ||
       !phone ||
       !role ||
-      !birthDate
+      !birthDate ||
+      !password
     ) {
-      Alert.alert("Validation Error", "Please fill in all required fields");
+      Alert.alert("Validation Error", t("add_employee.validationError"));
       return;
     }
 
     try {
-      await addDoc(collection(db, "employees"), {
-        ...form,
+      // Crear usuario en Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      const userId = userCredential.user.uid;
+
+      // 🔻 Ahora sí eliminamos password para guardar en Firestore
+      const { password: _, ...employeeData } = form;
+
+      // Guardar datos en Firestore con el UID como ID del documento
+      await setDoc(doc(db, "employees", userId), {
+        ...employeeData,
+        uid: userId,
         createdAt: new Date(),
       });
 
-      Alert.alert("Success", "Employee Registered Successfully");
+      Alert.alert("Success", t("add_employee.successMessage"));
       router.replace("/admin/employees");
     } catch (error) {
       Alert.alert("Error", error.message);
@@ -173,7 +202,7 @@ export default function AddEmployee() {
                 textShadowRadius: 1,
               }}
             >
-              Employees
+              {t("add_employee.employeesTitle")}
             </Text>
 
             <Text
@@ -186,7 +215,7 @@ export default function AddEmployee() {
                 textShadowRadius: 1,
               }}
             >
-              Add Employee
+              {t("add_employee.title")}
             </Text>
           </View>
 
@@ -206,18 +235,16 @@ export default function AddEmployee() {
             keyboardShouldPersistTaps="handled"
           >
             {Object.entries(form).map(([key, value]) =>
-              key !== "companyId" &&
-              key !== "companyName" &&
-              key !== "role" &&
-              key !== "birthDate" ? ( // Excluir birthDate aquí
+              !["companyId", "role", "birthDate"].includes(key) ? (
                 <View key={key} style={{ width: 366, marginBottom: 15 }}>
-                  <Text style={styles.label}>{key}</Text>
+                  <Text style={styles.label}>{t(`add_employee.${key}`)}</Text>
                   <View style={styles.inputContainer}>
                     <TextInput
-                      placeholder={key}
+                      placeholder={t(`add_employee.${key}`)}
                       value={value}
                       onChangeText={(text) => handleInputChange(key, text)}
                       style={styles.input}
+                      secureTextEntry={key === "password"} // <--- Oculta el texto si es password
                     />
                     {form[key] ? (
                       <Pressable onPress={() => handleClearField(key)}>
@@ -231,7 +258,9 @@ export default function AddEmployee() {
 
             {/* Birth Date */}
             <View style={{ width: 366, marginBottom: 15 }}>
-              <Text style={{ fontSize: 18, marginBottom: 5 }}>Birth Date</Text>
+              <Text style={{ fontSize: 18, marginBottom: 5 }}>
+                {t("add_employee.birthDate")}
+              </Text>
               <View style={{ position: "relative" }}>
                 <TouchableOpacity
                   onPress={() => setShowDatePicker(true)}
@@ -249,7 +278,7 @@ export default function AddEmployee() {
                       fontSize: 18,
                     }}
                   >
-                    {form.birthDate || "Select Birth Date"}
+                    {form.birthDate || t("add_employee.selectBirthDate")}
                   </Text>
                 </TouchableOpacity>
                 {form.birthDate && (
@@ -276,7 +305,9 @@ export default function AddEmployee() {
               onPress={() => setRoleModalVisible(true)}
               style={styles.inputContainer}
             >
-              <Text style={styles.input}>{form.role || "Select role"}</Text>
+              <Text style={styles.input}>
+                {form.role || t("add_employee.selectRole")}
+              </Text>
               <Ionicons name="chevron-down" size={24} color="gray" />
             </Pressable>
 
@@ -287,13 +318,15 @@ export default function AddEmployee() {
             >
               <Text style={styles.input}>
                 {companies.find((c) => c.id === form.companyId)?.name ||
-                  "No company"}
+                  t("add_employee.noCompany")}
               </Text>
               <Ionicons name="chevron-down" size={24} color="gray" />
             </Pressable>
 
             <Pressable onPress={handleRegisterEmployee} style={styles.button}>
-              <Text style={{ color: "#fff", fontSize: 19 }}>Add Employee</Text>
+              <Text style={{ color: "#fff", fontSize: 19 }}>
+                {t("add_employee.addButton")}
+              </Text>
             </Pressable>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -306,7 +339,9 @@ export default function AddEmployee() {
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Role</Text>
+              <Text style={styles.modalTitle}>
+                {t("add_employee.selectRole")}
+              </Text>
               {roles.map((role) => (
                 <TouchableOpacity
                   key={role}
@@ -320,7 +355,9 @@ export default function AddEmployee() {
                 onPress={() => setRoleModalVisible(false)}
                 style={styles.closeButton}
               >
-                <Text style={{ color: "white" }}>Close</Text>
+                <Text style={{ color: "white" }}>
+                  {t("employee_details.close")}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -334,7 +371,9 @@ export default function AddEmployee() {
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Company</Text>
+              <Text style={styles.modalTitle}>
+                {t("add_employee.selectCompany")}
+              </Text>
               <FlatList
                 data={companies}
                 keyExtractor={(item) => item.id || "none"}
@@ -351,7 +390,9 @@ export default function AddEmployee() {
                 onPress={() => setCompanyModalVisible(false)}
                 style={styles.closeButton}
               >
-                <Text style={{ color: "white" }}>Close</Text>
+                <Text style={{ color: "white" }}>
+                  {t("employee_details.close")}
+                </Text>
               </Pressable>
             </View>
           </View>

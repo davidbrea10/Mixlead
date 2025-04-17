@@ -33,6 +33,133 @@
     "errors.fixBeforeSubmit": "Por favor, corrige los errores antes de enviar.",
     "errors.fillAllFields": "Por favor, rellena todos los campos",
     "errors.registrationFailed": "El registro falló",
-    "success.registration": "Registro exitoso"
-  }
+    "success.registration": "Registro exitoso",
+
+    "company_details.title": "Empresas",
+    "company_details.subtitle": "Detalles de la Empresa",
+    "company_details.fields.Name": "Nombre",
+    "company_details.fields.Cif": "CIF",
+    "company_details.fields.Telephone": "Teléfono",
+    "company_details.fields.ContactPerson": "Persona de Contacto",
+    "company_details.fields.SecurityNumber": "Número de Seguridad",
+    "company_details.save": "Guardar Cambios",
+    "company_details.delete": "Eliminar Empresa",
+    "company_details.loading": "Cargando...",
+    "company_details.alert.not_found": "Empresa no encontrada",
+    "company_details.alert.fetch_error": "Error al obtener la empresa",
+    "company_details.alert.update_success": "Empresa actualizada correctamente",
+    "company_details.alert.update_error": "Error al actualizar la empresa",
+    "company_details.alert.delete_confirm1": "Confirmar eliminación",
+    "company_details.alert.delete_confirm": "¿Estás seguro de que deseas eliminar esta empresa?",
+    "company_details.alert.delete_success": "Empresa eliminada correctamente",
+    "company_details.alert.delete_error": "Error al eliminar la empresa",
+    "company_details.confirm.cancel": "Cancelar",
+    "company_details.confirm.delete": "Eliminar",
+
+    "employee_details": {
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "dni": "DNI/NIE",
+      "email": "Correo electrónico",
+      "phone": "Teléfono",
+      "birthDate": "Fecha de nacimiento",
+      "role": "Rol",
+      "companyId": "ID de empresa",
+      "selectRole": "Seleccionar rol",
+      "selectRolePlaceholder": "Selecciona un rol",
+      "save": "Guardar cambios",
+      "delete": "Eliminar",
+      "cancel": "Cancelar",
+      "delete1": "Eliminar",
+      "confirmDeleteTitle": "Confirmar eliminación",
+      "confirmDelete": "¿Estás seguro de que deseas eliminar este empleado?",
+      "employeesTitle": "Empleados",
+      "employeeDetailsTitle": "Detalles del empleado",
+      "close": "Cerrar"
+    },
+
+    "add_company": {
+      "title": "Añadir Empresa",
+      "companiesTitle": "Empresas",
+      "name": "Nombre",
+      "cif": "CIF",
+      "telephone": "Teléfono",
+      "contactPerson": "Persona de contacto",
+      "securityNumber": "Número de Seguridad Social",
+      "placeholder_name": "Introduce el nombre",
+      "placeholder_cif": "Introduce el CIF",
+      "placeholder_telephone": "Introduce el teléfono",
+      "placeholder_contactPerson": "Introduce la persona de contacto",
+      "placeholder_securityNumber": "Introduce el número de seguridad social",
+      "addButton": "Añadir Empresa",
+      "errorIncomplete": "Por favor, rellena todos los campos",
+      "success": "Empresa registrada con éxito"
+    },
+
+    "add_employee": {
+      "title": "Añadir Empleado",
+      "employeesTitle": "Empleados",
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "dni": "DNI",
+      "email": "Correo electrónico",
+      "phone": "Teléfono",
+      "role": "Rol",
+      "birthDate": "Fecha de nacimiento",
+      "company": "Empresa",
+      "selectRole": "Seleccionar rol",
+      "selectCompany": "Seleccionar empresa",
+      "selectBirthDate": "Seleccionar fecha de nacimiento",
+      "addButton": "Añadir Empleado",
+      "noCompany": "Sin empresa",
+      "validationError": "Por favor, rellena todos los campos obligatorios",
+      "successMessage": "Empleado registrado con éxito",
+      "errorFetchingCompanies": "Error al obtener las empresas",
+      "password": "Contraseña"
+    },
+
+    "companies": {
+      "title": "Empresas",
+      "searchPlaceholder": "Buscar",
+      "noName": "Nombre no disponible",
+      "successMessage": "Empresa creada con éxito",
+      "errorFetching": "Error al cargar las empresas"
+    },
+
+    "employees": {
+      "title": "Empleados",
+      "searchPlaceholder": "Buscar",
+      "selectCompany": "Selecciona una empresa",
+      "noName": "Nombre no disponible",
+      "companyLabel": "Empresa",
+      "withoutCompany": "Sin empresa",
+      "filterAll": "Todas"
+    },
+
+    "adminHome": {
+      "title": "INICIO",
+      "companiesButton": "Empresas",
+      "employeesButton": "Empleados",
+      "logoutError": "Error al cerrar sesión: "
+    },
+
+    "adminSettings": {
+      "title": "Configuración",
+      "profile": "Perfil",
+      "helpFaq": "Ayuda & Preguntas Frecuentes"
+    },
+
+    "profile": {
+      "title": "Tu Perfil",
+      "name": "Nombre",
+      "lastName": "Apellido",
+      "dni": "DNI/NIE",
+      "telephone": "Teléfono",
+      "birth": "Fecha de Nacimiento",
+      "email": "Correo Electrónico",
+      "userNotAuthenticated": "Error: No hay usuario autenticado",
+      "userDataNotFound": "Error: No se encontraron los datos del usuario",
+      "fetchUserDataError": "Error al obtener los datos del usuario"
+    }
+}
   

@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import DropDownPicker from "react-native-dropdown-picker";
+import { useTranslation } from "react-i18next";
 
 export default function EmployeesScreen() {
   const router = useRouter();
@@ -26,6 +27,8 @@ export default function EmployeesScreen() {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [companyOptions, setCompanyOptions] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,8 +43,8 @@ export default function EmployeesScreen() {
 
         setCompanies(companiesList);
         setCompanyOptions([
-          { label: "All", value: null },
-          { label: "Without company", value: "none" },
+          { label: t("employees.filterAll"), value: null },
+          { label: t("employees.withoutCompany"), value: "none" },
           ...companiesList.map((c) => ({ label: c.name, value: c.id })),
         ]);
 
@@ -149,7 +152,7 @@ export default function EmployeesScreen() {
             textShadowRadius: 1,
           }}
         >
-          Employees
+          {t("employees.title")}
         </Text>
         <Pressable onPress={handleHome}>
           <Image
@@ -170,7 +173,7 @@ export default function EmployeesScreen() {
           filterEmployees(searchText, value);
         }}
         setItems={setCompanyOptions}
-        placeholder="Select a company"
+        placeholder={t("employees.selectCompany")}
         containerStyle={{ marginTop: 10, marginHorizontal: 20, width: "90%" }}
       />
 
@@ -193,7 +196,7 @@ export default function EmployeesScreen() {
           style={{ marginRight: 8 }}
         />
         <TextInput
-          placeholder="Search"
+          placeholder={t("employees.searchPlaceholder")}
           value={searchText}
           onChangeText={handleSearch}
           style={{ flex: 1, fontSize: 16 }}
@@ -204,7 +207,12 @@ export default function EmployeesScreen() {
         <ActivityIndicator
           size={50}
           color="#FF8C00"
-          style={{ marginTop: 20 }}
+          style={{
+            marginTop: 20,
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         />
       ) : (
         <FlatList
@@ -251,7 +259,9 @@ export default function EmployeesScreen() {
                   {item.name}
                 </Text>
                 <Text style={{ fontSize: 14, color: "white" }}>
-                  <Text style={{ fontWeight: "bold" }}>Company:</Text>{" "}
+                  <Text style={{ fontWeight: "bold" }}>
+                    {t("employees.companyLabel")}:
+                  </Text>{" "}
                   {item.companyName}
                 </Text>
               </View>

@@ -12,9 +12,11 @@ import { useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
+import { useTranslation } from "react-i18next";
 
 export default function Profile() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +27,7 @@ export default function Profile() {
         const user = auth.currentUser;
 
         if (!user) {
-          Alert.alert("Error", "No user is authenticated");
+          Alert.alert(t("profile.userNotAuthenticated"));
           return;
         }
 
@@ -35,10 +37,10 @@ export default function Profile() {
         if (docSnap.exists()) {
           setUserData(docSnap.data());
         } else {
-          Alert.alert("Error", "User data not found");
+          Alert.alert(t("profile.userDataNotFound"));
         }
       } catch (error) {
-        Alert.alert("Error fetching user data", error.message);
+        Alert.alert(t("profile.fetchUserDataError"), error.message);
       } finally {
         setLoading(false);
       }
@@ -101,7 +103,7 @@ export default function Profile() {
             textShadowRadius: 1,
           }}
         >
-          Your Profile
+          {t("profile.title")}
         </Text>
 
         <Pressable onPress={handleHome}>
@@ -116,12 +118,12 @@ export default function Profile() {
       <View style={{ flex: 1, padding: 20 }}>
         {userData &&
           [
-            { label: "Name", value: userData.firstName },
-            { label: "Last Name", value: userData.lastName },
-            { label: "DNI/NIE", value: userData.dni },
-            { label: "Telephone", value: userData.phone },
-            { label: "Birth", value: userData.birthDate },
-            { label: "Email", value: userData.email },
+            { label: t("profile.name"), value: userData.firstName },
+            { label: t("profile.lastName"), value: userData.lastName },
+            { label: t("profile.dni"), value: userData.dni },
+            { label: t("profile.telephone"), value: userData.phone },
+            { label: t("profile.birth"), value: userData.birthDate },
+            { label: t("profile.email"), value: userData.email },
           ].map((item, index) => (
             <View key={index} style={{ marginBottom: 10 }}>
               <Text style={{ fontSize: 16, fontWeight: "bold" }}>

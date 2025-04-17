@@ -12,16 +12,48 @@ import { useState } from "react";
 import { db } from "../../firebase/config";
 import { collection, addDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 export default function AddCompany() {
   const router = useRouter();
   const [form, setForm] = useState({
-    Name: "",
-    Cif: "",
-    Telephone: "",
-    ContactPerson: "",
-    SecurityNumber: "",
+    name: "",
+    cif: "",
+    telephone: "",
+    contactPerson: "",
+    securityNumber: "",
   });
+
+  // Initialize i18n
+  const { t } = useTranslation();
+
+  const fields = [
+    {
+      key: "name",
+      label: t("add_company.name"),
+      placeholder: t("add_company.placeholder_name"),
+    },
+    {
+      key: "cif",
+      label: t("add_company.cif"),
+      placeholder: t("add_company.placeholder_cif"),
+    },
+    {
+      key: "telephone",
+      label: t("add_company.telephone"),
+      placeholder: t("add_company.placeholder_telephone"),
+    },
+    {
+      key: "contactPerson",
+      label: t("add_company.contactPerson"),
+      placeholder: t("add_company.placeholder_contactPerson"),
+    },
+    {
+      key: "securityNumber",
+      label: t("add_company.securityNumber"),
+      placeholder: t("add_company.placeholder_securityNumber"),
+    },
+  ];
 
   const handleInputChange = (field, value) => {
     setForm({ ...form, [field]: value });
@@ -43,7 +75,7 @@ export default function AddCompany() {
     const { Name, Cif, Telephone, ContactPerson, SecurityNumber } = form;
 
     if (!Name || !Cif || !Telephone || !ContactPerson || !SecurityNumber) {
-      alert("Please fill in all fields");
+      alert(t("add_company.errorIncomplete"));
       return;
     }
 
@@ -57,7 +89,7 @@ export default function AddCompany() {
         createdAt: new Date(),
       });
 
-      alert("Company Registered Successfully");
+      alert(t("add_company.success"));
       router.replace("/admin/companies");
     } catch (error) {
       alert(error.message);
@@ -104,7 +136,7 @@ export default function AddCompany() {
                 textShadowRadius: 1,
               }}
             >
-              Companies
+              {t("add_company.companiesTitle")}
             </Text>
 
             <Text
@@ -117,7 +149,7 @@ export default function AddCompany() {
                 textShadowRadius: 1,
               }}
             >
-              Add Company
+              {t("add_company.title")}
             </Text>
           </View>
 
@@ -130,14 +162,12 @@ export default function AddCompany() {
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {Object.keys(form).map((key) => (
+          {fields.map(({ key, label, placeholder }) => (
             <View key={key} style={{ width: 366, marginBottom: 15 }}>
-              <Text style={styles.label}>
-                {key.replace(/([A-Z])/g, " $1").trim()}
-              </Text>
+              <Text style={styles.label}>{label}</Text>
               <View style={styles.inputContainer}>
                 <TextInput
-                  placeholder={key.replace(/([A-Z])/g, " $1").trim()}
+                  placeholder={placeholder}
                   value={form[key]}
                   onChangeText={(text) => handleInputChange(key, text)}
                   style={styles.input}
@@ -152,7 +182,9 @@ export default function AddCompany() {
           ))}
 
           <Pressable onPress={handleRegisterCompany} style={styles.button}>
-            <Text style={{ color: "#fff", fontSize: 19 }}>Add Company</Text>
+            <Text style={{ color: "#fff", fontSize: 19 }}>
+              {t("add_company.title")}
+            </Text>
           </Pressable>
         </ScrollView>
       </View>

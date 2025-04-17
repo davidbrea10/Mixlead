@@ -1,9 +1,12 @@
 import { View, Text, Pressable, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 export default function Settings() {
   const router = useRouter();
+
+  const { t } = useTranslation();
 
   const handleBack = () => {
     router.back(); // Vuelve a la pantalla anterior
@@ -56,7 +59,7 @@ export default function Settings() {
             textShadowRadius: 1,
           }}
         >
-          SETTINGS
+          {t("adminSettings.title")}
         </Text>
         <Pressable onPress={handleHome}>
           <Image
@@ -81,8 +84,8 @@ export default function Settings() {
             source={require("../../assets/profile.png")}
             style={{ width: 40, height: 40, marginRight: 10 }}
           />
-          <Text style={{ fontSize: 24, fontWeight: "500", marginLeft: 20 }}>
-            Profile
+          <Text style={{ fontSize: 20, fontWeight: "500", marginLeft: 20 }}>
+            {t("adminSettings.profile")}
           </Text>
         </Pressable>
         <View style={{ height: 1, backgroundColor: "black" }} />
@@ -99,8 +102,8 @@ export default function Settings() {
             source={require("../../assets/help.png")}
             style={{ width: 40, height: 40, marginRight: 10 }}
           />
-          <Text style={{ fontSize: 24, fontWeight: "500", marginLeft: 20 }}>
-            Help & FAQ
+          <Text style={{ fontSize: 20, fontWeight: "500", marginLeft: 20 }}>
+            {t("adminSettings.helpFaq")}
           </Text>
         </Pressable>
         <View style={{ height: 1, backgroundColor: "black" }} />

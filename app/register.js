@@ -187,7 +187,7 @@ export default function Register() {
   const handleRegister = async () => {
     // Validar que no haya errores antes de registrar
     if (errors.dni || errors.phone || errors.birthDate) {
-      alert("Please fix the errors before submitting.");
+      alert(t("errors.fixBeforeSubmit"));
       return;
     }
     const {
@@ -211,12 +211,12 @@ export default function Register() {
       !password ||
       !confirmPassword
     ) {
-      alert("Please fill in all fields");
+      alert(t("errors.fillAllFields"));
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      alert(t("errors.passwordsMismatch"));
       return;
     }
 
@@ -231,7 +231,7 @@ export default function Register() {
       age < 18 ||
       (age === 18 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))
     ) {
-      alert("You must be at least 18 years old to register.");
+      alert(t("errors.ageRestriction"));
       return;
     }
 
@@ -244,7 +244,7 @@ export default function Register() {
       const dniSnapshot = await getDocs(dniQuery);
 
       if (!dniSnapshot.empty) {
-        alert("The DNI is already registered.");
+        alert(t("errors.dniExists"));
         return;
       }
 
@@ -269,7 +269,7 @@ export default function Register() {
         createdAt: new Date(),
       });
 
-      alert("Registration Successful");
+      alert(t("register.registration"));
 
       // ✅ Redirigir a la pantalla de inicio
       router.replace("/employee/home"); // Asegúrate de que esta ruta exista en tu app

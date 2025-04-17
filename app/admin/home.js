@@ -3,16 +3,19 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { auth } from "../../firebase/config"; // Importa la configuración de Firebase
 import { signOut } from "firebase/auth";
+import { useTranslation } from "react-i18next";
 
 export default function Home() {
   const router = useRouter();
+
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     try {
       await signOut(auth); // Cierra sesión en Firebase
       router.replace("/"); // Redirige al login
     } catch (error) {
-      alert("Error logging out: " + error.message);
+      alert(t("adminHome.logoutError") + error.message);
     }
   };
 
@@ -65,7 +68,7 @@ export default function Home() {
             textShadowRadius: 1,
           }}
         >
-          HOME
+          {t("adminHome.title")}
         </Text>
 
         <Pressable onPress={handleLogout}>
@@ -114,7 +117,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              Companies
+              {t("adminHome.companiesButton")}
             </Text>
           </View>
         </Pressable>
@@ -154,7 +157,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              Employees
+              {t("adminHome.employeesButton")}
             </Text>
           </View>
         </Pressable>

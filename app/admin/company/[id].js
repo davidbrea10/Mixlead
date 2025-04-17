@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../firebase/config";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next"; // Importa la configuración de i18next
 
 export default function CompanyDetailsScreen() {
   const { id } = useLocalSearchParams();
@@ -25,6 +26,17 @@ export default function CompanyDetailsScreen() {
   });
   const [loading, setLoading] = useState(true);
 
+  const fields = [
+    { key: "Name", label: "company_details.fields.Name" },
+    { key: "Cif", label: "company_details.fields.Cif" },
+    { key: "Telephone", label: "company_details.fields.Telephone" },
+    { key: "ContactPerson", label: "company_details.fields.ContactPerson" },
+    { key: "SecurityNumber", label: "company_details.fields.SecurityNumber" },
+  ];
+
+  // Initialize i18n
+  const { t } = useTranslation();
+
   useEffect(() => {
     const fetchCompany = async () => {
       try {
@@ -34,11 +46,11 @@ export default function CompanyDetailsScreen() {
         if (docSnap.exists()) {
           setCompany(docSnap.data());
         } else {
-          alert("Company not found");
+          alert(t("company_details.alert.not_found"));
           router.back();
         }
       } catch (error) {
-        alert("Error fetching company");
+        alert(t("company_details.alert.fetch_error"));
       } finally {
         setLoading(false);
       }
@@ -54,33 +66,33 @@ export default function CompanyDetailsScreen() {
     try {
       const docRef = doc(db, "companies", id);
       await updateDoc(docRef, company);
-      alert("Company updated successfully");
+      alert(t("company_details.alert.update_success"));
       router.push({ pathname: "/admin/companies", params: { refresh: true } });
     } catch (error) {
-      alert("Error updating company");
+      alert(t("company_details.alert.update_error"));
     }
   };
 
   const handleDelete = async () => {
     Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this company?",
+      t("company_details.alert.delete_confirm1"),
+      t("company_details.alert.delete_confirm"),
       [
         {
-          text: "Cancel",
+          text: t("company_details.confirm.cancel"),
           style: "cancel",
         },
         {
-          text: "Delete",
+          text: t("company_details.confirm.delete"),
           style: "destructive",
           onPress: async () => {
             try {
               const docRef = doc(db, "companies", id);
               await deleteDoc(docRef);
-              alert("Company deleted successfully");
+              alert(t("company_details.alert.delete_success"));
               router.push("/admin/home");
             } catch (error) {
-              alert("Error deleting company");
+              alert(t("company_details.alert.delete_error"));
             }
           },
         },
@@ -133,7 +145,7 @@ export default function CompanyDetailsScreen() {
               textShadowRadius: 1,
             }}
           >
-            Companies
+            {t("company_details.title")}
           </Text>
           <Text
             style={{
@@ -145,7 +157,7 @@ export default function CompanyDetailsScreen() {
               textShadowRadius: 1,
             }}
           >
-            {company?.Name || "Company Details"}
+            {company?.Name || t("company_details.subtitle")}
           </Text>
         </View>
         <Pressable onPress={() => router.push("/admin/home")}>
@@ -157,30 +169,28 @@ export default function CompanyDetailsScreen() {
       </View>
 
       <View style={{ flex: 1, padding: 20 }}>
-        {["Name", "Cif", "Telephone", "ContactPerson", "SecurityNumber"].map(
-          (key) => (
-            <View key={key} style={{ marginBottom: 15 }}>
-              <Text style={{ fontSize: 18, marginBottom: 5 }}>{key}</Text>
-              <TextInput
-                value={company[key]}
-                onChangeText={(text) => handleInputChange(key, text)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  width: "100%",
-                  height: 55,
-                  borderWidth: 1,
-                  borderColor: "#ccc",
-                  borderRadius: 10,
-                  paddingHorizontal: 10,
-                  marginBottom: 10,
-                  backgroundColor: "white",
-                  fontSize: 18,
-                }}
-              />
-            </View>
-          ),
-        )}
+        {fields.map(({ key, label }) => (
+          <View key={key} style={{ marginBottom: 15 }}>
+            <Text style={{ fontSize: 18, marginBottom: 5 }}>{t(label)}</Text>
+            <TextInput
+              value={company[key]}
+              onChangeText={(text) => handleInputChange(key, text)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                width: "100%",
+                height: 55,
+                borderWidth: 1,
+                borderColor: "#ccc",
+                borderRadius: 10,
+                paddingHorizontal: 10,
+                marginBottom: 10,
+                backgroundColor: "white",
+                fontSize: 18,
+              }}
+            />
+          </View>
+        ))}
 
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Pressable
@@ -203,7 +213,9 @@ export default function CompanyDetailsScreen() {
               elevation: 5,
             }}
           >
-            <Text style={{ color: "white", fontSize: 18 }}>Save Changes</Text>
+            <Text style={{ color: "white", fontSize: 18 }}>
+              {t("company_details.save")}
+            </Text>
           </Pressable>
 
           <Pressable
@@ -225,7 +237,9 @@ export default function CompanyDetailsScreen() {
               elevation: 5,
             }}
           >
-            <Text style={{ color: "white", fontSize: 18 }}>Delete Company</Text>
+            <Text style={{ color: "white", fontSize: 18 }}>
+              {t("company_details.delete")}
+            </Text>
           </Pressable>
         </View>
       </View>

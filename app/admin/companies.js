@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/config";
+import { useTranslation } from "react-i18next";
 
 export default function CompaniesScreen() {
   const router = useRouter();
@@ -21,6 +22,8 @@ export default function CompaniesScreen() {
   const [filteredCompanies, setFilteredCompanies] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -40,7 +43,7 @@ export default function CompaniesScreen() {
         setCompanies(companyList);
         setFilteredCompanies(companyList);
       } catch (error) {
-        console.error("Error fetching companies:", error);
+        console.error(t("companies.errorFetching"), error);
       } finally {
         setLoading(false);
       }
@@ -106,7 +109,7 @@ export default function CompaniesScreen() {
             textShadowRadius: 1,
           }}
         >
-          Companies
+          {t("companies.title")}
         </Text>
         <Pressable onPress={handleHome}>
           <Image
@@ -135,7 +138,7 @@ export default function CompaniesScreen() {
           style={{ marginRight: 8 }}
         />
         <TextInput
-          placeholder="Search"
+          placeholder={t("companies.searchPlaceholder")}
           value={searchText}
           onChangeText={handleSearch}
           style={{ flex: 1, fontSize: 16 }}
@@ -151,7 +154,12 @@ export default function CompaniesScreen() {
         <ActivityIndicator
           size={50}
           color="#FF8C00"
-          style={{ marginTop: 20 }}
+          style={{
+            marginTop: 20,
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         />
       ) : (
         <FlatList
@@ -184,7 +192,7 @@ export default function CompaniesScreen() {
                   fontWeight: "bold",
                 }}
               >
-                {item.name || "Nombre no disponible"}
+                {item.name || t("companies.noName")}
               </Text>
             </TouchableOpacity>
           )}
