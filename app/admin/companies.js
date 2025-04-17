@@ -22,7 +22,6 @@ export default function CompaniesScreen() {
   const [filteredCompanies, setFilteredCompanies] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(true);
-
   const { t } = useTranslation();
 
   useEffect(() => {
