@@ -23,7 +23,10 @@ import {
   query,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import i18n from "../locales/i18n";
 import { useTranslation } from "react-i18next";
+import { format } from "date-fns";
+import { es, enUS } from "date-fns/locale";
 
 export default function Profile() {
   const { t } = useTranslation();
@@ -52,6 +55,15 @@ export default function Profile() {
 
           if (docSnap.exists()) {
             const data = docSnap.data();
+
+            // Formatear la fecha de nacimiento si existe
+            if (data.birthDate) {
+              const birthDate = new Date(data.birthDate);
+              data.birthDate = format(birthDate, "dd MMMM yyyy", {
+                locale: i18n.language === "es" ? es : enUS,
+              });
+            }
+
             setUserData(data);
 
             if (data.companyId) {
@@ -244,7 +256,7 @@ export default function Profile() {
                   setCodeSubmitted(false);
                   fadeAnim.setValue(1); // Reinicia la opacidad al escribir
                 }}
-                placeholder="Ex: A12345678"
+                placeholder={t("profile.modal.companyCodePlaceholder")}
                 style={{
                   flex: 1,
                   borderWidth: 1,
@@ -257,7 +269,7 @@ export default function Profile() {
               <Pressable
                 onPress={async () => {
                   if (companyCode.trim() === "") {
-                    setErrorMessage(t("profile.modal.companyCodePlaceholder"));
+                    setErrorMessage(t("profile.modal.submitEmpty"));
                     fadeErrorAnim.setValue(1);
                     // eslint-disable-next-line no-undef
                     setTimeout(() => {

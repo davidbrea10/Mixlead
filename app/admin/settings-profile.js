@@ -12,7 +12,10 @@ import { useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
+import i18n from "../locales/i18n"; // Importa la configuración de i18next
 import { useTranslation } from "react-i18next";
+import { format } from "date-fns";
+import { es, enUS } from "date-fns/locale";
 
 export default function Profile() {
   const router = useRouter();
@@ -35,7 +38,17 @@ export default function Profile() {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setUserData(docSnap.data());
+          const data = docSnap.data();
+
+          // Formatear la fecha de nacimiento si existe
+          if (data.birthDate) {
+            const birthDate = new Date(data.birthDate);
+            data.birthDate = format(birthDate, "dd MMMM yyyy", {
+              locale: i18n.language === "es" ? es : enUS,
+            });
+          }
+
+          setUserData(data);
         } else {
           Alert.alert(t("profile.userDataNotFound"));
         }

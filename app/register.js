@@ -26,6 +26,8 @@ import {
 } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import i18n from "./locales/i18n"; // Importa la configuración de i18next
+import { format } from "date-fns"; // Importamos date-fns para formatear la fecha
+import { es, enUS } from "date-fns/locale"; // Importamos los idiomas soportados por date-fns
 
 export default function Register() {
   const router = useRouter();
@@ -180,8 +182,13 @@ export default function Register() {
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || birthDate;
     setShowDatePicker(Platform.OS === "ios");
+
+    const formattedDate = format(currentDate, "dd MMMM yyyy", {
+      locale: i18n.language === "es" ? es : enUS,
+    });
+
     setBirthDate(currentDate);
-    handleInputChange("birthDate", currentDate.toISOString().split("T")[0]);
+    handleInputChange("birthDate", formattedDate); // Guardar la fecha formateada
   };
 
   const handleRegister = async () => {
@@ -441,29 +448,19 @@ export default function Register() {
           {/* Birth Date */}
           <View style={{ width: 366, marginBottom: 15 }}>
             <Text style={styles.label}>{t("register.birthDate")}</Text>
-            <View style={{ position: "relative" }}>
-              <TouchableOpacity
-                onPress={() => setShowDatePicker(true)}
-                style={styles.input}
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              style={styles.input}
+            >
+              <Text
+                style={{
+                  color: form.birthDate ? "black" : "gray",
+                  fontSize: 18,
+                }}
               >
-                <Text
-                  style={{
-                    color: form.birthDate ? "black" : "gray",
-                    fontSize: 18,
-                  }}
-                >
-                  {form.birthDate || t("register.selectBirthDate")}
-                </Text>
-              </TouchableOpacity>
-              {form.birthDate.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => handleInputChange("birthDate", "")}
-                  style={styles.clearIcon}
-                >
-                  <Ionicons name="close-circle" size={24} color="gray" />
-                </TouchableOpacity>
-              )}
-            </View>
+                {form.birthDate || t("register.selectBirthDate")}
+              </Text>
+            </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
                 value={birthDate}

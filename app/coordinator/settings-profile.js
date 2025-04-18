@@ -10,8 +10,11 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
+import i18n from "../locales/i18n";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { useTranslation } from "react-i18next"; // Import the translation hook
+import { format } from "date-fns"; // Import date-fns for date formatting
+import { es, enUS } from "date-fns/locale"; // Import locales for different languages
 
 export default function Profile() {
   const router = useRouter();
@@ -34,6 +37,15 @@ export default function Profile() {
 
           if (docSnap.exists()) {
             const data = docSnap.data();
+
+            // Format the birthDate field if it exists
+            if (data.birthDate) {
+              const birthDate = new Date(data.birthDate);
+              data.birthDate = format(birthDate, "dd MMMM yyyy", {
+                locale: i18n.language === "es" ? es : enUS,
+              });
+            }
+
             setUserData(data);
 
             if (data.companyId) {
