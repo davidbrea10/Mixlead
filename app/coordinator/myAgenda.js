@@ -54,7 +54,7 @@ export default function Home() {
 
   const handleSaveDose = async () => {
     if (
-      !dose.trim() || // Evita valores vacíos
+      !dose.trim() ||
       isNaN(parseFloat(dose)) ||
       parseFloat(dose) <= 0 ||
       isNaN(parseInt(totalExposures, 10)) ||
@@ -78,69 +78,23 @@ export default function Home() {
       const month = today.getMonth() + 1;
       const year = today.getFullYear();
 
-      const doseRef = doc(db, "employees", user.uid, "doses", currentDoseId);
-      const doseSnap = await getDoc(doseRef);
+      const dosesCollectionRef = collection(db, "employees", user.uid, "doses");
 
-      const saveData = async () => {
-        await setDoc(doseRef, {
-          dose: parseFloat(dose),
-          totalExposures: parseInt(totalExposures, 10),
-          totalTime: parseInt(totalTime, 10),
-          day,
-          month,
-          year,
-          timestamp: serverTimestamp(),
-        });
+      await addDoc(dosesCollectionRef, {
+        dose: parseFloat(dose),
+        totalExposures: parseInt(totalExposures, 10),
+        totalTime: parseInt(totalTime, 10),
+        day,
+        month,
+        year,
+        timestamp: serverTimestamp(),
+      });
 
-        Alert.alert(
-          t("home.alerts.success.title"),
-          t("home.alerts.success.doseSaved"),
-        );
-        setModalVisible(false);
-      };
-
-      if (doseSnap.exists()) {
-        const existingData = doseSnap.data();
-
-        // Si la dosis guardada en el día es 0, preguntar antes de sobrescribir
-        if (
-          existingData.day === day &&
-          existingData.month === month &&
-          existingData.year === year &&
-          existingData.dose !== 0
-        ) {
-          Alert.alert(
-            t("home.alerts.confirmReplacement.title"),
-            t("home.alerts.confirmReplacement.message"),
-            [
-              {
-                text: t("home.alerts.confirmReplacement.cancel"),
-                style: "cancel",
-              },
-              {
-                text: t("home.alerts.confirmReplacement.replace"),
-                onPress: saveData,
-              },
-            ],
-            [
-              {
-                text: t("home.alerts.confirmReplacement.cancel"),
-                style: "cancel",
-              },
-              {
-                text: t("home.alerts.confirmReplacement.replace"),
-                onPress: saveData,
-              },
-            ],
-          );
-        } else {
-          // Si la dosis no es 0 o es de otro día, guardar directamente
-          await saveData();
-        }
-      } else {
-        // No existe ningún dato previo, guardar directamente
-        await saveData();
-      }
+      Alert.alert(
+        t("home.alerts.success.title"),
+        t("home.alerts.success.doseSaved"),
+      );
+      setModalVisible(false);
     } catch (error) {
       console.error("❌ Error saving dose data:", error);
       Alert.alert("Error", t("home.alerts.error.couldNotSave"));

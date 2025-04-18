@@ -13,6 +13,8 @@
   "email_not_verified": "Por favor verifica tu correo antes de iniciar sesión.",
   "login_successful": "¡Inicio de sesión exitoso!",
   "loading": "Cargando...",
+  "email_not_verified_message": "¿Estás teniendo problemas para iniciar sesión?",
+  "resend_verification_email": "Reenviar correo de verificación",
 
   "register": {
     "emailVerificationTitle": "Verifica tu Correo",
@@ -53,6 +55,7 @@
   "company_details.title": "Empresas",
   "company_details.subtitle": "Detalles de la Empresa",
   "company_details.fields.Name": "Nombre",
+  "company_details.fields.CompanyId": "ID de la Empresa",
   "company_details.fields.Cif": "CIF",
   "company_details.fields.Telephone": "Teléfono",
   "company_details.fields.ContactPerson": "Persona de Contacto",
@@ -70,6 +73,7 @@
   "company_details.alert.delete_error": "Error al eliminar la empresa",
   "company_details.confirm.cancel": "Cancelar",
   "company_details.confirm.delete": "Eliminar",
+  "company_details.tap_to_copy": "Toca para copiar",
 
   "employee_details": {
     "firstName": "Nombre",
@@ -226,6 +230,11 @@
       "10": "Octubre",
       "11": "Noviembre",
       "12": "Diciembre"
+    },
+    "modal": {
+      "message": "Estás seguro de que deseas eliminar esta dosis?",
+      "no": "No",
+      "yes": "Sí"
     }
   },
 

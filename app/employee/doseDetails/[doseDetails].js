@@ -7,12 +7,13 @@ import {
   StyleSheet,
   Pressable,
   Image,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next"; // Import the translation hook
 import { db, auth } from "../../../firebase/config";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function DoseDetails() {
@@ -23,6 +24,8 @@ export default function DoseDetails() {
   const parsedYear = parseInt(year, 10);
   const [dailyDoses, setDailyDoses] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedDoseIndex, setSelectedDoseIndex] = useState(null);
 
   useEffect(() => {
     loadDailyDoses();
@@ -40,6 +43,7 @@ export default function DoseDetails() {
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        // Incluye el id del documento
         if (
           data.dose &&
           data.day &&
@@ -47,6 +51,7 @@ export default function DoseDetails() {
           parseInt(data.year) === parsedYear
         ) {
           doseData.push({
+            id: docSnap.id, // El id único del documento
             dose: data.dose,
             day: data.day,
             month: data.month,
@@ -57,7 +62,7 @@ export default function DoseDetails() {
         }
       });
 
-      doseData.sort((a, b) => a.day - b.day); // Sort by day
+      doseData.sort((a, b) => a.day - b.day); // Ordena por día
       setDailyDoses(doseData);
     } catch (error) {
       console.error("Error loading daily doses:", error);
@@ -86,6 +91,31 @@ export default function DoseDetails() {
     return `${hours.toString().padStart(2, "0")}:${minutes
       .toString()
       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const handleConfirmDecline = async () => {
+    if (selectedDoseIndex === null) return;
+
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const dose = dailyDoses[selectedDoseIndex];
+    const docId = dose.id; // Usa el id directamente
+
+    try {
+      // Elimina el documento de Firestore usando el id único
+      await deleteDoc(doc(db, "employees", user.uid, "doses", docId));
+
+      // Actualiza el estado local eliminando la dosis
+      const updatedDoses = [...dailyDoses];
+      updatedDoses.splice(selectedDoseIndex, 1);
+      setDailyDoses(updatedDoses);
+    } catch (error) {
+      console.error("Error deleting dose:", error);
+    }
+
+    setIsModalVisible(false); // Cierra el modal
+    setSelectedDoseIndex(null); // Restablece el índice seleccionado
   };
 
   return (
@@ -208,12 +238,102 @@ export default function DoseDetails() {
                     {t("doseDetails.expanded.totalExposures")}
                     {item.totalExposures}
                   </Text>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedDoseIndex(index);
+                      setIsModalVisible(true);
+                    }}
+                    style={{
+                      marginTop: 10,
+                      alignSelf: "flex-end",
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      backgroundColor: "#FF4D4D",
+                      borderRadius: 50,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Ionicons name="trash-bin" size={16} color="#fff" />
+                    <Text style={{ color: "white", fontWeight: "bold" }}>
+                      ✖
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
           ))
         )}
       </ScrollView>
+
+      <Modal
+        transparent
+        visible={isModalVisible}
+        animationType="fade"
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.6)",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#1F1F1F",
+              padding: 24,
+              borderRadius: 20,
+              width: 300,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                color: "white",
+                fontSize: 18,
+                textAlign: "center",
+                marginBottom: 24,
+              }}
+            >
+              {t("doseDetails.modal.message")}
+            </Text>
+
+            <View style={{ flexDirection: "row", gap: 16 }}>
+              <Pressable
+                onPress={() => setIsModalVisible(false)}
+                style={{
+                  backgroundColor: "#2D2D2D",
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderRadius: 10,
+                }}
+              >
+                <Text style={{ color: "white", fontSize: 16 }}>
+                  {t("doseDetails.modal.no")}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleConfirmDecline}
+                style={{
+                  backgroundColor: "#2B4B76",
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderRadius: 10,
+                }}
+              >
+                <Text style={{ color: "white", fontSize: 16 }}>
+                  {t("doseDetails.modal.yes")}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Monthly Dose Summary */}
       <View

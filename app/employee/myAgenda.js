@@ -62,19 +62,13 @@ export default function Home() {
       isNaN(parseInt(totalTime, 10)) ||
       parseInt(totalTime, 10) <= 0
     ) {
-      Alert.alert(
-        t("home.alerts.error.title"),
-        t("home.alerts.error.emptyFields"),
-      );
+      Alert.alert("Error", t("home.alerts.emptyFields"));
       return;
     }
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert(
-        t("home.alerts.error.title"),
-        t("home.alerts.error.userNotAuthenticated"),
-      );
+      Alert.alert("Error", t("home.alerts.userNotAuthenticated"));
       return;
     }
 
@@ -84,61 +78,26 @@ export default function Home() {
       const month = today.getMonth() + 1;
       const year = today.getFullYear();
 
-      const doseRef = doc(db, "employees", user.uid, "doses", currentDoseId);
-      const doseSnap = await getDoc(doseRef);
+      const dosesCollectionRef = collection(db, "employees", user.uid, "doses");
 
-      const saveData = async () => {
-        await setDoc(doseRef, {
-          dose: parseFloat(dose),
-          totalExposures: parseInt(totalExposures, 10),
-          totalTime: parseInt(totalTime, 10),
-          day,
-          month,
-          year,
-          timestamp: serverTimestamp(),
-        });
+      await addDoc(dosesCollectionRef, {
+        dose: parseFloat(dose),
+        totalExposures: parseInt(totalExposures, 10),
+        totalTime: parseInt(totalTime, 10),
+        day,
+        month,
+        year,
+        timestamp: serverTimestamp(),
+      });
 
-        Alert.alert(
-          t("home.alerts.success.title"),
-          t("home.alerts.success.doseSaved"),
-        );
-        setModalVisible(false);
-      };
-
-      if (doseSnap.exists()) {
-        const existingData = doseSnap.data();
-        if (
-          existingData.day === day &&
-          existingData.month === month &&
-          existingData.year === year &&
-          existingData.dose !== 0
-        ) {
-          Alert.alert(
-            t("home.alerts.confirmReplacement.title"),
-            t("home.alerts.confirmReplacement.message"),
-            [
-              {
-                text: t("home.alerts.confirmReplacement.cancel"),
-                style: "cancel",
-              },
-              {
-                text: t("home.alerts.confirmReplacement.replace"),
-                onPress: saveData,
-              },
-            ],
-          );
-        } else {
-          await saveData();
-        }
-      } else {
-        await saveData();
-      }
+      Alert.alert(
+        t("home.alerts.success.title"),
+        t("home.alerts.success.doseSaved"),
+      );
+      setModalVisible(false);
     } catch (error) {
       console.error("❌ Error saving dose data:", error);
-      Alert.alert(
-        t("home.alerts.error.title"),
-        t("home.alerts.error.couldNotSave"),
-      );
+      Alert.alert("Error", t("home.alerts.error.couldNotSave"));
     }
   };
 

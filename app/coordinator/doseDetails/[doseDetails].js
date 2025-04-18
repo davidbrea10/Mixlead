@@ -25,21 +25,6 @@ export default function DoseDetails() {
   const [expandedRows, setExpandedRows] = useState({});
   const [employeeName, setEmployeeName] = useState("");
 
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
   const loadEmployeeName = async () => {
     try {
       const employeeRef = doc(db, "employees", uid);

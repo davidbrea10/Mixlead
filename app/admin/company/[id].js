@@ -13,6 +13,7 @@ import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../firebase/config";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next"; // Importa la configuración de i18next
+import * as Clipboard from "expo-clipboard";
 
 export default function CompanyDetailsScreen() {
   const { id } = useLocalSearchParams();
@@ -23,11 +24,14 @@ export default function CompanyDetailsScreen() {
     Telephone: "",
     ContactPerson: "",
     SecurityNumber: "",
+    CompanyId: "", // <--- Añadido
   });
+
   const [loading, setLoading] = useState(true);
 
   const fields = [
     { key: "Name", label: "company_details.fields.Name" },
+    { key: "CompanyId", label: "company_details.fields.CompanyId" }, // <--- Añadido aquí
     { key: "Cif", label: "company_details.fields.Cif" },
     { key: "Telephone", label: "company_details.fields.Telephone" },
     { key: "ContactPerson", label: "company_details.fields.ContactPerson" },
@@ -44,7 +48,12 @@ export default function CompanyDetailsScreen() {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setCompany(docSnap.data());
+          const data = docSnap.data();
+          // Si no tiene CompanyId, lo usamos desde el id de Firestore
+          setCompany({
+            ...data,
+            CompanyId: data.CompanyId || id,
+          });
         } else {
           alert(t("company_details.alert.not_found"));
           router.back();
@@ -172,23 +181,48 @@ export default function CompanyDetailsScreen() {
         {fields.map(({ key, label }) => (
           <View key={key} style={{ marginBottom: 15 }}>
             <Text style={{ fontSize: 18, marginBottom: 5 }}>{t(label)}</Text>
-            <TextInput
-              value={company[key]}
-              onChangeText={(text) => handleInputChange(key, text)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                width: "100%",
-                height: 55,
-                borderWidth: 1,
-                borderColor: "#ccc",
-                borderRadius: 10,
-                paddingHorizontal: 10,
-                marginBottom: 10,
-                backgroundColor: "white",
-                fontSize: 18,
-              }}
-            />
+
+            {key === "CompanyId" ? (
+              <Pressable
+                onPress={() => Clipboard.setStringAsync(company[key])}
+                style={{
+                  width: "100%",
+                  height: 55,
+                  borderWidth: 1,
+                  borderColor: "#ccc",
+                  borderRadius: 10,
+                  paddingHorizontal: 10,
+                  marginBottom: 10,
+                  justifyContent: "center",
+                  backgroundColor: "#f0f0f0",
+                }}
+              >
+                <Text style={{ fontSize: 18, color: "#555" }}>
+                  {company[key]}
+                </Text>
+                <Text style={{ fontSize: 12, color: "#999" }}>
+                  {t("company_details.tap_to_copy")}
+                </Text>
+              </Pressable>
+            ) : (
+              <TextInput
+                value={company[key]}
+                onChangeText={(text) => handleInputChange(key, text)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  width: "100%",
+                  height: 55,
+                  borderWidth: 1,
+                  borderColor: "#ccc",
+                  borderRadius: 10,
+                  paddingHorizontal: 10,
+                  marginBottom: 10,
+                  backgroundColor: "white",
+                  fontSize: 18,
+                }}
+              />
+            )}
           </View>
         ))}
 

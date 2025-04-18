@@ -13,6 +13,8 @@
   "email_not_verified": "Please verify your email before logging in.",
   "login_successful": "Login successful!",
   "loading": "Loading...",
+  "email_not_verified_message": "Having trouble logging in?",
+  "resend_verification_email": "Resend verification email",
 
   "register": {
     "emailVerificationTitle": "Verify Your Email",
@@ -53,6 +55,7 @@
   "company_details.title": "Companies",
   "company_details.subtitle": "Company Details",
   "company_details.fields.Name": "Name",
+  "company_details.fields.CompanyId": "Company ID",
   "company_details.fields.Cif": "CIF",
   "company_details.fields.Telephone": "Telephone",
   "company_details.fields.ContactPerson": "Contact Person",
@@ -70,6 +73,7 @@
   "company_details.alert.delete_error": "Error deleting company",
   "company_details.confirm.cancel": "Cancel",
   "company_details.confirm.delete": "Delete",
+  "company_details.tap_to_copy": "Tap to copy",
 
   "employee_details": {
     "firstName": "First Name",
@@ -226,6 +230,11 @@
       "10": "October",
       "11": "November",
       "12": "December"
+    },
+    "modal": {
+      "message": "Are you sure you want to delete this dose?",
+      "no": "No",
+      "yes": "Yes"
     }
   },
 
