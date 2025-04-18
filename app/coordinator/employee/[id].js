@@ -22,11 +22,12 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 export default function EmployeeDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { t } = useTranslation();
   const [employee, setEmployee] = useState({
     firstName: "",
     lastName: "",
@@ -48,11 +49,11 @@ export default function EmployeeDetail() {
         if (docSnap.exists()) {
           setEmployee(docSnap.data());
         } else {
-          alert("Employee not found");
+          alert(t("employee_detail.alert.notFound"));
           router.back();
         }
       } catch (error) {
-        alert("Error fetching employee");
+        alert(t("employee_detail.alert.fetchError"));
       } finally {
         setLoading(false);
       }
@@ -62,12 +63,12 @@ export default function EmployeeDetail() {
   }, [id]);
 
   const fieldLabels = {
-    firstName: "First Name",
-    lastName: "Last Name",
-    dni: "DNI/NIE",
-    email: "Email",
-    phone: "Telephone",
-    birthDate: "Birthdate",
+    firstName: t("employee_detail.firstName"),
+    lastName: t("employee_detail.lastName"),
+    dni: t("employee_detail.dni"),
+    email: t("employee_detail.email"),
+    phone: t("employee_detail.phone"),
+    birthDate: t("employee_detail.birthDate"),
   };
 
   const handleInputChange = (field, value) => {
@@ -78,36 +79,36 @@ export default function EmployeeDetail() {
     try {
       const docRef = doc(db, "employees", id);
       await updateDoc(docRef, employee);
-      alert("Employee updated successfully");
+      alert(t("employee_detail.alert.updateSuccess"));
       router.push({
         pathname: "/coordinator/myEmployees",
         params: { refresh: true },
       });
     } catch (error) {
-      alert("Error updating employee");
+      alert(t("employee_detail.alert.updateError"));
     }
   };
 
   const handleDelete = async () => {
     Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this employee?",
+      t("employee_details.confirmDeleteTitle"),
+      t("employee_details.confirmDelete"),
       [
         {
-          text: "Cancel",
+          text: t("employee_details.cancel"),
           style: "cancel",
         },
         {
-          text: "Delete",
+          text: t("employee_details.delete1"),
           style: "destructive",
           onPress: async () => {
             try {
               const docRef = doc(db, "employees", id);
               await deleteDoc(docRef);
-              alert("Employee deleted successfully");
+              alert(t("employee_detail.deleteSuccess"));
               router.push("/coordinator/home");
             } catch (error) {
-              alert("Error deleting employee");
+              alert(t("employee_detail.deleteError"));
             }
           },
         },
@@ -160,7 +161,7 @@ export default function EmployeeDetail() {
               textShadowRadius: 1,
             }}
           >
-            Employees
+            {t("employee_detail.title")}
           </Text>
           <Text
             style={{
@@ -229,7 +230,9 @@ export default function EmployeeDetail() {
                 elevation: 5,
               }}
             >
-              <Text style={{ color: "white", fontSize: 18 }}>Save Changes</Text>
+              <Text style={{ color: "white", fontSize: 18 }}>
+                {t("employee_detail.saveButton")}
+              </Text>
             </Pressable>
 
             <Pressable
@@ -248,7 +251,7 @@ export default function EmployeeDetail() {
               }}
             >
               <Text style={{ color: "white", fontSize: 18 }}>
-                Delete Employee
+                {t("employee_detail.deleteButton")}
               </Text>
             </Pressable>
           </View>

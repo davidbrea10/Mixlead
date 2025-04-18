@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next"; // Import i18n hook
 
 const OPTIONS = {
   isotopes: ["192Ir", "75Se"],
@@ -30,7 +31,7 @@ const OPTIONS = {
 };
 
 const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
-const COLLIMATOR_EFFECT = { "192Ir": 3, "75Se": 12.5, No: 0 };
+const COLLIMATOR_EFFECT = { Yes: { "192Ir": 3, "75Se": 12.5 }, No: 0 };
 const ATTENUATION_COEFFICIENT = {
   Mixlead: { "192Ir": 0.292, "75Se": 4.0 },
   Steel: { "192Ir": 0.659, "75Se": 0.864 },
@@ -41,43 +42,71 @@ const ATTENUATION_COEFFICIENT = {
 };
 
 export default function Calculation() {
+  const { t } = useTranslation(); // Initialize translation hook
   const router = useRouter();
+
+  // Maps for internal values and translations
+  const collimatorMap = {
+    Yes: t("radiographyCalculator.options.collimator.Yes"),
+    No: t("radiographyCalculator.options.collimator.No"),
+  };
+
+  const materialMap = {
+    Mixlead: t("radiographyCalculator.options.materials.Mixlead"),
+    Steel: t("radiographyCalculator.options.materials.Steel"),
+    Concrete: t("radiographyCalculator.options.materials.Concrete"),
+    Aluminum: t("radiographyCalculator.options.materials.Aluminum"),
+    Lead: t("radiographyCalculator.options.materials.Lead"),
+    Tungsten: t("radiographyCalculator.options.materials.Tungsten"),
+    Other: t("radiographyCalculator.options.materials.Other"),
+  };
+
+  const OPTIONS = {
+    isotopes: ["192Ir", "75Se"],
+    collimator: Object.values(collimatorMap),
+    materials: Object.values(materialMap),
+    limits: ["11µSv/h", "0.5µSv/h"],
+  };
+
   const [form, setForm] = useState({
-    isotope: "Select Isotope",
-    collimator: "Select use of Collimator",
-    thicknessOrDistance: "Thickness",
+    isotope: t("radiographyCalculator.modal.isotope"),
+    collimator: t("radiographyCalculator.modal.collimator"),
+    thicknessOrDistance: t("radiographyCalculator.thicknessOrDistance"),
     value: "",
     activity: "",
-    material: "Select Material",
+    material: t("radiographyCalculator.modal.material"),
     attenuation: "",
-    limit: "Set Limit dose rate",
+    limit: t("radiographyCalculator.modal.limit"),
   });
 
   const calculateAndNavigate = () => {
     if (!form.isotope || !form.activity || !form.material || !form.value) {
-      Alert.alert("Error", "Please fill in all fields.");
+      Alert.alert("Error", t("radiographyCalculator.errorMessage"));
       return;
     }
 
+    // Retrieve the internal values for collimator and material
+    const collimatorInternalValue = Object.keys(collimatorMap).find(
+      (key) => collimatorMap[key] === form.collimator,
+    );
+
+    const materialInternalValue = Object.keys(materialMap).find(
+      (key) => materialMap[key] === form.material,
+    );
+
     const A = parseFloat(form.activity) * 37; // Convertir Ci a GBq
     const Γ = GAMMA_FACTOR[form.isotope];
-    const Y = form.collimator === "Yes" ? COLLIMATOR_EFFECT[form.isotope] : 0;
+    const Y =
+      collimatorInternalValue === "Yes"
+        ? COLLIMATOR_EFFECT.Yes[form.isotope]
+        : COLLIMATOR_EFFECT.No;
     const T = form.limit === "11µSv/h" ? 0.011 : 0.0005;
     const µ =
-      form.material === "Other"
+      materialInternalValue === "Other"
         ? parseFloat(form.attenuation)
-        : ATTENUATION_COEFFICIENT[form.material][form.isotope];
+        : ATTENUATION_COEFFICIENT[materialInternalValue][form.isotope];
     const inputValue = parseFloat(form.value);
 
-    console.log("A:", A);
-    console.log("Γ:", Γ);
-    console.log("Y:", Y);
-    console.log("T:", T);
-    console.log("µ:", µ);
-    console.log("inputValue:", inputValue);
-    console.log("Type:", form.thicknessOrDistance);
-
-    // Validar que ningún valor sea NaN o indefinido
     if (
       isNaN(A) ||
       isNaN(Γ) ||
@@ -86,13 +115,16 @@ export default function Calculation() {
       isNaN(µ) ||
       isNaN(inputValue)
     ) {
-      Alert.alert("Error", "Invalid input values. Please check your inputs.");
+      Alert.alert("Error", t("radiographyCalculator.invalidInputMessage"));
       return;
     }
 
     let result;
 
-    if (form.thicknessOrDistance === "Thickness") {
+    if (
+      form.thicknessOrDistance ===
+      t("radiographyCalculator.thicknessOrDistance")
+    ) {
       result =
         Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
         (Math.log(2) / µ) *
@@ -104,10 +136,8 @@ export default function Calculation() {
         (1 / inputValue);
     }
 
-    console.log("Result:", result);
-
     if (isNaN(result)) {
-      Alert.alert("Error", "Calculation resulted in NaN. Please check inputs.");
+      Alert.alert("Error", t("radiographyCalculator.calculationError"));
       return;
     }
 
@@ -122,7 +152,10 @@ export default function Calculation() {
         attenuation: form.attenuation,
         limit: form.limit,
         calculationType:
-          form.thicknessOrDistance === "Thickness" ? "distance" : "thickness",
+          form.thicknessOrDistance ===
+          t("radiographyCalculator.thicknessOrDistance")
+            ? "distance"
+            : "thickness",
         result: result.toFixed(3),
       },
     });
@@ -176,7 +209,6 @@ export default function Calculation() {
             />
           </Pressable>
 
-          {/* Contenedor centrado */}
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text
               style={{
@@ -188,9 +220,10 @@ export default function Calculation() {
                 textShadowColor: "black",
                 textShadowOffset: { width: 1, height: 1 },
                 textShadowRadius: 1,
+                marginHorizontal: 5,
               }}
             >
-              Radiography Shielding Calculator
+              {t("radiographyCalculator.title")}
             </Text>
           </View>
 
@@ -203,9 +236,10 @@ export default function Calculation() {
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Isotope */}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.label}>Isotope:</Text>
+            <Text style={styles.label}>
+              {t("radiographyCalculator.isotope")}
+            </Text>
             <Pressable
               onPress={() => openModal("isotope", OPTIONS.isotopes)}
               style={styles.inputContainer}
@@ -214,21 +248,23 @@ export default function Calculation() {
             </Pressable>
           </View>
 
-          {/* Activity */}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.label}>Activity:</Text>
+            <Text style={styles.label}>
+              {t("radiographyCalculator.activity")}
+            </Text>
             <TextInput
               style={[styles.inputContainer, styles.input]}
-              placeholder="Value of Ci"
+              placeholder={t("radiographyCalculator.valueCi")}
               keyboardType="numeric"
               value={form.activity}
               onChangeText={(text) => setForm({ ...form, activity: text })}
             />
           </View>
 
-          {/* Collimator */}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.label}>Collimator:</Text>
+            <Text style={styles.label}>
+              {t("radiographyCalculator.collimator")}
+            </Text>
             <Pressable
               onPress={() => openModal("collimator", OPTIONS.collimator)}
               style={styles.inputContainer}
@@ -237,9 +273,10 @@ export default function Calculation() {
             </Pressable>
           </View>
 
-          {/* T Limit For */}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.label}>T Limit For:</Text>
+            <Text style={styles.label}>
+              {t("radiographyCalculator.tLimitFor")}
+            </Text>
             <Pressable
               onPress={() => openModal("limit", OPTIONS.limits)}
               style={styles.inputContainer}
@@ -248,13 +285,12 @@ export default function Calculation() {
             </Pressable>
           </View>
 
-          {/* Material y Attenuation Coefficient en una misma fila */}
           <View
             style={{ flexDirection: "row", alignItems: "center", width: "93%" }}
           >
-            <Text style={styles.label}>Material:</Text>
-
-            {/* Selector de Material */}
+            <Text style={styles.label}>
+              {t("radiographyCalculator.material")}
+            </Text>
             <Pressable
               onPress={() => openModal("material", OPTIONS.materials)}
               style={[
@@ -264,16 +300,14 @@ export default function Calculation() {
             >
               <Text style={styles.input}>{form.material}</Text>
             </Pressable>
-
-            {/* Campo de atenuación si el material es "Other" */}
             {form.material === "Other" && (
               <TextInput
                 style={[
                   styles.inputContainer,
                   styles.input,
-                  { flex: 0.4, marginLeft: 10 }, // Espaciado a la derecha
+                  { flex: 0.4, marginLeft: 10 },
                 ]}
-                placeholder="µ in m^-1"
+                placeholder={t("radiographyCalculator.modal.attenuation")}
                 keyboardType="numeric"
                 value={form.attenuation}
                 onChangeText={(text) => setForm({ ...form, attenuation: text })}
@@ -281,7 +315,6 @@ export default function Calculation() {
             )}
           </View>
 
-          {/* Thickness / Distance Switch */}
           <View
             style={{
               width: "93%",
@@ -294,9 +327,10 @@ export default function Calculation() {
                 setForm({
                   ...form,
                   thicknessOrDistance:
-                    form.thicknessOrDistance === "Thickness"
-                      ? "Distance"
-                      : "Thickness",
+                    form.thicknessOrDistance ===
+                    t("radiographyCalculator.thicknessOrDistance")
+                      ? t("radiographyCalculator.distance")
+                      : t("radiographyCalculator.thicknessOrDistance"),
                 })
               }
               style={styles.switchButton}
@@ -304,26 +338,30 @@ export default function Calculation() {
               <Text style={styles.label}>{form.thicknessOrDistance}</Text>
             </Pressable>
 
-            {/* Value Input */}
             <TextInput
               style={[styles.inputContainer, styles.input]}
-              placeholder={`Value in ${form.thicknessOrDistance === "Thickness" ? "mm" : "m"}`}
+              placeholder={t("radiographyCalculator.value", {
+                unit:
+                  form.thicknessOrDistance ===
+                  t("radiographyCalculator.thicknessOrDistance")
+                    ? "mm"
+                    : "m",
+              })}
               keyboardType="numeric"
               value={form.value}
               onChangeText={(text) => setForm({ ...form, value: text })}
             />
           </View>
 
-          {/* Submit Button */}
           <Pressable style={styles.button} onPress={calculateAndNavigate}>
             <Text style={{ color: "#FFF", fontSize: 18 }}>
-              {form.thicknessOrDistance === "Thickness"
-                ? "Calculate Distance"
-                : "Calculate Thickness"}
+              {form.thicknessOrDistance ===
+              t("radiographyCalculator.thicknessOrDistance")
+                ? t("radiographyCalculator.calculateDistance")
+                : t("radiographyCalculator.calculateThickness")}
             </Text>
           </Pressable>
 
-          {/* Modal */}
           <Modal visible={modal.open} transparent animationType="slide">
             <View style={styles.modalContainer}>
               <View style={styles.modalContent}>

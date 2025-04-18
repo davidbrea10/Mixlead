@@ -13,9 +13,11 @@ import { db, auth } from "../../firebase/config";
 import { collection, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import { useTranslation } from "react-i18next"; // Import i18n hook
 
 export default function Home() {
   const router = useRouter();
+  const { t } = useTranslation(); // Initialize translation hook
 
   const [monthlyDoses, setMonthlyDoses] = useState([]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -49,7 +51,6 @@ export default function Home() {
 
       try {
         const usersSnapshot = await getDocs(collection(db, "employees"));
-        const currentUserDoc = await getDocs(collection(db, "employees"));
         let currentUserCompanyId = null;
 
         usersSnapshot.forEach((doc) => {
@@ -66,7 +67,7 @@ export default function Home() {
               id: doc.id,
               name:
                 `${doc.data().firstName || ""} ${doc.data().lastName || ""}`.trim() ||
-                "Unnamed",
+                t("employeesAgenda.employee.unnamed"),
             });
           }
         });
@@ -119,7 +120,6 @@ export default function Home() {
   };
 
   const handleViewDetails = (employeeId, month, year) => {
-    console.log("📅 Viewing details for:", { employeeId, month, year });
     router.push({
       pathname: "/coordinator/doseDetails/[doseDetails]",
       params: {
@@ -130,22 +130,9 @@ export default function Home() {
     });
   };
 
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  console.log("📊 monthlyDoses:", monthlyDoses);
+  const monthNames = Array.from({ length: 12 }, (_, i) =>
+    t(`employeesAgenda.months.${i + 1}`),
+  );
 
   return (
     <LinearGradient
@@ -157,7 +144,6 @@ export default function Home() {
           paddingTop: 40,
           backgroundColor: "#FF9300",
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           padding: 16,
           borderBottomStartRadius: 40,
@@ -174,19 +160,21 @@ export default function Home() {
             style={{ width: 50, height: 50 }}
           />
         </Pressable>
-        <View style={{ flexDirection: "column", alignItems: "center" }}>
+        <View style={{ flex: 1, alignItems: "center" }}>
           <Text
             style={{
               fontSize: 24,
               fontWeight: "bold",
               color: "white",
+              textAlign: "center",
               letterSpacing: 2,
               textShadowColor: "black",
               textShadowOffset: { width: 1, height: 1 },
               textShadowRadius: 1,
+              marginHorizontal: 5,
             }}
           >
-            Employee Agendas
+            {t("employeesAgenda.header.title")}
           </Text>
         </View>
         <Pressable onPress={handleHome}>
@@ -197,9 +185,8 @@ export default function Home() {
         </Pressable>
       </View>
 
-      {/* Main Content */}
       <View style={{ padding: 16 }}>
-        {/* Selector de empleado */}
+        {/* Employee Selector */}
         <View
           style={{
             flexDirection: "row",
@@ -213,21 +200,24 @@ export default function Home() {
           }}
         >
           <Text style={{ fontSize: 20, fontWeight: "bold", marginRight: 10 }}>
-            Select Employee
+            {t("employeesAgenda.selectEmployee")}
           </Text>
           <Picker
             selectedValue={selectedEmployeeId}
             onValueChange={(itemValue) => setSelectedEmployeeId(itemValue)}
             style={{ flex: 1 }}
           >
-            <Picker.Item label="-- Select --" value={null} />
+            <Picker.Item
+              label={t("employeesAgenda.employee.placeholder")}
+              value={null}
+            />
             {employees.map((emp) => (
               <Picker.Item key={emp.id} label={emp.name} value={emp.id} />
             ))}
           </Picker>
         </View>
 
-        {/* Selector de año (solo si hay un empleado seleccionado) */}
+        {/* Year Selector */}
         {selectedEmployeeId && (
           <View
             style={{
@@ -241,7 +231,7 @@ export default function Home() {
             }}
           >
             <Text style={{ fontSize: 20, fontWeight: "bold", marginRight: 10 }}>
-              Select Year
+              {t("employeesAgenda.selectYear")}
             </Text>
             <Picker
               selectedValue={selectedYear}
@@ -256,29 +246,17 @@ export default function Home() {
         )}
       </View>
 
-      {/* Cabecera de la tabla */}
-      <View style={[styles.row, styles.headerRow]}>
-        <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-          Dose
-        </Text>
-        <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-          Month
-        </Text>
-        <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
-      </View>
-      {/* Cabecera de la tabla */}
       <ScrollView style={{ minWidth: "100%" }}>
-        {/* Datos */}
         {monthlyDoses
           .filter((item) => item.year === selectedYear)
-          .sort((a, b) => a.month - b.month).length === 0 ? ( // Ordenar por mes de enero a diciembre
+          .sort((a, b) => a.month - b.month).length === 0 ? (
           <Text style={{ textAlign: "center", fontSize: 16, color: "#666" }}>
-            No dose data available for {selectedYear}.
+            {t("employeesAgenda.table.noData", { year: selectedYear })}
           </Text>
         ) : (
           monthlyDoses
             .filter((item) => item.year === selectedYear)
-            .sort((a, b) => a.month - b.month) // Ordenar por mes de enero a diciembre
+            .sort((a, b) => a.month - b.month)
             .map((item, index) => (
               <View
                 key={index}
@@ -291,7 +269,9 @@ export default function Home() {
                   {item.totalDose.toFixed(2)} μSv
                 </Text>
                 <Text style={[styles.cell, styles.cellBorder, { flex: 1 }]}>
-                  {item.month ? monthNames[item.month - 1] : "Unknown"}
+                  {item.month
+                    ? monthNames[item.month - 1]
+                    : t("employeesAgenda.unknown")}
                 </Text>
                 <TouchableOpacity
                   style={[styles.cell, styles.eyeButton, { flex: 0.5 }]}
@@ -306,7 +286,6 @@ export default function Home() {
         )}
       </ScrollView>
 
-      {/* Equivalente dosis anual */}
       <View
         style={{
           flexDirection: "column",
@@ -317,7 +296,7 @@ export default function Home() {
         <View style={styles.annualDoseContainer}>
           <View style={{ flex: 1, marginRight: 10 }}>
             <Text style={styles.annualDoseText}>
-              Equivalent dose data from annual report:
+              {t("employeesAgenda.annualDose.title")}
             </Text>
           </View>
           <View style={styles.annualDoseContainerText}>
@@ -327,7 +306,9 @@ export default function Home() {
           </View>
         </View>
         <TouchableOpacity style={styles.downloadButton} onPress={() => {}}>
-          <Text style={styles.downloadButtonText}>Download Annual Data</Text>
+          <Text style={styles.downloadButtonText}>
+            {t("employeesAgenda.annualDose.download")}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -463,7 +444,7 @@ const styles = {
     textAlign: "center",
   },
   downloadButton: {
-    width: "60%",
+    width: "70%",
     backgroundColor: "#C32427",
     padding: 15,
     borderRadius: 5,

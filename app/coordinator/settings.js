@@ -1,20 +1,22 @@
 import { View, Text, Pressable, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next"; // Import the translation hook
 
 export default function Settings() {
   const router = useRouter();
+  const { t } = useTranslation(); // Initialize translation hook
 
   const handleBack = () => {
-    router.back(); // Vuelve a la pantalla anterior
+    router.back(); // Navigate to the previous screen
   };
 
   const handleHome = () => {
-    router.replace("/coordinator/home"); // Vuelve al Home reemplazando el Settings
+    router.replace("/coordinator/home"); // Navigate to the Home screen, replacing the current one
   };
 
   const handleProfile = () => {
-    router.push("/coordinator/settings-profile"); // Redirige al Profile
+    router.push("/coordinator/settings-profile"); // Navigate to the Profile settings screen
   };
 
   return (
@@ -56,7 +58,7 @@ export default function Settings() {
             textShadowRadius: 1,
           }}
         >
-          SETTINGS
+          {t("adminSettings.title")}
         </Text>
         <Pressable onPress={handleHome}>
           <Image
@@ -82,7 +84,7 @@ export default function Settings() {
             style={{ width: 40, height: 40, marginRight: 10 }}
           />
           <Text style={{ fontSize: 20, fontWeight: "500", marginLeft: 20 }}>
-            Profile
+            {t("adminSettings.profile")}
           </Text>
         </Pressable>
         <View style={{ height: 1, backgroundColor: "black" }} />
@@ -100,7 +102,7 @@ export default function Settings() {
             style={{ width: 40, height: 40, marginRight: 10 }}
           />
           <Text style={{ fontSize: 20, fontWeight: "500", marginLeft: 20 }}>
-            Help & FAQ
+            {t("adminSettings.helpFaq")}
           </Text>
         </Pressable>
         <View style={{ height: 1, backgroundColor: "black" }} />

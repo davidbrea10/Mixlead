@@ -21,8 +21,10 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { db, auth } from "../../firebase/config";
+import { useTranslation } from "react-i18next";
 
 export default function EmployeesScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
@@ -43,7 +45,7 @@ export default function EmployeesScreen() {
           const userCompanyId = userData.companyId; // Asegúrate de que 'companyId' existe
 
           if (!userCompanyId) {
-            console.error("User does not have a companyId assigned.");
+            console.error(t("myEmployees.errors.noCompanyId"));
             return;
           }
 
@@ -64,10 +66,10 @@ export default function EmployeesScreen() {
           setEmployees(employeesList);
           setFilteredEmployees(employeesList);
         } else {
-          console.error("User document does not exist.");
+          console.error(t("myEmployees.errors.documentNotFound"));
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error(t("myEmployees.errors.fetchError"), error);
       } finally {
         setLoading(false);
       }
@@ -123,7 +125,7 @@ export default function EmployeesScreen() {
             textShadowRadius: 1,
           }}
         >
-          Employees
+          {t("myEmployees.title")}
         </Text>
         <Pressable onPress={() => router.replace("/coordinator/home")}>
           <Image
@@ -152,7 +154,7 @@ export default function EmployeesScreen() {
           style={{ marginRight: 8 }}
         />
         <TextInput
-          placeholder="Search"
+          placeholder={t("myEmployees.searchPlaceholder")}
           value={searchText}
           onChangeText={handleSearch}
           style={{ flex: 1, fontSize: 16 }}

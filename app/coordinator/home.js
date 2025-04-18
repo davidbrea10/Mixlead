@@ -3,8 +3,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { auth } from "../../firebase/config"; // Importa la configuración de Firebase
 import { signOut } from "firebase/auth";
+import { useTranslation } from "react-i18next"; // Import i18n hook
 
 export default function Home() {
+  const { t } = useTranslation(); // Initialize translation hook
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -12,7 +14,7 @@ export default function Home() {
       await signOut(auth); // Cierra sesión en Firebase
       router.replace("/"); // Redirige al login
     } catch (error) {
-      alert("Error logging out: " + error.message);
+      alert(t("adminHome.logoutError") + error.message);
     }
   };
 
@@ -81,7 +83,7 @@ export default function Home() {
             textShadowRadius: 1,
           }}
         >
-          HOME
+          {t("adminHome.title")}
         </Text>
 
         <Pressable onPress={handleLogout}>
@@ -130,7 +132,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              Applications for Company
+              {t("applications.appTitle")}
             </Text>
           </View>
         </Pressable>
@@ -171,7 +173,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              My Employees
+              {t("myEmployees.title")}
             </Text>
           </View>
         </Pressable>
@@ -213,7 +215,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              Employees Agenda
+              {t("employeesAgenda.header.title")}
             </Text>
           </View>
         </Pressable>
@@ -255,7 +257,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              My Agenda
+              {t("home.header.title")}
             </Text>
           </View>
         </Pressable>
@@ -295,7 +297,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              Calculation of Necessary Distance/Thickness
+              {t("radiographyCalculator.buttonTitle")}
             </Text>
           </View>
         </Pressable>

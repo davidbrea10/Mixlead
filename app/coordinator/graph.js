@@ -10,8 +10,10 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
+import { useTranslation } from "react-i18next";
 
-export default function DoseDetails() {
+export default function Graph() {
+  const { t } = useTranslation(); // Inicializar traducciones
   const router = useRouter();
 
   // HTML para renderizar el mapa en el WebView
@@ -21,7 +23,7 @@ export default function DoseDetails() {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Leaflet Map</title>
+      <title>${t("graph.header.title")}</title>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
       <style>
         #map { height: 100vh; width: 100vw; }
@@ -37,7 +39,7 @@ export default function DoseDetails() {
           attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
         L.marker([51.505, -0.09]).addTo(map)
-          .bindPopup('<b>Marker!</b><br>This is a marker.').openPopup();
+          .bindPopup('<b>${t("graph.map.markerPopup")}</b>').openPopup();
       </script>
     </body>
     </html>
@@ -57,7 +59,7 @@ export default function DoseDetails() {
               style={styles.icon}
             />
           </Pressable>
-          <Text style={styles.title}>Graph</Text>
+          <Text style={styles.title}>{t("graph.header.title")}</Text>
           <Pressable onPress={() => router.replace("/employee/home")}>
             <Image
               source={require("../../assets/icon.png")}

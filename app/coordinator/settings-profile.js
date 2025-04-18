@@ -1,12 +1,21 @@
-import { View, Text, Pressable, Image, ActivityIndicator } from "react-native";
+import React, { useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
+import {
+  View,
+  Text,
+  Pressable,
+  Image,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
 import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { useTranslation } from "react-i18next"; // Import the translation hook
 
 export default function Profile() {
   const router = useRouter();
+  const { t } = useTranslation(); // Initialize translation hook
   const [userData, setUserData] = useState(null);
   const [companyName, setCompanyName] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,17 +43,17 @@ export default function Profile() {
               if (companySnap.exists()) {
                 setCompanyName(companySnap.data().Name);
               } else {
-                setError("No company data found.");
+                setError(t("profile.userDataNotFound"));
               }
             }
           } else {
-            setError("No user data found.");
+            setError(t("profile.userDataNotFound"));
           }
         } else {
-          setError("No authenticated user.");
+          setError(t("profile.userNotAuthenticated"));
         }
       } catch (err) {
-        setError("Error fetching user data: " + err.message);
+        setError(t("profile.fetchUserDataError") + ": " + err.message);
       } finally {
         setLoading(false);
       }
@@ -62,7 +71,7 @@ export default function Profile() {
   };
 
   const handleCompany = () => {
-    alert("Redirect to Company Screen");
+    Alert.alert(t("profile.joinCompanyPrompt"));
   };
 
   if (loading) {
@@ -113,7 +122,7 @@ export default function Profile() {
             textShadowRadius: 1,
           }}
         >
-          Your Profile
+          {t("profile.title")}
         </Text>
 
         <Pressable onPress={handleHome}>
@@ -127,19 +136,19 @@ export default function Profile() {
       {/* Main Content */}
       <View style={{ flex: 1, padding: 20 }}>
         {[
-          { label: "Name", value: userData?.firstName || "N/A" },
-          { label: "Last Name", value: userData?.lastName || "N/A" },
-          { label: "DNI/NIE", value: userData?.dni || "N/A" },
-          { label: "Telephone", value: userData?.phone || "N/A" },
-          { label: "Birth", value: userData?.birthDate || "N/A" },
-          { label: "Email", value: userData?.email || "N/A" },
+          { label: t("profile.name"), value: userData?.firstName || "N/A" },
+          { label: t("profile.lastName"), value: userData?.lastName || "N/A" },
+          { label: t("profile.dni"), value: userData?.dni || "N/A" },
+          { label: t("profile.telephone"), value: userData?.phone || "N/A" },
+          { label: t("profile.birth"), value: userData?.birthDate || "N/A" },
+          { label: t("profile.email"), value: userData?.email || "N/A" },
           userData?.companyId && {
-            label: "Company Name",
+            label: t("profile.companyName"),
             value: companyName || "N/A",
           },
           {
-            label: "Company Code",
-            value: userData?.companyId || "No company assigned",
+            label: t("profile.companyCode"),
+            value: userData?.companyId || t("profile.noCompanyAssigned"),
           },
         ]
           .filter(Boolean)
@@ -159,10 +168,12 @@ export default function Profile() {
         {!userData?.companyId && (
           <>
             <Text style={{ fontSize: 16, fontWeight: "bold", marginTop: 20 }}>
-              ¿You are part of a company?
+              {t("profile.joinCompanyQuestion")}
             </Text>
             <Pressable onPress={handleCompany}>
-              <Text style={{ color: "blue", fontSize: 16 }}>Click Here.</Text>
+              <Text style={{ color: "blue", fontSize: 16 }}>
+                {t("profile.joinCompanyAction")}
+              </Text>
             </Pressable>
           </>
         )}

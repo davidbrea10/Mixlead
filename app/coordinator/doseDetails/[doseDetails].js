@@ -11,16 +11,19 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { db, auth } from "../../../firebase/config";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 export default function DoseDetails() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { uid, month, year } = useLocalSearchParams();
   const parsedMonth = parseInt(month, 10);
   const parsedYear = parseInt(year, 10);
   const [dailyDoses, setDailyDoses] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
+  const [employeeName, setEmployeeName] = useState("");
 
   const monthNames = [
     "January",
@@ -37,9 +40,19 @@ export default function DoseDetails() {
     "December",
   ];
 
-  useEffect(() => {
-    loadDailyDoses();
-  }, [month, year]);
+  const loadEmployeeName = async () => {
+    try {
+      const employeeRef = doc(db, "employees", uid);
+      const docSnap = await getDoc(employeeRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const fullName = `${data.firstName} ${data.lastName}`;
+        setEmployeeName(fullName);
+      }
+    } catch (error) {
+      console.error("Error loading employee name:", error);
+    }
+  };
 
   const loadDailyDoses = async () => {
     if (!uid) return;
@@ -84,6 +97,13 @@ export default function DoseDetails() {
       console.error("Error loading daily doses:", error);
     }
   };
+
+  useEffect(() => {
+    if (uid) {
+      loadDailyDoses();
+      loadEmployeeName(); // Aquí lo agregas
+    }
+  }, [uid, month, year]);
 
   const handleExpandRow = (index) => {
     setExpandedRows((prev) => ({
@@ -148,7 +168,7 @@ export default function DoseDetails() {
               textShadowRadius: 1,
             }}
           >
-            Dose Details
+            {t("doseDetails.title")}
           </Text>
           <Text
             style={{
@@ -160,7 +180,10 @@ export default function DoseDetails() {
               textShadowRadius: 1,
             }}
           >
-            {monthNames[month - 1]} {year}
+            {t("doseDetails.monthLabel", {
+              month: t(`doseDetails.months.${parsedMonth}`),
+              year,
+            })}
           </Text>
         </View>
         <Pressable onPress={() => router.replace("/employee/home")}>
@@ -172,21 +195,42 @@ export default function DoseDetails() {
       </View>
 
       {/* Main Content */}
+      <View
+        style={{
+          margin: 20,
+          padding: 16,
+          backgroundColor: "#fff",
+          borderRadius: 12,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontSize: 22, fontWeight: "600", color: "#006892" }}>
+          {employeeName}
+        </Text>
+      </View>
+
       {/* Cabecera de la tabla */}
       <View style={[styles.row, styles.headerRow]}>
         <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-          Dose
+          {t("doseDetails.table.dose")}
         </Text>
         <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-          Date
+          {t("doseDetails.table.date")}
         </Text>
-        <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
+        <Text style={[styles.headerCell, { flex: 0.5 }]}>
+          {t("doseDetails.table.view")}
+        </Text>
       </View>
       <ScrollView style={{ minWidth: "100%" }}>
         {/* Datos */}
         {dailyDoses.length === 0 ? (
           <Text style={{ textAlign: "center", fontSize: 16, color: "#666" }}>
-            No dose data available for this period.
+            {t("doseDetails.table.noData")}
           </Text>
         ) : (
           dailyDoses.map((item, index) => (
@@ -217,10 +261,12 @@ export default function DoseDetails() {
               {expandedRows[index] && (
                 <View style={[styles.expandedRow]}>
                   <Text style={[styles.expandedText, { marginBottom: 10 }]}>
-                    Total Time: {formatTime(item.totalTime)}
+                    {t("doseDetails.expanded.totalTime")}
+                    {formatTime(item.totalTime)}
                   </Text>
                   <Text style={styles.expandedText}>
-                    Total Exposures: {item.totalExposures}
+                    {t("doseDetails.expanded.totalExposures")}
+                    {item.totalExposures}
                   </Text>
                 </View>
               )}
@@ -241,7 +287,7 @@ export default function DoseDetails() {
         <View style={styles.annualDoseContainer}>
           <View style={{ flex: 1, marginRight: 10 }}>
             <Text style={styles.annualDoseText}>
-              Equivalent dose data for the month:
+              {t("doseDetails.monthlySummary.label")}
             </Text>
           </View>
           <View style={styles.annualDoseContainerText}>
@@ -251,7 +297,9 @@ export default function DoseDetails() {
           </View>
         </View>
         <TouchableOpacity style={styles.downloadButton} onPress={() => {}}>
-          <Text style={styles.downloadButtonText}>Download Monthly Data</Text>
+          <Text style={styles.downloadButtonText}>
+            {t("doseDetails.monthlySummary.download")}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -343,7 +391,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   downloadButton: {
-    width: "60%",
+    width: "70%",
     backgroundColor: "#C32427",
     padding: 15,
     borderRadius: 5,

@@ -1,8 +1,10 @@
 import { View, Text, Pressable, Image, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next"; // Import i18n hook
 
 export default function CalculationSummary() {
+  const { t } = useTranslation(); // Hook for translations
   const router = useRouter();
   const params = useLocalSearchParams();
 
@@ -14,10 +16,6 @@ export default function CalculationSummary() {
     router.replace("/coordinator/home");
   };
 
-  const handleInspection = () => {
-    router.push("/coordinator/inspection");
-  };
-
   const handleGraph = () => {
     router.push("/coordinator/graph");
   };
@@ -26,8 +24,8 @@ export default function CalculationSummary() {
     router.push("/coordinator/table");
   };
 
-  // Determinar si el valor ingresado es distancia o espesor
-  const isDistance = params.calculationType === "distance"; // Asumiendo que se pasa un tipo de cálculo
+  // Determine if the input value is for distance or thickness
+  const isDistance = params.calculationType === "distance";
 
   return (
     <LinearGradient
@@ -58,7 +56,7 @@ export default function CalculationSummary() {
             />
           </Pressable>
 
-          {/* Contenedor centrado */}
+          {/* Centered container */}
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text
               style={{
@@ -73,7 +71,11 @@ export default function CalculationSummary() {
                 marginHorizontal: 10,
               }}
             >
-              Results for {isDistance ? "Distance" : "Thickness"}
+              {t("calculationSummary.title", {
+                type: isDistance
+                  ? t("calculationSummary.distance")
+                  : t("calculationSummary.thickness"),
+              })}
             </Text>
           </View>
 
@@ -87,46 +89,52 @@ export default function CalculationSummary() {
 
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <Text style={{ fontSize: 18, fontWeight: "bold", margin: 15 }}>
-            Results for:
+            {t("calculationSummary.resultsFor")}
           </Text>
           <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>Isotope:</Text>
+            <Text style={styles.label}>{t("calculationSummary.isotope")}</Text>
             <Text style={styles.textLabel}>{params.isotope?.toString()}</Text>
           </View>
           <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>Collimator:</Text>
+            <Text style={styles.label}>
+              {t("calculationSummary.collimator")}
+            </Text>
             <Text style={styles.textLabel}>
               {params.collimator?.toString()}
             </Text>
           </View>
           <View style={{ flexDirection: "row" }}>
             <Text style={styles.label}>
-              {isDistance ? "Thickness" : "Distance"}:
+              {isDistance
+                ? t("calculationSummary.thickness")
+                : t("calculationSummary.distance")}
             </Text>
             <Text style={styles.textLabel}>
               {params.value?.toString()} {isDistance ? `mm` : `m`}
             </Text>
           </View>
           <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>Activity: </Text>
+            <Text style={styles.label}>{t("calculationSummary.activity")}</Text>
             <Text style={styles.textLabel}>
-              {params.activity?.toString()} {"Ci"}
+              {params.activity?.toString()} {t("calculationSummary.ci")}
             </Text>
           </View>
           <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>Material: </Text>
+            <Text style={styles.label}>{t("calculationSummary.material")}</Text>
             <Text style={styles.textLabel}>{params.material?.toString()}</Text>
           </View>
-          {params.material === "Other" && (
+          {params.material === t("calculationSummary.otherMaterial") && (
             <View style={{ flexDirection: "row" }}>
-              <Text style={styles.label}>Attenuation: </Text>
+              <Text style={styles.label}>
+                {t("calculationSummary.attenuation")}
+              </Text>
               <Text style={styles.textLabel}>
                 {params.attenuation?.toString()}
               </Text>
             </View>
           )}
           <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>Limit: </Text>
+            <Text style={styles.label}>{t("calculationSummary.limit")}</Text>
             <Text style={styles.textLabel}>{params.limit?.toString()}</Text>
           </View>
           <Text
@@ -138,8 +146,12 @@ export default function CalculationSummary() {
             }}
           >
             {isDistance
-              ? `DISTANCE: ${params.result?.toString()} m`
-              : `THICKNESS: ${params.result?.toString()} mm`}
+              ? t("calculationSummary.resultDistance", {
+                  result: params.result?.toString(),
+                })
+              : t("calculationSummary.resultThickness", {
+                  result: params.result?.toString(),
+                })}
           </Text>
 
           <View
@@ -150,10 +162,14 @@ export default function CalculationSummary() {
             }}
           >
             <Pressable onPress={handleGraph} style={styles.button}>
-              <Text style={{ color: "#fff", fontSize: 19 }}>Graph</Text>
+              <Text style={{ color: "#fff", fontSize: 19 }}>
+                {t("calculationSummary.graph")}
+              </Text>
             </Pressable>
             <Pressable onPress={handleTable} style={styles.button}>
-              <Text style={{ color: "#fff", fontSize: 19 }}>Table</Text>
+              <Text style={{ color: "#fff", fontSize: 19 }}>
+                {t("calculationSummary.table")}
+              </Text>
             </Pressable>
           </View>
         </ScrollView>

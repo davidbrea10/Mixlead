@@ -23,8 +23,10 @@ import {
   setDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { useTranslation } from "react-i18next";
 
 export default function Home() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [doses, setDoses] = useState([]);
@@ -60,13 +62,13 @@ export default function Home() {
       isNaN(parseInt(totalTime, 10)) ||
       parseInt(totalTime, 10) <= 0
     ) {
-      Alert.alert("Error", "All fields must be filled and greater than zero.");
+      Alert.alert("Error", t("home.alerts.emptyFields"));
       return;
     }
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Error", "User not authenticated.");
+      Alert.alert("Error", t("home.alerts.userNotAuthenticated"));
       return;
     }
 
@@ -90,7 +92,10 @@ export default function Home() {
           timestamp: serverTimestamp(),
         });
 
-        Alert.alert("Success", "Dose data has been saved.");
+        Alert.alert(
+          t("home.alerts.success.title"),
+          t("home.alerts.success.doseSaved"),
+        );
         setModalVisible(false);
       };
 
@@ -105,11 +110,27 @@ export default function Home() {
           existingData.dose !== 0
         ) {
           Alert.alert(
-            "Confirm Replacement",
-            "There's already a dose you were receiving today. Do you want to replace it?",
+            t("home.alerts.confirmReplacement.title"),
+            t("home.alerts.confirmReplacement.message"),
             [
-              { text: "Cancel", style: "cancel" },
-              { text: "Replace", onPress: saveData },
+              {
+                text: t("home.alerts.confirmReplacement.cancel"),
+                style: "cancel",
+              },
+              {
+                text: t("home.alerts.confirmReplacement.replace"),
+                onPress: saveData,
+              },
+            ],
+            [
+              {
+                text: t("home.alerts.confirmReplacement.cancel"),
+                style: "cancel",
+              },
+              {
+                text: t("home.alerts.confirmReplacement.replace"),
+                onPress: saveData,
+              },
             ],
           );
         } else {
@@ -122,7 +143,7 @@ export default function Home() {
       }
     } catch (error) {
       console.error("❌ Error saving dose data:", error);
-      Alert.alert("Error", "Could not save the dose data.");
+      Alert.alert("Error", t("home.alerts.error.couldNotSave"));
     }
   };
 
@@ -250,7 +271,7 @@ export default function Home() {
               textShadowRadius: 1,
             }}
           >
-            My Agenda
+            {t("home.header.title")}
           </Text>
         </View>
 
@@ -273,31 +294,33 @@ export default function Home() {
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
-                <Text style={styles.label}>Dose (µSv)</Text>
+                <Text style={styles.label}>{t("home.modal.dose")}</Text>
                 <TextInput
                   style={styles.input}
                   value={dose}
                   onChangeText={setDose}
                   keyboardType="numeric"
-                  placeholder="Enter dose"
+                  placeholder={t("home.modal.enterDose")}
                 />
 
-                <Text style={styles.label}>Number of Exposures</Text>
+                <Text style={styles.label}>
+                  {t("home.modal.numberOfExposures")}
+                </Text>
                 <TextInput
                   style={styles.input}
                   value={totalExposures}
                   onChangeText={setTotalExposures}
                   keyboardType="numeric"
-                  placeholder="Enter number of exposures"
+                  placeholder={t("home.modal.enterNumberOfExposures")}
                 />
 
-                <Text style={styles.label}>Exposure Time (s)</Text>
+                <Text style={styles.label}>{t("home.modal.exposureTime")}</Text>
                 <TextInput
                   style={styles.input}
                   value={totalTime}
                   onChangeText={setTotalTime}
                   keyboardType="numeric"
-                  placeholder="Enter exposure time"
+                  placeholder={t("home.modal.enterExposureTime")}
                 />
 
                 <View style={styles.buttonContainer}>
@@ -305,14 +328,18 @@ export default function Home() {
                     style={[styles.cancelButton, { flex: 1, marginRight: 5 }]}
                     onPress={() => setModalVisible(false)}
                   >
-                    <Text style={styles.buttonText}>Cancel</Text>
+                    <Text style={styles.buttonText}>
+                      {t("home.modal.cancel")}
+                    </Text>
                   </Pressable>
 
                   <TouchableOpacity
                     style={[styles.modalButton, { flex: 1, marginLeft: 5 }]}
                     onPress={handleSaveDose}
                   >
-                    <Text style={styles.buttonText}>Save Dose</Text>
+                    <Text style={styles.buttonText}>
+                      {t("home.modal.save")}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -357,7 +384,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              Dose Data
+              {t("home.doseData")}
             </Text>
           </View>
         </Pressable>
@@ -399,7 +426,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              Add Today's Data Manually
+              {t("home.addDataManually")}
             </Text>
           </View>
         </Pressable>

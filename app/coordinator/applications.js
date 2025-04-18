@@ -23,6 +23,7 @@ import {
   where,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { t } from "i18next";
 
 export default function DoseDetails() {
   const router = useRouter();
@@ -106,7 +107,7 @@ export default function DoseDetails() {
 
       await Promise.all(deletePromises);
 
-      setSuccessMessage("Application successfully accepted");
+      setSuccessMessage(t("applications.successMessageAccepted"));
       // eslint-disable-next-line no-undef
       setTimeout(() => setSuccessMessage(""), 3000);
 
@@ -153,7 +154,7 @@ export default function DoseDetails() {
 
       await Promise.all(deletePromises);
 
-      setSuccessMessage("Application successfully declined");
+      setSuccessMessage(t("applications.successMessageDeclined"));
       // eslint-disable-next-line no-undef
       setTimeout(() => setSuccessMessage(""), 3000);
 
@@ -215,7 +216,7 @@ export default function DoseDetails() {
               textShadowRadius: 1,
             }}
           >
-            Applications for Company Merger
+            {t("applications.appTitle")}
           </Text>
         </View>
 
@@ -231,18 +232,20 @@ export default function DoseDetails() {
       {/* Cabecera de la tabla */}
       <View style={[styles.row, styles.headerRow]}>
         <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-          Name
+          {t("applications.name")}
         </Text>
         <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-          Last Name
+          {t("applications.lastName")}
         </Text>
-        <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
+        <Text style={[styles.headerCell, { flex: 0.5 }]}>
+          {t("applications.view")}
+        </Text>
       </View>
       <ScrollView style={{ minWidth: "100%" }}>
         {/* Datos */}
         {applications.length === 0 ? (
           <Text style={{ textAlign: "center", fontSize: 16, color: "#666" }}>
-            No applications received.
+            {t("applications.noApplications")}
           </Text>
         ) : (
           applications.map((item, index) => (
@@ -305,7 +308,7 @@ export default function DoseDetails() {
                           fontWeight: "bold",
                         }}
                       >
-                        Decline
+                        {t("applications.declineButton")}
                       </Text>
                     </Pressable>
 
@@ -327,7 +330,7 @@ export default function DoseDetails() {
                           fontWeight: "bold",
                         }}
                       >
-                        Accept
+                        {t("applications.acceptButton")}
                       </Text>
                     </Pressable>
                   </View>
@@ -402,7 +405,7 @@ export default function DoseDetails() {
                 marginBottom: 24,
               }}
             >
-              Are you sure you want to deny this user?
+              {t("applications.modalTitle")}
             </Text>
 
             <View style={{ flexDirection: "row", gap: 16 }}>
@@ -415,7 +418,9 @@ export default function DoseDetails() {
                   borderRadius: 10,
                 }}
               >
-                <Text style={{ color: "white", fontSize: 16 }}>No</Text>
+                <Text style={{ color: "white", fontSize: 16 }}>
+                  {t("applications.modalCancelButton")}
+                </Text>
               </Pressable>
 
               <Pressable
@@ -427,7 +432,9 @@ export default function DoseDetails() {
                   borderRadius: 10,
                 }}
               >
-                <Text style={{ color: "white", fontSize: 16 }}>yes</Text>
+                <Text style={{ color: "white", fontSize: 16 }}>
+                  {t("applications.modalConfirmButton")}
+                </Text>
               </Pressable>
             </View>
           </View>
