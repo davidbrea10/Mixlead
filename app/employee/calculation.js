@@ -15,21 +15,6 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const OPTIONS = {
-  isotopes: ["192Ir", "75Se"],
-  collimator: ["Yes", "No"],
-  materials: [
-    "Mixlead",
-    "Steel",
-    "Concrete",
-    "Aluminum",
-    "Lead",
-    "Tungsten",
-    "Other",
-  ],
-  limits: ["11µSv/h", "0.5µSv/h"],
-};
-
 const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
 const COLLIMATOR_EFFECT = { Yes: { "192Ir": 3, "75Se": 12.5 }, No: 0 };
 const ATTENUATION_COEFFICIENT = {

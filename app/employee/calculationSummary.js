@@ -1,11 +1,4 @@
-import {
-  View,
-  Text,
-  Pressable,
-  Image,
-  ScrollView,
-  StyleSheet,
-} from "react-native";
+import { View, Text, Pressable, Image, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next"; // Importar el hook de traducción

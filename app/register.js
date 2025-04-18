@@ -15,7 +15,10 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 // Add a second document with a generated ID.
 import { auth, db } from "../firebase/config"; // Asegúrate de la ruta correcta
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
 import {
   doc,
   setDoc,
@@ -192,11 +195,6 @@ export default function Register() {
   };
 
   const handleRegister = async () => {
-    // Validar que no haya errores antes de registrar
-    if (errors.dni || errors.phone || errors.birthDate) {
-      alert(t("errors.fixBeforeSubmit"));
-      return;
-    }
     const {
       firstName,
       lastName,
@@ -227,35 +225,8 @@ export default function Register() {
       return;
     }
 
-    // Validar que el usuario sea mayor de 18 años
-    const birthDateObj = new Date(birthDate);
-    const today = new Date();
-    const age = today.getFullYear() - birthDateObj.getFullYear();
-    const monthDiff = today.getMonth() - birthDateObj.getMonth();
-    const dayDiff = today.getDate() - birthDateObj.getDate();
-
-    if (
-      age < 18 ||
-      (age === 18 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))
-    ) {
-      alert(t("errors.ageRestriction"));
-      return;
-    }
-
     try {
-      // Validar que el DNI sea único
-      const dniQuery = query(
-        collection(db, "employees"),
-        where("dni", "==", dni),
-      );
-      const dniSnapshot = await getDocs(dniQuery);
-
-      if (!dniSnapshot.empty) {
-        alert(t("errors.dniExists"));
-        return;
-      }
-
-      // ✅ Crear usuario en Firebase Authentication
+      // Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -263,7 +234,10 @@ export default function Register() {
       );
       const user = userCredential.user;
 
-      // ✅ Guardar datos adicionales en Firestore
+      // Send email verification
+      await sendEmailVerification(user);
+
+      // Save additional user data in Firestore
       await setDoc(doc(db, "employees", user.uid), {
         firstName,
         lastName,
@@ -272,14 +246,12 @@ export default function Register() {
         phone,
         birthDate,
         email,
-        companyId: "", // Añade el ID de la empresa si es necesario
+        companyId: "",
         createdAt: new Date(),
       });
 
-      alert(t("register.registration"));
-
-      // ✅ Redirigir a la pantalla de inicio
-      router.replace("/employee/home"); // Asegúrate de que esta ruta exista en tu app
+      // Redirect to the email confirmation screen
+      router.replace("/emailConfirmation");
     } catch (error) {
       alert(error.message);
     }

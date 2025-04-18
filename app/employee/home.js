@@ -22,10 +22,6 @@ export default function Home() {
     router.push("/employee/myAgenda");
   };
 
-  const handleInspection = () => {
-    router.push("/employee/inspection");
-  };
-
   const handleCalculation = () => {
     router.push("/employee/calculation");
   };

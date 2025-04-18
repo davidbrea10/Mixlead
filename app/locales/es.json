@@ -11,6 +11,18 @@
   "please_enter_credentials": "Por favor ingresa correo y contraseña",
   "user_not_found": "Datos de usuario no encontrados.",
 
+  "register": {
+    "emailVerificationTitle": "Verifica tu Correo",
+    "emailVerificationMessage": "Se ha enviado un correo de verificación a tu bandeja de entrada. Por favor, verifica tu correo antes de iniciar sesión.",
+    "okButton": "Aceptar"
+  },
+
+  "emailConfirmation": {
+    "title": "Verifica tu Correo",
+    "message": "Se ha enviado un correo de verificación a tu bandeja de entrada. Por favor revisa tu correo y verifica tu cuenta.",
+    "backToLogin": "Volver al Inicio"
+  },
+
   "register.title": "REGISTRO DE USUARIO",
   "register.firstName": "Nombre",
   "register.lastName": "Apellidos",

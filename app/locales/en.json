@@ -11,6 +11,18 @@
   "please_enter_credentials": "Please enter email and password",
   "user_not_found": "User data not found.",
 
+  "register": {
+    "emailVerificationTitle": "Verify Your Email",
+    "emailVerificationMessage": "A verification email has been sent to your inbox. Please verify your email before logging in.",
+    "okButton": "OK"
+  },
+
+  "emailConfirmation": {
+    "title": "Verify Your Email",
+    "message": "A verification email has been sent to your inbox. Please check your email and verify your account.",
+    "backToLogin": "Back to Login"
+  },
+
   "register.title": "USER REGISTER",
   "register.firstName": "First Name",
   "register.lastName": "Last Name",
