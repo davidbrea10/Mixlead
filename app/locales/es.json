@@ -152,7 +152,7 @@
   "profile": {
     "title": "Tu Perfil",
     "name": "Nombre",
-    "lastName": "Apellidos",
+    "lastName": "Apellido",
     "dni": "DNI/NIE",
     "telephone": "Teléfono",
     "birth": "Fecha de Nacimiento",
@@ -164,7 +164,20 @@
     "joinCompanyAction": "Haz clic aquí.",
     "userNotAuthenticated": "Error: No hay usuario autenticado.",
     "userDataNotFound": "Error: No se encontraron los datos del usuario.",
-    "fetchUserDataError": "Error al obtener los datos del usuario"
+    "fetchUserDataError": "Error al obtener los datos del usuario",
+    "modal": {
+      "title": "¿Eres parte de una empresa?",
+      "description": "Ingresa el código de tu empresa para confirmar tu solicitud. Ten en cuenta que compartirás tus datos personales con ellos. Si no lo sabes ahora, puedes cambiarlo desde la configuración.",
+      "companyCodeLabel": "Código de la Empresa",
+      "companyCodePlaceholder": "Ej: A12345678",
+      "submitSuccess": "Si el código de empresa es correcto, recibirás noticias pronto.",
+      "submitAlreadySent": "Ya enviaste una solicitud.",
+      "submitNoCoordinators": "No se encontraron coordinadores en esta empresa.",
+      "submitError": "Algo salió mal. Inténtalo de nuevo.",
+      "submitEmpty": "El código de la empresa no puede estar vacío.",
+      "continueGuest": "Continuar como invitado",
+      "userNotLoggedIn": "Usuario no autenticado."
+    }
   },
 
   "doseDetails": {

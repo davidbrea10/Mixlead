@@ -1,9 +1,18 @@
-import { View, Text, Pressable, Image, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Image,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next"; // Importar el hook de traducción
 
 export default function CalculationSummary() {
   const router = useRouter();
+  const { t } = useTranslation(); // Inicializar traducción
   const params = useLocalSearchParams();
 
   const handleBack = () => {
@@ -12,10 +21,6 @@ export default function CalculationSummary() {
 
   const handleHome = () => {
     router.replace("/employee/home");
-  };
-
-  const handleInspection = () => {
-    router.push("/employee/inspection");
   };
 
   const handleGraph = () => {
@@ -35,6 +40,7 @@ export default function CalculationSummary() {
       style={{ flex: 1 }}
     >
       <View style={{ flex: 1 }}>
+        {/* Header */}
         <View
           style={{
             paddingTop: 40,
@@ -73,7 +79,11 @@ export default function CalculationSummary() {
                 marginHorizontal: 10,
               }}
             >
-              Results for {isDistance ? "Distance" : "Thickness"}
+              {t("calculationSummary.title", {
+                type: isDistance
+                  ? t("calculationSummary.distance")
+                  : t("calculationSummary.thickness"),
+              })}
             </Text>
           </View>
 
@@ -85,48 +95,55 @@ export default function CalculationSummary() {
           </Pressable>
         </View>
 
+        {/* Main Content */}
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <Text style={{ fontSize: 18, fontWeight: "bold", margin: 15 }}>
-            Results for:
+            {t("calculationSummary.resultsFor")}
           </Text>
           <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>Isotope:</Text>
+            <Text style={styles.label}>{t("calculationSummary.isotope")}</Text>
             <Text style={styles.textLabel}>{params.isotope?.toString()}</Text>
           </View>
           <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>Collimator:</Text>
+            <Text style={styles.label}>
+              {t("calculationSummary.collimator")}
+            </Text>
             <Text style={styles.textLabel}>
               {params.collimator?.toString()}
             </Text>
           </View>
           <View style={{ flexDirection: "row" }}>
             <Text style={styles.label}>
-              {isDistance ? "Thickness" : "Distance"}:
+              {isDistance
+                ? t("calculationSummary.thickness")
+                : t("calculationSummary.distance")}
             </Text>
             <Text style={styles.textLabel}>
-              {params.value?.toString()} {isDistance ? `mm` : `m`}
+              {params.value?.toString()} {isDistance ? "mm" : "m"}
             </Text>
           </View>
           <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>Activity: </Text>
+            <Text style={styles.label}>{t("calculationSummary.activity")}</Text>
             <Text style={styles.textLabel}>
-              {params.activity?.toString()} {"Ci"}
+              {params.activity?.toString()} {t("calculationSummary.ci")}
             </Text>
           </View>
           <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>Material: </Text>
+            <Text style={styles.label}>{t("calculationSummary.material")}</Text>
             <Text style={styles.textLabel}>{params.material?.toString()}</Text>
           </View>
           {params.material === "Other" && (
             <View style={{ flexDirection: "row" }}>
-              <Text style={styles.label}>Attenuation: </Text>
+              <Text style={styles.label}>
+                {t("calculationSummary.attenuation")}
+              </Text>
               <Text style={styles.textLabel}>
                 {params.attenuation?.toString()}
               </Text>
             </View>
           )}
           <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>Limit: </Text>
+            <Text style={styles.label}>{t("calculationSummary.limit")}</Text>
             <Text style={styles.textLabel}>{params.limit?.toString()}</Text>
           </View>
           <Text
@@ -138,10 +155,15 @@ export default function CalculationSummary() {
             }}
           >
             {isDistance
-              ? `DISTANCE: ${params.result?.toString()} m`
-              : `THICKNESS: ${params.result?.toString()} mm`}
+              ? t("calculationSummary.resultDistance", {
+                  result: params.result?.toString(),
+                })
+              : t("calculationSummary.resultThickness", {
+                  result: params.result?.toString(),
+                })}
           </Text>
 
+          {/* Buttons */}
           <View
             style={{
               flexDirection: "column",
@@ -150,15 +172,20 @@ export default function CalculationSummary() {
             }}
           >
             <Pressable onPress={handleGraph} style={styles.button}>
-              <Text style={{ color: "#fff", fontSize: 19 }}>Graph</Text>
+              <Text style={{ color: "#fff", fontSize: 19 }}>
+                {t("calculationSummary.graph")}
+              </Text>
             </Pressable>
             <Pressable onPress={handleTable} style={styles.button}>
-              <Text style={{ color: "#fff", fontSize: 19 }}>Table</Text>
+              <Text style={{ color: "#fff", fontSize: 19 }}>
+                {t("calculationSummary.table")}
+              </Text>
             </Pressable>
           </View>
         </ScrollView>
       </View>
 
+      {/* Footer */}
       <View
         style={{
           backgroundColor: "#006892",

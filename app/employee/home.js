@@ -3,8 +3,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { auth } from "../../firebase/config"; // Importa la configuración de Firebase
 import { signOut } from "firebase/auth";
+import { useTranslation } from "react-i18next";
 
 export default function Home() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -69,7 +71,7 @@ export default function Home() {
             textShadowRadius: 1,
           }}
         >
-          HOME
+          {t("adminHome.title")}
         </Text>
 
         <Pressable onPress={handleLogout}>
@@ -119,7 +121,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              My Agenda
+              {t("home.header.title")}
             </Text>
           </View>
         </Pressable>
@@ -159,7 +161,7 @@ export default function Home() {
                 paddingHorizontal: 10, // Evita que el texto toque los bordes
               }}
             >
-              Calculation of Necessary Distance/Thickness
+              {t("radiographyCalculator.buttonTitle")}
             </Text>
           </View>
         </Pressable>

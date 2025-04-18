@@ -23,8 +23,10 @@ import {
   query,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 export default function Profile() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [userData, setUserData] = useState(null);
   const [companyName, setCompanyName] = useState(null);
@@ -59,17 +61,17 @@ export default function Profile() {
               if (companySnap.exists()) {
                 setCompanyName(companySnap.data().Name);
               } else {
-                setError("No company data found.");
+                setError(t("profile.fetchUserDataError"));
               }
             }
           } else {
-            setError("No user data found.");
+            setError(t("profile.userDataNotFound"));
           }
         } else {
-          setError("No authenticated user.");
+          setError(t("profile.userNotAuthenticated"));
         }
       } catch (err) {
-        setError("Error fetching user data: " + err.message);
+        setError(`${t("profile.fetchUserDataError")}: ${err.message}`);
       } finally {
         setLoading(false);
       }
@@ -131,7 +133,7 @@ export default function Profile() {
             letterSpacing: 2,
           }}
         >
-          Your Profile
+          {t("profile.title")}
         </Text>
 
         <Pressable onPress={handleHome}>
@@ -145,19 +147,19 @@ export default function Profile() {
       {/* Main Content */}
       <View style={{ flex: 1, padding: 20 }}>
         {[
-          { label: "Name", value: userData?.firstName || "N/A" },
-          { label: "Last Name", value: userData?.lastName || "N/A" },
-          { label: "DNI/NIE", value: userData?.dni || "N/A" },
-          { label: "Telephone", value: userData?.phone || "N/A" },
-          { label: "Birth", value: userData?.birthDate || "N/A" },
-          { label: "Email", value: userData?.email || "N/A" },
+          { label: t("profile.name"), value: userData?.firstName || "N/A" },
+          { label: t("profile.lastName"), value: userData?.lastName || "N/A" },
+          { label: t("profile.dni"), value: userData?.dni || "N/A" },
+          { label: t("profile.telephone"), value: userData?.phone || "N/A" },
+          { label: t("profile.birth"), value: userData?.birthDate || "N/A" },
+          { label: t("profile.email"), value: userData?.email || "N/A" },
           userData?.companyId && {
-            label: "Company Name",
+            label: t("profile.companyName"),
             value: companyName || "N/A",
           },
           {
-            label: "Company Code",
-            value: userData?.companyId || "No company assigned",
+            label: t("profile.companyCode"),
+            value: userData?.companyId || t("profile.noCompanyAssigned"),
           },
         ]
           .filter(Boolean)
@@ -176,10 +178,12 @@ export default function Profile() {
         {!userData?.companyId && (
           <>
             <Text style={{ fontSize: 16, fontWeight: "bold", marginTop: 20 }}>
-              ¿You are part of a company?
+              {t("profile.joinCompanyQuestion")}
             </Text>
             <Pressable onPress={handleCompany}>
-              <Text style={{ color: "blue", fontSize: 16 }}>Click Here.</Text>
+              <Text style={{ color: "blue", fontSize: 16 }}>
+                {t("profile.joinCompanyAction")}
+              </Text>
             </Pressable>
           </>
         )}
@@ -216,15 +220,13 @@ export default function Profile() {
             <Text
               style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}
             >
-              Are you part of a company?
+              {t("profile.modal.title")}
             </Text>
             <Text style={{ fontSize: 14, marginBottom: 20 }}>
-              Enter your company code to confirm your request. Please note that
-              you will be sharing your personal data with them. If you don’t
-              know it right now, you can change it from the settings.
+              {t("profile.modal.description")}
             </Text>
             <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 8 }}>
-              Company Code
+              {t("profile.modal.companyCodeLabel")}
             </Text>
 
             <View
@@ -255,7 +257,7 @@ export default function Profile() {
               <Pressable
                 onPress={async () => {
                   if (companyCode.trim() === "") {
-                    setErrorMessage("Company code cannot be empty.");
+                    setErrorMessage(t("profile.modal.companyCodePlaceholder"));
                     fadeErrorAnim.setValue(1);
                     // eslint-disable-next-line no-undef
                     setTimeout(() => {
@@ -270,7 +272,7 @@ export default function Profile() {
 
                   try {
                     if (!auth.currentUser) {
-                      setErrorMessage("User not logged in.");
+                      setErrorMessage(t("profile.modal.emptyCodeError"));
                       return;
                     }
 
@@ -287,7 +289,7 @@ export default function Profile() {
                     const coordinatorsSnap = await getDocs(coordinatorsQuery);
 
                     if (coordinatorsSnap.empty) {
-                      setErrorMessage("No coordinators found in this company.");
+                      setErrorMessage(t("profile.modal.submitNoCoordinators"));
                       return;
                     }
 
@@ -320,7 +322,7 @@ export default function Profile() {
                     }
 
                     if (alreadyApplied) {
-                      setErrorMessage("You already sent a request.");
+                      setErrorMessage(t("profile.modal.submitAlreadySent"));
                     } else {
                       setCodeSubmitted(true);
                       setErrorMessage("");
@@ -336,7 +338,7 @@ export default function Profile() {
                     }
                   } catch (err) {
                     console.error(err);
-                    setErrorMessage("Something went wrong. Try again.");
+                    setErrorMessage(t("profile.modal.submitError"));
                   }
                 }}
                 style={{
@@ -377,7 +379,7 @@ export default function Profile() {
                     fontWeight: "600",
                   }}
                 >
-                  If the company code is correct you will receive news soon.
+                  {t("profile.modal.submitSuccess")}
                 </Text>
               </Animated.View>
             )}
@@ -391,7 +393,7 @@ export default function Profile() {
               }}
             >
               <Text style={{ color: "blue", fontSize: 16 }}>
-                Continue as a guest
+                {t("profile.modal.continueGuest")}
               </Text>
               <Ionicons
                 name="arrow-forward-outline"

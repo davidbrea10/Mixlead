@@ -10,9 +10,11 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
+import { useTranslation } from "react-i18next"; // Importar el hook de traducción
 
 export default function DoseDetails() {
   const router = useRouter();
+  const { t } = useTranslation(); // Inicializar traducción
 
   // HTML para renderizar el mapa en el WebView
   const mapHtml = `
@@ -37,7 +39,7 @@ export default function DoseDetails() {
           attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
         L.marker([51.505, -0.09]).addTo(map)
-          .bindPopup('<b>Marker!</b><br>This is a marker.').openPopup();
+          .bindPopup('<b>${t("graph.map.markerPopup")}</b>').openPopup();
       </script>
     </body>
     </html>
@@ -57,7 +59,7 @@ export default function DoseDetails() {
               style={styles.icon}
             />
           </Pressable>
-          <Text style={styles.title}>Graph</Text>
+          <Text style={styles.title}>{t("graph.header.title")}</Text>
           <Pressable onPress={() => router.replace("/employee/home")}>
             <Image
               source={require("../../assets/icon.png")}

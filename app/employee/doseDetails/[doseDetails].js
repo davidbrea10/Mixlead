@@ -10,32 +10,19 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next"; // Import the translation hook
 import { db, auth } from "../../../firebase/config";
 import { collection, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function DoseDetails() {
   const router = useRouter();
+  const { t } = useTranslation(); // Initialize translation hook
   const { month, year } = useLocalSearchParams();
   const parsedMonth = parseInt(month, 10);
   const parsedYear = parseInt(year, 10);
   const [dailyDoses, setDailyDoses] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
-
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
 
   useEffect(() => {
     loadDailyDoses();
@@ -53,13 +40,6 @@ export default function DoseDetails() {
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        console.log("Raw data:", data); // Muestra los datos sin modificaciones
-
-        console.log(
-          `Comparing: month=${data.month} (${typeof data.month}) vs ${month} (${typeof month}), 
-           year=${data.year} (${typeof data.year}) vs ${year} (${typeof year})`,
-        );
-
         if (
           data.dose &&
           data.day &&
@@ -77,9 +57,7 @@ export default function DoseDetails() {
         }
       });
 
-      doseData.sort((a, b) => a.day - b.day); // Ordena los datos por día
-
-      console.log(doseData);
+      doseData.sort((a, b) => a.day - b.day); // Sort by day
       setDailyDoses(doseData);
     } catch (error) {
       console.error("Error loading daily doses:", error);
@@ -105,9 +83,9 @@ export default function DoseDetails() {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds
+    return `${hours.toString().padStart(2, "0")}:${minutes
       .toString()
-      .padStart(2, "0")}`;
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -149,7 +127,7 @@ export default function DoseDetails() {
               textShadowRadius: 1,
             }}
           >
-            Dose Details
+            {t("doseDetails.title")}
           </Text>
           <Text
             style={{
@@ -161,7 +139,10 @@ export default function DoseDetails() {
               textShadowRadius: 1,
             }}
           >
-            {monthNames[month - 1]} {year}
+            {t("doseDetails.monthLabel", {
+              month: t(`doseDetails.months.${parsedMonth}`),
+              year: parsedYear,
+            })}
           </Text>
         </View>
         <Pressable onPress={() => router.replace("/employee/home")}>
@@ -173,21 +154,23 @@ export default function DoseDetails() {
       </View>
 
       {/* Main Content */}
-      {/* Cabecera de la tabla */}
+      {/* Table Header */}
       <View style={[styles.row, styles.headerRow]}>
         <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-          Dose
+          {t("doseDetails.table.dose")}
         </Text>
         <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-          Date
+          {t("doseDetails.table.date")}
         </Text>
-        <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
+        <Text style={[styles.headerCell, { flex: 0.5 }]}>
+          {t("doseDetails.table.view")}
+        </Text>
       </View>
       <ScrollView style={{ minWidth: "100%" }}>
-        {/* Datos */}
+        {/* Data */}
         {dailyDoses.length === 0 ? (
           <Text style={{ textAlign: "center", fontSize: 16, color: "#666" }}>
-            No dose data available for this period.
+            {t("doseDetails.table.noData")}
           </Text>
         ) : (
           dailyDoses.map((item, index) => (
@@ -218,10 +201,12 @@ export default function DoseDetails() {
               {expandedRows[index] && (
                 <View style={[styles.expandedRow]}>
                   <Text style={[styles.expandedText, { marginBottom: 10 }]}>
-                    Total Time: {formatTime(item.totalTime)}
+                    {t("doseDetails.expanded.totalTime")}
+                    {formatTime(item.totalTime)}
                   </Text>
                   <Text style={styles.expandedText}>
-                    Total Exposures: {item.totalExposures}
+                    {t("doseDetails.expanded.totalExposures")}
+                    {item.totalExposures}
                   </Text>
                 </View>
               )}
@@ -230,8 +215,7 @@ export default function DoseDetails() {
         )}
       </ScrollView>
 
-      {/* Equivalente dosis anual */}
-      {/* Equivalente dosis mensual */}
+      {/* Monthly Dose Summary */}
       <View
         style={{
           flexDirection: "column",
@@ -242,17 +226,21 @@ export default function DoseDetails() {
         <View style={styles.annualDoseContainer}>
           <View style={{ flex: 1, marginRight: 10 }}>
             <Text style={styles.annualDoseText}>
-              Equivalent dose data for the month:
+              {t("doseDetails.monthlySummary.label")}
             </Text>
           </View>
           <View style={styles.annualDoseContainerText}>
             <Text style={styles.annualDoseValue}>
-              {totalMonthlyDose().toFixed(2)} μSv
+              {t("doseDetails.monthlySummary.value", {
+                dose: totalMonthlyDose().toFixed(2),
+              })}
             </Text>
           </View>
         </View>
         <TouchableOpacity style={styles.downloadButton} onPress={() => {}}>
-          <Text style={styles.downloadButtonText}>Download Monthly Data</Text>
+          <Text style={styles.downloadButtonText}>
+            {t("doseDetails.monthlySummary.download")}
+          </Text>
         </TouchableOpacity>
       </View>
 

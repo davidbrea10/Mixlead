@@ -13,10 +13,11 @@ import { db, auth } from "../../firebase/config";
 import { collection, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import { useTranslation } from "react-i18next"; // Import the translation hook
 
 export default function Home() {
   const router = useRouter();
-
+  const { t } = useTranslation(); // Initialize translation
   const [monthlyDoses, setMonthlyDoses] = useState([]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [availableYears, setAvailableYears] = useState([]);
@@ -65,8 +66,6 @@ export default function Home() {
         }
       });
 
-      console.log("Years set:", yearsSet); // <-- Añadido para depurar los años
-
       setAvailableYears([...yearsSet].sort((a, b) => a - b));
       setMonthlyDoses(Object.values(doseData));
     } catch (error) {
@@ -82,29 +81,13 @@ export default function Home() {
   };
 
   const handleViewDetails = (month, year) => {
-    console.log("📅 Viewing details for:", { month, year });
     router.push({
       pathname: "/employee/doseDetails/[doseDetails]",
       params: { month: month.toString(), year: year.toString() },
     });
   };
 
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  console.log("📊 monthlyDoses:", monthlyDoses);
+  const monthNames = t("home.months", { returnObjects: true });
 
   return (
     <LinearGradient
@@ -145,7 +128,7 @@ export default function Home() {
               textShadowRadius: 1,
             }}
           >
-            My Agenda
+            {t("home.header.title")}
           </Text>
           <Text
             style={{
@@ -157,7 +140,7 @@ export default function Home() {
               textShadowRadius: 1,
             }}
           >
-            Annual Dose Data
+            {t("home.header.subtitle")}
           </Text>
         </View>
         <Pressable onPress={handleHome}>
@@ -188,7 +171,7 @@ export default function Home() {
               marginRight: 10,
             }}
           >
-            Select Year
+            {t("home.selectYear")}
           </Text>
           <Picker
             selectedValue={selectedYear}
@@ -200,35 +183,36 @@ export default function Home() {
                 key={year}
                 label={year.toString()}
                 value={year}
-                style={{ textAlign: "right", fontSize: 20 }} // Alinea el texto a la derecha
+                style={{ textAlign: "right", fontSize: 20 }} // Align text to the right
               />
             ))}
           </Picker>
         </View>
       </View>
-      {/* Cabecera de la tabla */}
+      {/* Table Header */}
       <View style={[styles.row, styles.headerRow]}>
         <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-          Dose
+          {t("home.table.dose")}
         </Text>
         <Text style={[styles.headerCell, styles.cellBorder, { flex: 1 }]}>
-          Month
+          {t("home.table.month")}
         </Text>
-        <Text style={[styles.headerCell, { flex: 0.5 }]}>View</Text>
+        <Text style={[styles.headerCell, { flex: 0.5 }]}>
+          {t("home.table.view")}
+        </Text>
       </View>
-      {/* Cabecera de la tabla */}
+
       <ScrollView style={{ minWidth: "100%" }}>
-        {/* Datos */}
         {monthlyDoses
           .filter((item) => item.year === selectedYear)
-          .sort((a, b) => a.month - b.month).length === 0 ? ( // Ordenar por mes de enero a diciembre
+          .sort((a, b) => a.month - b.month).length === 0 ? (
           <Text style={{ textAlign: "center", fontSize: 16, color: "#666" }}>
-            No dose data available for {selectedYear}.
+            {t("home.table.noData", { year: selectedYear })}
           </Text>
         ) : (
           monthlyDoses
             .filter((item) => item.year === selectedYear)
-            .sort((a, b) => a.month - b.month) // Ordenar por mes de enero a diciembre
+            .sort((a, b) => a.month - b.month)
             .map((item, index) => (
               <View
                 key={index}
@@ -241,7 +225,9 @@ export default function Home() {
                   {item.totalDose.toFixed(2)} μSv
                 </Text>
                 <Text style={[styles.cell, styles.cellBorder, { flex: 1 }]}>
-                  {item.month ? monthNames[item.month - 1] : "Unknown"}
+                  {item.month
+                    ? monthNames[item.month]
+                    : t("home.table.unknown")}
                 </Text>
                 <TouchableOpacity
                   style={[styles.cell, styles.eyeButton, { flex: 0.5 }]}
@@ -254,7 +240,7 @@ export default function Home() {
         )}
       </ScrollView>
 
-      {/* Equivalente dosis anual */}
+      {/* Annual Dose */}
       <View
         style={{
           flexDirection: "column",
@@ -265,7 +251,7 @@ export default function Home() {
         <View style={styles.annualDoseContainer}>
           <View style={{ flex: 1, marginRight: 10 }}>
             <Text style={styles.annualDoseText}>
-              Equivalent dose data from annual report:
+              {t("home.annualDose.title")}
             </Text>
           </View>
           <View style={styles.annualDoseContainerText}>
@@ -275,7 +261,9 @@ export default function Home() {
           </View>
         </View>
         <TouchableOpacity style={styles.downloadButton} onPress={() => {}}>
-          <Text style={styles.downloadButtonText}>Download Annual Data</Text>
+          <Text style={styles.downloadButtonText}>
+            {t("home.annualDose.download")}
+          </Text>
         </TouchableOpacity>
       </View>
 

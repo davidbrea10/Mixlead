@@ -164,7 +164,20 @@
     "joinCompanyAction": "Click Here.",
     "userNotAuthenticated": "Error: No authenticated user.",
     "userDataNotFound": "Error: No user data found.",
-    "fetchUserDataError": "Error fetching user data"
+    "fetchUserDataError": "Error fetching user data",
+    "modal": {
+      "title": "Are you part of a company?",
+      "description": "Enter your company code to confirm your request. Please note that you will be sharing your personal data with them. If you don’t know it right now, you can change it from the settings.",
+      "companyCodeLabel": "Company Code",
+      "companyCodePlaceholder": "Ex: A12345678",
+      "submitSuccess": "If the company code is correct you will receive news soon.",
+      "submitAlreadySent": "You already sent a request.",
+      "submitNoCoordinators": "No coordinators found in this company.",
+      "submitError": "Something went wrong. Try again.",
+      "submitEmpty": "Company code cannot be empty.",
+      "continueGuest": "Continue as a guest",
+      "userNotLoggedIn": "User not logged in."
+    }
   },
 
   "doseDetails": {
