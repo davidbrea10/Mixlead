@@ -1,5 +1,5 @@
 {
-  "welcome_back": "¡BIENVENIDO DE NUEVO!",
+  "welcome_back": "¡Bienvenido de nuevo!",
   "enter_email": "Ingresa tu correo electrónico",
   "password": "Contraseña",
   "recover_password": "¿Recuperar contraseña?",
@@ -10,6 +10,9 @@
   "login_failed": "Error de inicio de sesión: ",
   "please_enter_credentials": "Por favor ingresa correo y contraseña",
   "user_not_found": "Datos de usuario no encontrados.",
+  "email_not_verified": "Por favor verifica tu correo antes de iniciar sesión.",
+  "login_successful": "¡Inicio de sesión exitoso!",
+  "loading": "Cargando...",
 
   "register": {
     "emailVerificationTitle": "Verifica tu Correo",

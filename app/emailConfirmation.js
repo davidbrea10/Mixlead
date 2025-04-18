@@ -1,4 +1,4 @@
-import { View, Text, Pressable } from "react-native";
+import { Text, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -8,7 +8,7 @@ export default function EmailConfirmationScreen() {
   const { t } = useTranslation();
 
   const handleBackToHome = () => {
-    router.replace("/login"); // Redirect to the login page
+    router.replace("/"); // Redirect to the login page
   };
 
   return (
@@ -19,7 +19,14 @@ export default function EmailConfirmationScreen() {
       <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 20 }}>
         {t("emailConfirmation.title")}
       </Text>
-      <Text style={{ fontSize: 16, textAlign: "center", marginBottom: 40 }}>
+      <Text
+        style={{
+          fontSize: 16,
+          textAlign: "center",
+          marginBottom: 40,
+          marginHorizontal: 40,
+        }}
+      >
         {t("emailConfirmation.message")}
       </Text>
       <Pressable onPress={handleBackToHome} style={styles.button}>

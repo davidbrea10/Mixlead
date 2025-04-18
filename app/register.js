@@ -186,12 +186,11 @@ export default function Register() {
     const currentDate = selectedDate || birthDate;
     setShowDatePicker(Platform.OS === "ios");
 
-    const formattedDate = format(currentDate, "dd MMMM yyyy", {
-      locale: i18n.language === "es" ? es : enUS,
-    });
+    // Formatear la fecha como aaaa-mm-dd
+    const formattedDate = format(currentDate, "yyyy-MM-dd"); // Usar formato ISO 8601
 
-    setBirthDate(currentDate);
-    handleInputChange("birthDate", formattedDate); // Guardar la fecha formateada
+    setBirthDate(currentDate); // Guardar la fecha como objeto Date
+    handleInputChange("birthDate", formattedDate); // Guardar la fecha formateada en el estado del formulario
   };
 
   const handleRegister = async () => {
@@ -226,7 +225,7 @@ export default function Register() {
     }
 
     try {
-      // Create user in Firebase Authentication
+      // Crear usuario en Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -234,23 +233,23 @@ export default function Register() {
       );
       const user = userCredential.user;
 
-      // Send email verification
+      // Enviar correo de verificación
       await sendEmailVerification(user);
 
-      // Save additional user data in Firestore
+      // Guardar datos adicionales del usuario en Firestore
       await setDoc(doc(db, "employees", user.uid), {
         firstName,
         lastName,
         role: "employee",
         dni,
         phone,
-        birthDate,
+        birthDate, // Ya está en formato aaaa-mm-dd
         email,
         companyId: "",
         createdAt: new Date(),
       });
 
-      // Redirect to the email confirmation screen
+      // Redirigir a la pantalla de confirmación de correo
       router.replace("/emailConfirmation");
     } catch (error) {
       alert(error.message);

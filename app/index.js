@@ -5,6 +5,7 @@ import {
   Pressable,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -21,6 +22,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false); // Estado de carga
 
   const flag =
     i18n.language === "es"
@@ -32,39 +34,53 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert("Please enter email and password");
+      alert(t("please_enter_credentials")); // Mensaje para campos vacíos
       return;
     }
 
+    setLoading(true); // Mostrar indicador de carga
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password,
       );
-      console.log("Logged in:", userCredential.user);
+      const user = userCredential.user;
 
-      // Obtener el rol del usuario desde Firestore
-      const userDocRef = doc(db, "employees", userCredential.user.uid);
+      if (!user.emailVerified) {
+        alert(t("email_not_verified")); // Mensaje para correo no verificado
+        setLoading(false); // Ocultar indicador de carga
+        return;
+      }
+
+      const userDocRef = doc(db, "employees", user.uid);
       const userDoc = await getDoc(userDocRef);
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        const userRole = userData.role; // Obtienes el rol del usuario
+        const userRole = userData.role;
 
-        // Redirigir según el rol del usuario
         if (userRole === "admin") {
-          router.replace("/admin/home"); // Redirige a la pantalla de admin
+          router.replace("/admin/home");
         } else if (userRole === "coordinator") {
-          router.replace("/coordinator/home"); // Redirige a la pantalla de coordinador
+          router.replace("/coordinator/home");
         } else {
-          router.replace("/employee/home"); // Redirige a la pantalla de empleado
+          router.replace("/employee/home");
         }
+        alert(t("login_successful")); // Mensaje de inicio de sesión exitoso
       } else {
-        alert("User data not found.");
+        alert(t("user_not_found")); // Mensaje para datos de usuario no encontrados
       }
     } catch (error) {
-      alert("Login Failed: " + error.message);
+      let errorMessage = t("login_failed");
+      if (error.code === "auth/user-not-found") {
+        errorMessage += t("user_not_found");
+      } else if (error.code === "auth/wrong-password") {
+        errorMessage += t("password");
+      }
+      alert(errorMessage);
+    } finally {
+      setLoading(false); // Ocultar indicador de carga
     }
   };
 

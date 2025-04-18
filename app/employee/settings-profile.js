@@ -59,9 +59,16 @@ export default function Profile() {
             // Formatear la fecha de nacimiento si existe
             if (data.birthDate) {
               const birthDate = new Date(data.birthDate);
-              data.birthDate = format(birthDate, "dd MMMM yyyy", {
-                locale: i18n.language === "es" ? es : enUS,
-              });
+
+              // Verificar si la fecha es válida
+              if (!isNaN(birthDate.getTime())) {
+                data.birthDate = format(birthDate, "dd MMMM yyyy", {
+                  locale: i18n.language === "es" ? es : enUS,
+                });
+              } else {
+                data.birthDate = null; // O maneja el error de otra forma, como un mensaje
+                console.error("Invalid birthDate value:", data.birthDate);
+              }
             }
 
             setUserData(data);
