@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "mixlead",
+    "name": "Mixlead",
     "slug": "mixlead",
-    "version": "1.0.0",
+    "version": "0.5.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/adaptive-icon.png",
     "userInterfaceStyle": "light",
     "scheme": "mixlead",
     "splash": {

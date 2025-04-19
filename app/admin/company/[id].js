@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
@@ -177,106 +178,110 @@ export default function CompanyDetailsScreen() {
         </Pressable>
       </View>
 
-      <View style={{ flex: 1, padding: 20 }}>
-        {fields.map(({ key, label }) => (
-          <View key={key} style={{ marginBottom: 15 }}>
-            <Text style={{ fontSize: 18, marginBottom: 5 }}>{t(label)}</Text>
+      <ScrollView>
+        <View style={{ flex: 1, padding: 20 }}>
+          {fields.map(({ key, label }) => (
+            <View key={key} style={{ marginBottom: 15 }}>
+              <Text style={{ fontSize: 18, marginBottom: 5 }}>{t(label)}</Text>
 
-            {key === "CompanyId" ? (
-              <Pressable
-                onPress={() => Clipboard.setStringAsync(company[key])}
-                style={{
-                  width: "100%",
-                  height: 55,
-                  borderWidth: 1,
-                  borderColor: "#ccc",
-                  borderRadius: 10,
-                  paddingHorizontal: 10,
-                  marginBottom: 10,
-                  justifyContent: "center",
-                  backgroundColor: "#f0f0f0",
-                }}
-              >
-                <Text style={{ fontSize: 18, color: "#555" }}>
-                  {company[key]}
-                </Text>
-                <Text style={{ fontSize: 12, color: "#999" }}>
-                  {t("company_details.tap_to_copy")}
-                </Text>
-              </Pressable>
-            ) : (
-              <TextInput
-                value={company[key]}
-                onChangeText={(text) => handleInputChange(key, text)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  width: "100%",
-                  height: 55,
-                  borderWidth: 1,
-                  borderColor: "#ccc",
-                  borderRadius: 10,
-                  paddingHorizontal: 10,
-                  marginBottom: 10,
-                  backgroundColor: "white",
-                  fontSize: 18,
-                }}
-              />
-            )}
+              {key === "CompanyId" ? (
+                <Pressable
+                  onPress={() => Clipboard.setStringAsync(company[key])}
+                  style={{
+                    width: "100%",
+                    height: 55,
+                    borderWidth: 1,
+                    borderColor: "#ccc",
+                    borderRadius: 10,
+                    paddingHorizontal: 10,
+                    marginBottom: 10,
+                    justifyContent: "center",
+                    backgroundColor: "#f0f0f0",
+                  }}
+                >
+                  <Text style={{ fontSize: 18, color: "#555" }}>
+                    {company[key]}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: "#999" }}>
+                    {t("company_details.tap_to_copy")}
+                  </Text>
+                </Pressable>
+              ) : (
+                <TextInput
+                  value={company[key]}
+                  onChangeText={(text) => handleInputChange(key, text)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    width: "100%",
+                    height: 55,
+                    borderWidth: 1,
+                    borderColor: "#ccc",
+                    borderRadius: 10,
+                    paddingHorizontal: 10,
+                    marginBottom: 10,
+                    backgroundColor: "white",
+                    fontSize: 18,
+                  }}
+                />
+              )}
+            </View>
+          ))}
+
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
+            <Pressable
+              onPress={handleSave}
+              style={{
+                backgroundColor: "#006892",
+                padding: 15,
+                borderRadius: 10,
+                alignItems: "center",
+                flex: 1,
+                marginRight: 10,
+
+                // Sombra para iOS
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+
+                // Elevación para Android
+                elevation: 5,
+              }}
+            >
+              <Text style={{ color: "white", fontSize: 18 }}>
+                {t("company_details.save")}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={handleDelete}
+              style={{
+                backgroundColor: "#D32F2F",
+                padding: 15,
+                borderRadius: 10,
+                alignItems: "center",
+                flex: 1,
+
+                // Sombra para iOS
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+
+                // Elevación para Android
+                elevation: 5,
+              }}
+            >
+              <Text style={{ color: "white", fontSize: 18 }}>
+                {t("company_details.delete")}
+              </Text>
+            </Pressable>
           </View>
-        ))}
-
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Pressable
-            onPress={handleSave}
-            style={{
-              backgroundColor: "#006892",
-              padding: 15,
-              borderRadius: 10,
-              alignItems: "center",
-              flex: 1,
-              marginRight: 10,
-
-              // Sombra para iOS
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-
-              // Elevación para Android
-              elevation: 5,
-            }}
-          >
-            <Text style={{ color: "white", fontSize: 18 }}>
-              {t("company_details.save")}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={handleDelete}
-            style={{
-              backgroundColor: "#D32F2F",
-              padding: 15,
-              borderRadius: 10,
-              alignItems: "center",
-              flex: 1,
-
-              // Sombra para iOS
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-
-              // Elevación para Android
-              elevation: 5,
-            }}
-          >
-            <Text style={{ color: "white", fontSize: 18 }}>
-              {t("company_details.delete")}
-            </Text>
-          </Pressable>
         </View>
-      </View>
+      </ScrollView>
 
       <View
         style={{
