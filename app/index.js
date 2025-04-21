@@ -89,7 +89,7 @@ export default function Login() {
   };
 
   const handleRecoverPassword = () => {
-    alert("Redirect to Recover Password Screen");
+    router.push("/passwordReset");
   };
 
   const handleLanguageChange = () => {
@@ -232,19 +232,23 @@ export default function Login() {
       </Pressable>
 
       {/* Register Link */}
-      <Text
-        style={{
-          marginTop: 25,
-          marginHorizontal: 25,
-          fontSize: 23,
-          textAlign: "center",
-        }}
-      >
-        {t("no_account")}{" "}
-        <Text style={{ color: "blue" }} onPress={handleRegister}>
-          {t("register_here")}
+      <View style={{ width: "90%", alignItems: "center" }}>
+        <Text
+          style={{
+            marginTop: 25,
+            marginHorizontal: 25,
+            fontSize: 23,
+            textAlign: "center",
+          }}
+        >
+          {t("no_account")}{" "}
+          <Text style={{ color: "blue" }} onPress={handleRegister}>
+            {t("register_here")}
+          </Text>
         </Text>
-      </Text>
+      </View>
+
+      {/* Loading Indicator */}
     </LinearGradient>
   );
 }

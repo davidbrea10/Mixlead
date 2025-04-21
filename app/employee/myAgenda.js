@@ -304,7 +304,7 @@ export default function Home() {
         <Pressable
           onPress={handleDoseData}
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             justifyContent: "center",
@@ -346,7 +346,7 @@ export default function Home() {
         <Pressable
           onPress={() => setModalVisible(true)}
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             justifyContent: "center",

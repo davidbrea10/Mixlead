@@ -28,7 +28,18 @@
     "backToLogin": "Volver al Inicio"
   },
 
-  "register.title": "REGISTRO DE USUARIO",
+  "passwordReset": {
+    "title": "Restablecer Contraseña",
+    "instructions": "Ingresa tu dirección de correo electrónico para recibir un enlace de restablecimiento de contraseña.",
+    "emailPlaceholder": "Correo Electrónico",
+    "sendButton": "Enviar Enlace",
+    "successTitle": "Éxito",
+    "successMessage": "Se ha enviado un enlace de restablecimiento de contraseña a tu correo electrónico.",
+    "errorTitle": "Error",
+    "emptyEmail": "Por favor, ingresa tu dirección de correo electrónico."
+  },
+
+  "register.title": "Registro de Usuario",
   "register.firstName": "Nombre",
   "register.lastName": "Apellidos",
   "register.dni": "DNI",

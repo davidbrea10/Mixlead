@@ -28,7 +28,18 @@
     "backToLogin": "Back to Login"
   },
 
-  "register.title": "USER REGISTER",
+  "passwordReset": {
+    "title": "Reset Password",
+    "instructions": "Enter your email address to receive a password reset link.",
+    "emailPlaceholder": "Email Address",
+    "sendButton": "Send Reset Link",
+    "successTitle": "Success",
+    "successMessage": "A password reset link has been sent to your email.",
+    "errorTitle": "Error",
+    "emptyEmail": "Please enter your email address."
+  },
+
+  "register.title": "User Register",
   "register.firstName": "First Name",
   "register.lastName": "Last Name",
   "register.dni": "DNI",

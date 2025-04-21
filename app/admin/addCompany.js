@@ -163,7 +163,7 @@ export default function AddCompany() {
 
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {fields.map(({ key, label, placeholder }) => (
-            <View key={key} style={{ width: 366, marginBottom: 15 }}>
+            <View key={key} style={{ width: "90%", marginBottom: 15 }}>
               <Text style={styles.label}>{label}</Text>
               <View style={styles.inputContainer}>
                 <TextInput

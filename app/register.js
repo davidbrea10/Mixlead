@@ -324,7 +324,7 @@ export default function Register() {
           style={{ flex: 1 }}
         >
           {/* First Name */}
-          <View style={{ width: 366, marginBottom: 15 }}>
+          <View style={{ width: "90%", marginBottom: 15 }}>
             <Text style={styles.label}>{t("register.firstName")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
@@ -345,7 +345,7 @@ export default function Register() {
           </View>
 
           {/* Last Name */}
-          <View style={{ width: 366, marginBottom: 15 }}>
+          <View style={{ width: "90%", marginBottom: 15 }}>
             <Text style={styles.label}>{t("register.lastName")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
@@ -366,7 +366,7 @@ export default function Register() {
           </View>
 
           {/* DNI */}
-          <View style={{ width: 366, marginBottom: 15 }}>
+          <View style={{ width: "90%", marginBottom: 15 }}>
             <Text style={styles.label}>{t("register.dni")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
@@ -392,7 +392,7 @@ export default function Register() {
           </View>
 
           {/* Phone */}
-          <View style={{ width: 366, marginBottom: 15 }}>
+          <View style={{ width: "90%", marginBottom: 15 }}>
             <Text style={styles.label}>{t("register.phone")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
@@ -417,7 +417,7 @@ export default function Register() {
           </View>
 
           {/* Birth Date */}
-          <View style={{ width: 366, marginBottom: 15 }}>
+          <View style={{ width: "90%", marginBottom: 15 }}>
             <Text style={styles.label}>{t("register.birthDate")}</Text>
             <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
@@ -447,7 +447,7 @@ export default function Register() {
           </View>
 
           {/* Email */}
-          <View style={{ width: 366, marginBottom: 15 }}>
+          <View style={{ width: "90%", marginBottom: 15 }}>
             <Text style={styles.label}>{t("register.email")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
@@ -475,7 +475,7 @@ export default function Register() {
           </View>
 
           {/* Password */}
-          <View style={{ width: 366, marginBottom: 15 }}>
+          <View style={{ width: "90%", marginBottom: 15 }}>
             <Text style={styles.label}>{t("register.password")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
@@ -505,7 +505,7 @@ export default function Register() {
           </View>
 
           {/* Confirm Password */}
-          <View style={{ width: 366, marginBottom: 15 }}>
+          <View style={{ width: "90%", marginBottom: 15 }}>
             <Text style={styles.label}>{t("register.confirmPassword")}</Text>
             <View style={{ position: "relative" }}>
               <TextInput
@@ -598,7 +598,7 @@ const styles = {
     top: 15,
   },
   button: {
-    width: 366,
+    width: "90%",
     height: 55,
     backgroundColor: "#006892",
     justifyContent: "center",

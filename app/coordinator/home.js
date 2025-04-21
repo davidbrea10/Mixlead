@@ -99,7 +99,7 @@ export default function Home() {
         <Pressable
           onPress={handleApplications}
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             alignItems: "center",
@@ -140,7 +140,7 @@ export default function Home() {
         <Pressable
           onPress={handleEmployees}
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             alignItems: "center",
@@ -181,7 +181,7 @@ export default function Home() {
         <Pressable
           onPress={handleEmployeeAgenda}
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             alignItems: "center",
@@ -223,7 +223,7 @@ export default function Home() {
         <Pressable
           onPress={handleMyAgenda}
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             justifyContent: "center",
@@ -265,7 +265,7 @@ export default function Home() {
         <Pressable
           onPress={handleCalculation}
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             alignItems: "center",

@@ -150,6 +150,9 @@ export default function Profile() {
             fontWeight: "bold",
             color: "white",
             letterSpacing: 2,
+            textShadowColor: "black",
+            textShadowOffset: { width: 1, height: 1 },
+            textShadowRadius: 1,
           }}
         >
           {t("profile.title")}

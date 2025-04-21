@@ -211,7 +211,7 @@ const styles = {
   },
 
   button: {
-    width: 366,
+    width: "90%",
     height: 55,
     backgroundColor: "#006892",
     justifyContent: "center",

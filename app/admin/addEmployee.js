@@ -236,7 +236,7 @@ export default function AddEmployee() {
           >
             {Object.entries(form).map(([key, value]) =>
               !["companyId", "role", "birthDate"].includes(key) ? (
-                <View key={key} style={{ width: 366, marginBottom: 15 }}>
+                <View key={key} style={{ width: "90%", marginBottom: 15 }}>
                   <Text style={styles.label}>{t(`add_employee.${key}`)}</Text>
                   <View style={styles.inputContainer}>
                     <TextInput

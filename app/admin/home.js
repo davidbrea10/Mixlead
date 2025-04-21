@@ -84,7 +84,7 @@ export default function Home() {
         <Pressable
           onPress={handleCompanies}
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             alignItems: "center",
@@ -125,7 +125,7 @@ export default function Home() {
         <Pressable
           onPress={handleEmployees}
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             alignItems: "center",

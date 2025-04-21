@@ -83,7 +83,7 @@ export default function Home() {
         <Pressable
           onPress={handleMyAgenda} // Agrega el evento onPress
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             justifyContent: "center",
@@ -125,7 +125,7 @@ export default function Home() {
         <Pressable
           onPress={handleCalculation} // Agrega el evento onPress
           style={{
-            width: 348,
+            width: "90%",
             height: 76,
             flexDirection: "row",
             alignItems: "center",
