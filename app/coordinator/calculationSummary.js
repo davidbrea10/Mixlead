@@ -17,7 +17,16 @@ export default function CalculationSummary() {
   };
 
   const handleGraph = () => {
-    router.push("/coordinator/graph");
+    // Pasar el resultado y también indicar la unidad (metros)
+    router.push({
+      pathname: "/coordinator/graph", // O la ruta correcta a tu pantalla Graph
+      params: {
+        latitude: null, // Aún no tenemos lat/lon aquí, se marcarán en Graph
+        longitude: null,
+        radius: params.result, // El resultado del cálculo (asumimos que está en metros)
+        radiusUnit: "m", // Especificar la unidad
+      },
+    });
   };
 
   const handleTable = () => {

@@ -140,28 +140,41 @@ export default function Login() {
         source={require("../assets/icon.png")}
         style={{ width: 193, height: 193, marginBottom: 30 }}
       />
-
       {/* Email Input */}
-      <View style={{ position: "relative", marginBottom: 15 }}>
+      <View style={{ position: "relative", marginBottom: 15, width: 366 }}>
         <TextInput
           placeholder={t("enter_email")}
           value={email}
           onChangeText={setEmail}
           style={{
-            width: 366,
+            width: "100%", // Use percentage for better responsiveness
             height: 55,
             borderWidth: 1,
             borderColor: "#ccc",
             borderRadius: 10,
-            paddingHorizontal: 10,
+            paddingHorizontal: 15, // Increased padding
+            paddingRight: 40, // Make space for the clear button
             fontSize: 18,
             backgroundColor: "white",
           }}
+          // --- Email Specific Props ---
+          keyboardType="email-address" // Use email keyboard layout
+          autoCapitalize="none" // Don't capitalize automatically
+          autoComplete="email" // Help with autofill (Android)
+          textContentType="emailAddress" // Help with autofill (iOS)
+          autoCorrect={false} // Disable auto-correct for emails
         />
         {email.length > 0 && (
           <TouchableOpacity
             onPress={() => setEmail("")}
-            style={{ position: "absolute", right: 10, top: 15 }}
+            style={{
+              position: "absolute",
+              right: 10,
+              top: 0, // Align button vertically
+              height: "100%", // Make button full height of input
+              justifyContent: "center", // Center icon vertically
+              paddingHorizontal: 5, // Add padding for easier tap
+            }}
           >
             <Ionicons name="close-circle" size={24} color="gray" />
           </TouchableOpacity>
@@ -211,24 +224,38 @@ export default function Login() {
       {/* Sign In Button */}
       <Pressable
         onPress={handleLogin}
-        style={{
-          width: 366,
-          height: 55,
-          backgroundColor: "#006892",
-          justifyContent: "center",
-          alignItems: "center",
-          borderRadius: 10,
-          marginBottom: 20,
-          marginTop: 10,
-          fontSize: 18,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.5,
-          shadowRadius: 10,
-          elevation: 20,
-        }}
+        disabled={loading} // Disable button when loading
+        style={({ pressed }) => [
+          // Style based on pressed state
+          {
+            width: 366,
+            height: 55,
+            backgroundColor: loading ? "#a0a0a0" : "#006892", // Grey out when loading
+            justifyContent: "center",
+            alignItems: "center",
+            borderRadius: 10,
+            marginBottom: 20,
+            marginTop: 10,
+            flexDirection: "row", // To align text and spinner
+            opacity: pressed ? 0.8 : 1, // Feedback on press
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 5 }, // Adjusted shadow
+            shadowOpacity: 0.3,
+            shadowRadius: 5,
+            elevation: 10, // Adjusted elevation
+          },
+        ]}
       >
-        <Text style={{ color: "#fff", fontSize: 19 }}>{t("sign_in")}</Text>
+        {loading ? (
+          <ActivityIndicator
+            size="small"
+            color="#fff"
+            style={{ marginRight: 10 }}
+          />
+        ) : null}
+        <Text style={{ color: "#fff", fontSize: 19, fontWeight: "bold" }}>
+          {loading ? t("signing_in") : t("sign_in")}
+        </Text>
       </Pressable>
 
       {/* Register Link */}

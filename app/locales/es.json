@@ -4,6 +4,7 @@
   "password": "Contraseña",
   "recover_password": "¿Recuperar contraseña?",
   "sign_in": "Iniciar sesión",
+  "signing_in": "Iniciando sesión...",
   "no_account": "¿No tienes una cuenta?",
   "register_here": "¡Regístrate aquí!",
   "change_language": "Cambiar idioma",
@@ -300,7 +301,7 @@
     "attenuation": "Coeficiente de Atenuación:",
     "thicknessOrDistance": "Espesor",
     "distance": "Distancia",
-    "value": "Valor:",
+    "value": "Valor ({{unit}}):",
     "calculateDistance": "Calcular Distancia",
     "calculateThickness": "Calcular Espesor",
     "errorMessage": "Por favor, complete todos los campos.",
@@ -454,15 +455,37 @@
     "annualDose": {
       "title": "Datos equivalentes de dosis del informe anual:",
       "download": "Descargar Datos Anuales"
+    },
+    "pdf": {
+      "selectYearError": "Por favor, seleccione un año primero.",
+      "noEmployeesFound": "No se encontraron empleados para esta empresa.",
+      "title": "CONTROL DOSIMÉTRICO ANUAL",
+      "location": "CÁDIZ",
+      "year": "AÑO",
+      "table": {
+        "headerNameDay": "NOMBRE/DÍA",
+        "headerTotal": "Total μSv"
+      },
+      "annualTotalTitle": "TOTALES ANUALES",
+      "sharingNotAvailable": "La función de compartir no está disponible en este dispositivo.",
+      "shareDialogTitle": "Compartir Informe de Dosimetría Anual",
+      "generationError": "Error al generar el PDF"
     }
   },
 
   "graph": {
     "header": {
-      "title": "Gráfico"
+      "title": "Mapa"
     },
     "map": {
-      "markerPopup": "¡Marcador!<br>Este es un marcador."
+      "initialMarkerPopup": "Punto Inicial",
+      "markedLocationPopup": "Ubicación del Material Marcada"
+    },
+    "location": {
+      "permissionDeniedTitle": "Permiso Denegado",
+      "permissionDeniedMessage": "Se requiere permiso de ubicación para mostrar tu posición en el mapa. Por favor, actívalo en los ajustes de tu dispositivo.",
+      "errorTitle": "Error de Ubicación",
+      "errorMessage": "No se pudo obtener tu ubicación. Por favor, inténtalo de nuevo o revisa los ajustes de tu dispositivo."
     }
   },
 

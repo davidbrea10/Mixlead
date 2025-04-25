@@ -13,26 +13,35 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarla en el mapa.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Permiso 'Siempre' (si es necesario para futuras funciones)."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "androidStatusBar": {
-        "backgroundColor": "transparent",
-        "hidden": true
-      },
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ],
       "package": "com.davidbrea_10.mixlead",
-      "newArchEnabled": true,
-      "systemUiVisibility": "immersive"
+      "softwareKeyboardLayoutMode": "pan" 
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Necesitamos tu ubicación para mostrarla en el mapa."
+        }
+      ],
       "expo-localization"
     ],
     "extra": {

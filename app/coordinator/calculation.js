@@ -344,7 +344,7 @@ export default function Calculation() {
                 unit:
                   form.thicknessOrDistance ===
                   t("radiographyCalculator.thicknessOrDistance")
-                    ? "mm"
+                    ? "cm"
                     : "m",
               })}
               keyboardType="numeric"

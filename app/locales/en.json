@@ -4,6 +4,7 @@
   "password": "Password",
   "recover_password": "Recover password?",
   "sign_in": "Sign In",
+  "signing_in": "Signing in...",
   "no_account": "Don't have an account?",
   "register_here": "Register here!",
   "change_language": "Change language",
@@ -300,7 +301,7 @@
     "attenuation": "Attenuation Coefficient:",
     "thicknessOrDistance": "Thickness",
     "distance": "Distance",
-    "value": "Value:",
+    "value": "Value ({{unit}}):",
     "calculateDistance": "Calculate Distance",
     "calculateThickness": "Calculate Thickness",
     "errorMessage": "Please fill in all fields.",
@@ -454,15 +455,37 @@
     "annualDose": {
       "title": "Equivalent dose data from annual report:",
       "download": "Download Annual Data"
+    },
+    "pdf": {
+      "selectYearError": "Please select a year first.",
+      "noEmployeesFound": "No employees found for this company.",
+      "title": "ANNUAL DOSIMETRIC CONTROL",
+      "location": "LOCATION",
+      "year": "YEAR",
+      "table": {
+        "headerNameDay": "NAME/DAY",
+        "headerTotal": "Total μSv"
+      },
+      "annualTotalTitle": "ANNUAL TOTALS",
+      "sharingNotAvailable": "Sharing is not available on this device.",
+      "shareDialogTitle": "Share Annual Dosimetry Report",
+      "generationError": "Error generating PDF"
     }
   },
 
   "graph": {
     "header": {
-      "title": "Graph"
+      "title": "Map"
     },
     "map": {
-      "markerPopup": "Marker!<br>This is a marker."
+      "initialMarkerPopup": "Initial Point",
+      "markedLocationPopup": "Material Location Marked"
+    },
+    "location": {
+      "permissionDeniedTitle": "Permission Denied",
+      "permissionDeniedMessage": "Location permission is required to show your position on the map. Please enable it in your device settings.",
+      "errorTitle": "Location Error",
+      "errorMessage": "Could not retrieve your location. Please try again or check your device settings."
     }
   },
 
