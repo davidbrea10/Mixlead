@@ -455,19 +455,22 @@
     "unknown": "Unknown",
     "annualDose": {
       "title": "Equivalent dose data from annual report:",
-      "download": "Download Annual Data"
+      "downloadCompany": "Download Annual Data",
+      "downloadEmployee": "Download Employee Data"
     },
     "pdf": {
       "selectYearError": "Please select a year first.",
       "noEmployeesFound": "No employees found for this company.",
       "title": "ANNUAL DOSIMETRIC CONTROL",
+      "employeeTitle": "Annual Dosimetric Control - Employee ",
       "location": "LOCATION",
-      "year": "YEAR",
+      "year": "Year",
       "table": {
-        "headerNameDay": "NAME/DAY",
-        "headerTotal": "TOTAL μSv",
-        "employeeHeader": "NAME/DAY",
-        "totalHeader": "TOTAL μSv"
+        "headerNameDay": "Name / Day",
+        "headerTotal": "Total μSv",
+        "employeeHeader": "Name / Day",
+        "totalHeader": "Total μSv",
+        "monthHeader": "Month / Day"
       },
       "annualTotalTitle": "ANNUAL TOTALS",
       "sharingNotAvailable": "Sharing is not available on this device.",
@@ -477,7 +480,20 @@
       "reportTitle": "ANNUAL DOSIMETRIC CONTROL", 
       "company": "COMPANY",
       "shareErrorTitle": "Sharing Unavailable",
-      "shareErrorMsg": "Sharing is not available on this device."
+      "shareErrorMsg": "Sharing is not available on this device.",
+      "monthlyReportTitle": "MONTHLY DOSIMETRIC CONTROL",
+      "employeeLabel": "Employee",
+      "monthLabel": "Month",
+      "yearLabel": "Year",
+      "monthlyTotalLabel": "Monthly Total",
+      "annualTotalLabel": "Annual Total",
+      "tableMonthly": {
+        "day": "Day",
+        "dose": "Dose",
+        "time": "Time",
+        "exposures": "Exposures"
+      },
+      "unknownEmployee": "Unknown Employee"
     }
   },
 

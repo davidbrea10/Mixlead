@@ -41,18 +41,6 @@ const getAllYearsWithDoses = async (companyId) => {
     console.log(
       `getAllYearsWithDoses: Querying 'doses' collection group where companyId == ${companyId}`,
     );
-    // This queries ALL documents in ALL 'doses' subcollections
-    // This requires a Firestore index on 'companyId' for the 'doses' collection group.
-    // Ensure your Firestore rules allow reading from the 'doses' collection group based on companyId.
-    // Example Rule for 'doses' collection group:
-    // match /{path=**}/doses/{doseId} {
-    //   allow read: if get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.companyId == resource.data.companyId ||
-    //                get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.role == 'admin'; // Or based on coordinator role and matching companyId of the dose document
-    //   allow write: if request.auth != null && request.auth.uid == parent.parent.id; // Or your existing rule
-    // }
-    // It might be more efficient to query employees first, then query doses for each.
-    // Let's stick to the original employee-first approach and aggregate years client-side for now.
-
     // 1. Get all employees of the company
     const employeesQuery = query(
       collection(db, "employees"),
@@ -495,15 +483,22 @@ export default function Home() {
   // --- PDF Generation (Requires allCompanyEmployees state) ---
   const generatePdf = async () => {
     if (isGeneratingPdf) return;
-    // Ensure a year is selected and we have the full employee list
+    if (!selectedYear) {
+      Alert.alert(
+        t("errors.error"),
+        t("employeesAgenda.pdf.errorNoYearSelected"), // More specific error
+      );
+      return;
+    }
+
+    // Check for company context if generating company report
     if (
-      !selectedYear ||
-      !allCompanyEmployees ||
-      allCompanyEmployees.length === 0
+      !selectedEmployeeId && // Only check this if generating company report
+      (!allCompanyEmployees || allCompanyEmployees.length === 0)
     ) {
       Alert.alert(
         t("errors.error"),
-        t("employeesAgenda.pdf.errorNoYearOrEmployees"),
+        t("employeesAgenda.pdf.errorNoEmployeesInCompany"),
       );
       return;
     }
@@ -512,14 +507,13 @@ export default function Home() {
 
     const user = auth.currentUser;
     if (!user || !companyIdRef.current) {
-      // Also check if companyId was loaded
       Alert.alert(t("errors.error"), t("errors.notLoggedInOrNoCompany"));
       setIsGeneratingPdf(false);
       return;
     }
 
     try {
-      // 1. Get Company Name (using stored companyIdRef)
+      // --- Common Setup ---
       let companyName = t("pdf.unknownCompany");
       const companyDocRef = doc(db, "companies", companyIdRef.current);
       const companyDocSnap = await getDoc(companyDocRef);
@@ -527,13 +521,36 @@ export default function Home() {
         companyName = companyDocSnap.data().Name || companyName;
       }
 
-      // 2. Fetch all doses for the selected year for ALL company employees
-      //    (using the stored allCompanyEmployees list)
-      const allDosesPromises = allCompanyEmployees.map(async (emp) => {
-        const dosesRef = collection(db, "employees", emp.id, "doses");
+      let htmlContent = "";
+      let pdfFileName = "";
+      const pdfOptionsBase = {
+        directory: Platform.OS === "android" ? "Download" : "Documents",
+        width: 1123, // A3 landscape width
+        height: 794, // A3 landscape height
+      };
+
+      // --- Branch Logic: Employee vs Company ---
+      if (selectedEmployeeId) {
+        // --- Generate PDF for SELECTED EMPLOYEE ---
+
+        // 1. Get Selected Employee's Name
+        const selectedEmployee = filteredEmployees.find(
+          (emp) => emp.id === selectedEmployeeId,
+        );
+        const employeeName = selectedEmployee
+          ? selectedEmployee.name
+          : t("pdf.unknownEmployee");
+
+        // 2. Fetch Employee's DAILY Doses for the selected year
+        const dosesRef = collection(
+          db,
+          "employees",
+          selectedEmployeeId,
+          "doses",
+        );
         const q = query(dosesRef, where("year", "==", selectedYear));
         const snapshot = await getDocs(q);
-        const empDoses = [];
+        const dailyDoses = []; // Array of { month, day, dose }
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
           const doseValue =
@@ -541,159 +558,251 @@ export default function Home() {
               ? data.dose
               : parseFloat(data.dose || 0);
           if (data.month && data.day && !isNaN(doseValue)) {
-            // Ensure day exists too
-            empDoses.push({
-              employeeId: emp.id,
-              employeeName: emp.name, // Use name from allCompanyEmployees
+            dailyDoses.push({
               month: data.month,
               day: data.day,
               dose: doseValue,
             });
           }
         });
-        return empDoses;
-      });
 
-      const allDosesArrays = await Promise.all(allDosesPromises);
-      const flatDoses = allDosesArrays.flat();
-
-      // 3. Structure data for HTML table (using allCompanyEmployees)
-      const monthlyEmployeeDoses = {}; // { month: { employeeId: { name, days: {day: dose}, monthlyTotal } } }
-
-      // Initialize structure for ALL employees for ALL months
-      allCompanyEmployees.forEach((emp) => {
+        // 3. Structure data for HTML (single employee)
+        const monthlyEmployeeDoses = {}; // { month: { days: {day: dose}, monthlyTotal } }
+        // Initialize structure for the employee for ALL months
         for (let month = 1; month <= 12; month++) {
-          if (!monthlyEmployeeDoses[month]) {
-            monthlyEmployeeDoses[month] = {};
-          }
-          monthlyEmployeeDoses[month][emp.id] = {
-            name: emp.name,
+          monthlyEmployeeDoses[month] = {
             days: {},
             monthlyTotal: 0,
           };
         }
-      });
-
-      // Populate with actual doses
-      flatDoses.forEach((dose) => {
-        const { employeeId, month, day, dose: doseValue } = dose;
-        // Ensure data is valid before trying to access/add
-        if (
-          month >= 1 &&
-          month <= 12 &&
-          day >= 1 &&
-          day <= 31 &&
-          monthlyEmployeeDoses[month] &&
-          monthlyEmployeeDoses[month][employeeId]
-        ) {
-          if (!monthlyEmployeeDoses[month][employeeId].days[day]) {
-            monthlyEmployeeDoses[month][employeeId].days[day] = 0;
+        // Populate with actual doses
+        let overallTotalDose = 0;
+        dailyDoses.forEach((dose) => {
+          const { month, day, dose: doseValue } = dose;
+          if (
+            month >= 1 &&
+            month <= 12 &&
+            day >= 1 &&
+            day <= 31 &&
+            monthlyEmployeeDoses[month]
+          ) {
+            if (!monthlyEmployeeDoses[month].days[day]) {
+              monthlyEmployeeDoses[month].days[day] = 0;
+            }
+            monthlyEmployeeDoses[month].days[day] += doseValue;
+            monthlyEmployeeDoses[month].monthlyTotal += doseValue;
+            overallTotalDose += doseValue; // Accumulate overall total
           }
-          monthlyEmployeeDoses[month][employeeId].days[day] += doseValue;
-          monthlyEmployeeDoses[month][employeeId].monthlyTotal += doseValue;
-        }
-      });
+        });
 
-      // 4. Generate HTML Table (Iterating through allCompanyEmployees)
-      let tableHtml = "";
-      const totalColumns = 33; // 1 (Nombre) + 31 (Días) + 1 (Total)
+        // 4. Generate HTML Table (single employee)
+        let tableHtml = "";
+        const totalColumns = 33; // 1 (Mes) + 31 (Días) + 1 (Total)
 
-      for (let month = 1; month <= 12; month++) {
-        tableHtml += `<tr class="month-header-row"><td colspan="${totalColumns}">${monthNames[month - 1]}</td></tr>`;
-
-        // Iterate through the canonical list of ALL company employees
-        allCompanyEmployees.forEach((emp) => {
-          // Get the pre-structured data for this employee and month
-          const employeeData = monthlyEmployeeDoses[month]?.[emp.id];
-
-          // Safety check - should always exist due to initialization, but good practice
-          if (!employeeData) {
-            console.warn(
-              `Missing expected data structure for employee ${emp.id} in month ${month}`,
-            );
-            // Optionally render a row indicating missing data or skip
-            tableHtml += `<tr><td class="employee-name">${emp.name}</td><td colspan="32">Data Error</td></tr>`; // Example error row
-            return; // Skip this employee for this month if structure is missing
-          }
-
-          let rowHtml = `<tr><td class="employee-name">${emp.name}</td>`;
-          let calculatedMonthlyTotal = 0; // Use the pre-calculated total
+        for (let month = 1; month <= 12; month++) {
+          const monthData = monthlyEmployeeDoses[month];
+          let rowHtml = `<tr><td class="month-name">${monthNames[month - 1]}</td>`; // Month name column
 
           // Generate cells for 31 days
           for (let day = 1; day <= 31; day++) {
-            const dailyDose = employeeData.days?.[day] || 0;
-            // No need to recalculate total here, use employeeData.monthlyTotal
-
+            const dailyDose = monthData.days?.[day] || 0;
             const cellContent = dailyDose > 0 ? dailyDose.toFixed(2) : "";
             rowHtml += `<td class="dose-value">${cellContent}</td>`;
           }
 
-          // Add total cell using the pre-calculated monthlyTotal
-          const formattedTotal = employeeData.monthlyTotal.toFixed(2);
-          const totalCellContentWithUnit = `${formattedTotal} μSv`;
-          rowHtml += `<td class="dose-total">${totalCellContentWithUnit}</td></tr>`;
+          // Add monthly total cell
+          const formattedTotal = monthData.monthlyTotal.toFixed(2);
+          rowHtml += `<td class="dose-total">${formattedTotal} μSv</td></tr>`;
 
           tableHtml += rowHtml;
+        }
+
+        // 5. Construct Full HTML for Employee Report
+        pdfFileName = `EmployeeDoseReport_${employeeName.replace(/\s+/g, "_")}_${selectedYear}`;
+        htmlContent = `
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              /* Similar styles, adjust if needed */
+              body { font-family: 'Helvetica', sans-serif; font-size: 8px; }
+              .header-title { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 5px; }
+              .header-subtitle { font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 15px; padding: 0 10px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+              th, td { border: 1px solid #ccc; padding: 3px; text-align: center; vertical-align: middle;}
+              th { background-color: #e9e9e9; font-weight: bold; font-size: 8px; }
+              td.month-name { text-align: left; font-size: 9px; font-weight: bold; background-color: #f8f8f8; }
+              td.dose-value { text-align: right; font-size: 9px; font-weight: normal;}
+              td.dose-total { text-align: right; font-size: 9px; font-weight: bold; background-color: #f0f0f0; }
+              .footer-total { margin-top: 15px; text-align: right; font-size: 12px; font-weight: bold; padding-right: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="header-title">${companyName}</div>
+            <div class="header-subtitle">
+              <span>${t("employeesAgenda.pdf.employeeTitle")}: ${employeeName}</span>
+              <span>${t("employeesAgenda.pdf.year")}: ${selectedYear}</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 15%;">${t("employeesAgenda.pdf.table.monthHeader")}</th>
+                  ${Array.from({ length: 31 }, (_, i) => `<th style="width: 2%;">${i + 1}</th>`).join("")}
+                  <th style="width: 7%;">${t("employeesAgenda.pdf.table.totalHeader")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableHtml}
+              </tbody>
+            </table>
+            <div class="footer-total">
+                ${t("employeesAgenda.pdf.annualTotalLabel")} ${overallTotalDose.toFixed(2)} μSv
+            </div>
+          </body>
+          </html>
+        `;
+      } else {
+        // --- Generate PDF for ENTIRE COMPANY (Existing Logic) ---
+
+        // 1. Fetch all doses for the selected year for ALL company employees
+        //    (using the stored allCompanyEmployees list)
+        const allDosesPromises = allCompanyEmployees.map(async (emp) => {
+          const dosesRef = collection(db, "employees", emp.id, "doses");
+          const q = query(dosesRef, where("year", "==", selectedYear));
+          const snapshot = await getDocs(q);
+          const empDoses = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const doseValue =
+              typeof data.dose === "number"
+                ? data.dose
+                : parseFloat(data.dose || 0);
+            if (data.month && data.day && !isNaN(doseValue)) {
+              empDoses.push({
+                employeeId: emp.id,
+                employeeName: emp.name,
+                month: data.month,
+                day: data.day,
+                dose: doseValue,
+              });
+            }
+          });
+          return empDoses;
         });
+
+        const allDosesArrays = await Promise.all(allDosesPromises);
+        const flatDoses = allDosesArrays.flat();
+
+        // 2. Structure data for HTML table (using allCompanyEmployees)
+        const monthlyEmployeeDoses = {};
+        allCompanyEmployees.forEach((emp) => {
+          for (let month = 1; month <= 12; month++) {
+            if (!monthlyEmployeeDoses[month]) {
+              monthlyEmployeeDoses[month] = {};
+            }
+            monthlyEmployeeDoses[month][emp.id] = {
+              name: emp.name,
+              days: {},
+              monthlyTotal: 0,
+            };
+          }
+        });
+        flatDoses.forEach((dose) => {
+          const { employeeId, month, day, dose: doseValue } = dose;
+          if (
+            month >= 1 &&
+            month <= 12 &&
+            day >= 1 &&
+            day <= 31 &&
+            monthlyEmployeeDoses[month] &&
+            monthlyEmployeeDoses[month][employeeId]
+          ) {
+            if (!monthlyEmployeeDoses[month][employeeId].days[day]) {
+              monthlyEmployeeDoses[month][employeeId].days[day] = 0;
+            }
+            monthlyEmployeeDoses[month][employeeId].days[day] += doseValue;
+            monthlyEmployeeDoses[month][employeeId].monthlyTotal += doseValue;
+          }
+        });
+
+        // 3. Generate HTML Table (Company)
+        let tableHtml = "";
+        const totalColumns = 33; // 1 (Nombre) + 31 (Días) + 1 (Total)
+
+        for (let month = 1; month <= 12; month++) {
+          tableHtml += `<tr class="month-header-row"><td colspan="${totalColumns}">${monthNames[month - 1]}</td></tr>`;
+          allCompanyEmployees.forEach((emp) => {
+            const employeeData = monthlyEmployeeDoses[month]?.[emp.id];
+            if (!employeeData) {
+              tableHtml += `<tr><td class="employee-name">${emp.name}</td><td colspan="32">Data Error</td></tr>`;
+              return;
+            }
+            let rowHtml = `<tr><td class="employee-name">${emp.name}</td>`;
+            for (let day = 1; day <= 31; day++) {
+              const dailyDose = employeeData.days?.[day] || 0;
+              const cellContent = dailyDose > 0 ? dailyDose.toFixed(2) : "";
+              rowHtml += `<td class="dose-value">${cellContent}</td>`;
+            }
+            const formattedTotal = employeeData.monthlyTotal.toFixed(2);
+            rowHtml += `<td class="dose-total">${formattedTotal} μSv</td></tr>`;
+            tableHtml += rowHtml;
+          });
+        }
+
+        // 4. Construct Full HTML Content (Company)
+        pdfFileName = `CompanyDoseReport_${companyName.replace(/\s+/g, "_")}_${selectedYear}`;
+        htmlContent = `
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              /* Styles for Company Report */
+              body { font-family: 'Helvetica', sans-serif; font-size: 8px; }
+              .header-title { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 5px; }
+              .header-subtitle { font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 15px; padding: 0 10px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+              th, td { border: 1px solid #ccc; padding: 3px; text-align: center; vertical-align: middle;}
+              th { background-color: #e9e9e9; font-weight: bold; font-size: 8px; }
+              .month-header-row td { background-color: #d0d0d0; font-weight: bold; font-size: 10px; text-align: left; padding-left: 10px; border-top: 2px solid #555; border-bottom: 1px solid #aaa; }
+              td.employee-name { text-align: left; font-size: 9px; font-weight: normal; background-color: #f8f8f8; }
+              td.dose-value { text-align: right; font-size: 9px; font-weight: normal;}
+              td.dose-total { text-align: right; font-size: 9px; font-weight: bold; background-color: #f0f0f0; }
+            </style>
+          </head>
+          <body>
+            <div class="header-title">${companyName}</div>
+            <div class="header-subtitle">
+              <span>${t("employeesAgenda.pdf.title")}</span>
+              <span>${t("employeesAgenda.pdf.year")}: ${selectedYear}</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 15%;">${t("employeesAgenda.pdf.table.employeeHeader")}</th>
+                  ${Array.from({ length: 31 }, (_, i) => `<th style="width: 2%;">${i + 1}</th>`).join("")}
+                  <th style="width: 7%;">${t("employeesAgenda.pdf.table.totalHeader")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableHtml}
+              </tbody>
+            </table>
+            </body>
+          </html>
+        `;
       }
 
-      // 5. Construct Full HTML Content (CSS etc. remains the same)
-      const htmlContent = `
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            /* Basic styling, adjust as needed */
-            body { font-family: 'Helvetica', sans-serif; font-size: 8px; }
-            .header-title { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 5px; }
-            .header-subtitle { font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 15px; padding: 0 10px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid #ccc; padding: 3px; text-align: center; vertical-align: middle;}
-            th { background-color: #e9e9e9; font-weight: bold; font-size: 8px; }
-            .month-header-row td { background-color: #d0d0d0; font-weight: bold; font-size: 10px; text-align: left; padding-left: 10px; border-top: 2px solid #555; border-bottom: 1px solid #aaa; }
-            td.employee-name { text-align: left; font-size: 9px; font-weight: normal; background-color: #f8f8f8; } /* Added background for clarity */
-            td.dose-value { text-align: right; font-size: 9px; font-weight: normal;}
-            td.dose-total { text-align: right; font-size: 9px; font-weight: bold; background-color: #f0f0f0; } /* Added background for clarity */
-          </style>
-        </head>
-        <body>
-          <div class="header-title">${companyName}</div>
-          <div class="header-subtitle">
-             <span>${t("employeesAgenda.pdf.title")}</span>
-             <span>${t("employeesAgenda.pdf.year")}: ${selectedYear}</span>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 15%;">${t("employeesAgenda.pdf.table.employeeHeader")}</th>
-                ${Array.from({ length: 31 }, (_, i) => `<th style="width: 2%;">${i + 1}</th>`).join("")}
-                <th style="width: 7%;">${t("employeesAgenda.pdf.table.totalHeader")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${tableHtml}
-            </tbody>
-          </table>
-        </body>
-        </html>
-      `;
-
-      // 6. Configure PDF Options
-      const fileName = `AnnualDoseReport_${companyName.replace(/\s+/g, "_")}_${selectedYear}`; // Replace whitespace
+      // --- Common PDF Generation & Sharing ---
       const options = {
+        ...pdfOptionsBase,
         html: htmlContent,
-        fileName: fileName,
-        directory: Platform.OS === "android" ? "Download" : "Documents", // Use 'Download' for Android consistency
-        width: 1123, // A3 landscape width in points
-        height: 794, // A3 landscape height in points
+        fileName: pdfFileName,
       };
 
-      // 7. Generate PDF
       console.log("generatePdf: Calling RNHTMLtoPDF.convert...");
       const pdfFile = await RNHTMLtoPDF.convert(options);
       console.log("generatePdf: PDF generated:", pdfFile.filePath);
 
-      // 8. Share PDF
       const fileUri =
         Platform.OS === "android"
           ? `file://${pdfFile.filePath}`
@@ -923,26 +1032,32 @@ export default function Home() {
           <TouchableOpacity
             style={[
               styles.downloadButton,
-              // Deshabilitado si genera PDF, si no hay año, o si no hay empleados en la compañía (para el contexto del PDF)
+              // Disable if: generating PDF OR no year selected OR (generating company PDF AND no employees exist)
               (isGeneratingPdf ||
                 !selectedYear ||
-                !allCompanyEmployees ||
-                allCompanyEmployees.length === 0) &&
+                (!selectedEmployeeId &&
+                  (!allCompanyEmployees ||
+                    allCompanyEmployees.length === 0))) &&
                 styles.downloadButtonDisabled,
             ]}
             onPress={generatePdf}
             disabled={
               isGeneratingPdf ||
               !selectedYear ||
-              !allCompanyEmployees ||
-              allCompanyEmployees.length === 0
+              (!selectedEmployeeId &&
+                (!allCompanyEmployees || allCompanyEmployees.length === 0))
             }
           >
             {isGeneratingPdf ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text style={styles.downloadButtonText}>
-                {t("employeesAgenda.annualDose.download")}
+                {/* --- DYNAMIC BUTTON TEXT --- */}
+                {
+                  selectedEmployeeId
+                    ? t("employeesAgenda.annualDose.downloadEmployee") // Text for employee PDF
+                    : t("employeesAgenda.annualDose.downloadCompany") // Text for company PDF (use a distinct key)
+                }
               </Text>
             )}
           </TouchableOpacity>

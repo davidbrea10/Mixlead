@@ -455,19 +455,22 @@
     "unknown": "Desconocido",
     "annualDose": {
       "title": "Datos equivalentes de dosis del informe anual:",
-      "download": "Descargar Datos Anuales"
+      "downloadCompany": "Descargar Datos Anuales",
+      "downloadEmployee": "Descargar Datos Anuales del Empleado"
     },
     "pdf": {
       "selectYearError": "Por favor, seleccione un año primero.",
       "noEmployeesFound": "No se encontraron empleados para esta empresa.",
       "title": "CONTROL DOSIMÉTRICO ANUAL",
+      "employeeTitle": "Control Dosimétrico Anual del Empleado",
       "location": "CÁDIZ",
-      "year": "AÑO",
+      "year": "Año",
       "table": {
-        "headerNameDay": "NOMBRE/DÍA",
-        "headerTotal": "TOTAL μSv",
-        "employeeHeader": "NOMBRE/DÍA",
-        "totalHeader": "TOTAL μSv"
+        "headerNameDay": "Nombre / Día",
+        "headerTotal": "Total μSv",
+        "employeeHeader": "Nombre / Día",
+        "totalHeader": "Total μSv",
+        "monthHeader": "Mes / Día"
       },
       "annualTotalTitle": "TOTALES ANUALES",
       "sharingNotAvailable": "La función de compartir no está disponible en este dispositivo.",
@@ -477,7 +480,20 @@
       "reportTitle": "CONTROL DOSIMÉTRICO ANUAL",
       "company": "EMPRESA",
       "shareErrorTitle": "Compartir no Disponible",
-      "shareErrorMsg": "La función de compartir no está disponible en este dispositivo."
+      "shareErrorMsg": "La función de compartir no está disponible en este dispositivo.",
+      "monthlyReportTitle": "INFORME DOSIMÉTRICO MENSUAL",
+      "employeeLabel": "Empleado",
+      "monthLabel": "Mes",
+      "yearLabel": "Año",
+      "monthlyTotalLabel": "Total Mensual",
+      "annualTotalLabel": "Total Anual",
+      "tableMonthly": {
+        "day": "Día",
+        "dose": "Dosis",
+        "time": "Tiempo",
+        "exposures": "Exposiciones"
+      },
+      "unknownEmployee": "Empleado Desconocido"
     }
   },
 

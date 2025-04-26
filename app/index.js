@@ -141,13 +141,12 @@ export default function Login() {
         style={{ width: 193, height: 193, marginBottom: 30 }}
       />
       {/* Email Input */}
-      <View style={{ position: "relative", marginBottom: 15, width: 366 }}>
+      <View style={{ position: "relative", marginBottom: 15, width: "90%" }}>
         <TextInput
           placeholder={t("enter_email")}
           value={email}
           onChangeText={setEmail}
           style={{
-            width: "100%", // Use percentage for better responsiveness
             height: 55,
             borderWidth: 1,
             borderColor: "#ccc",
@@ -156,6 +155,7 @@ export default function Login() {
             paddingRight: 40, // Make space for the clear button
             fontSize: 18,
             backgroundColor: "white",
+            marginBottom: 10,
           }}
           // --- Email Specific Props ---
           keyboardType="email-address" // Use email keyboard layout
@@ -179,46 +179,45 @@ export default function Login() {
             <Ionicons name="close-circle" size={24} color="gray" />
           </TouchableOpacity>
         )}
-      </View>
 
-      {/* Password Input */}
-      <View style={{ position: "relative", marginBottom: 10 }}>
-        <TextInput
-          placeholder={t("password")}
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
-          style={{
-            width: 366,
-            height: 55,
-            borderWidth: 1,
-            borderColor: "#ccc",
-            borderRadius: 10,
-            paddingHorizontal: 10,
-            fontSize: 18,
-            backgroundColor: "white",
-          }}
-        />
-        <TouchableOpacity
-          onPress={() => setShowPassword(!showPassword)}
-          style={{ position: "absolute", right: 10, top: 15 }}
-        >
-          <Ionicons
-            name={showPassword ? "eye-off" : "eye"}
-            size={24}
-            color="gray"
+        {/* Password Input */}
+        <View style={{ position: "relative", marginBottom: 10 }}>
+          <TextInput
+            placeholder={t("password")}
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            style={{
+              height: 55,
+              borderWidth: 1,
+              borderColor: "#ccc",
+              borderRadius: 10,
+              paddingHorizontal: 10,
+              fontSize: 18,
+              backgroundColor: "white",
+            }}
           />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowPassword(!showPassword)}
+            style={{ position: "absolute", right: 10, top: 15 }}
+          >
+            <Ionicons
+              name={showPassword ? "eye-off" : "eye"}
+              size={24}
+              color="gray"
+            />
+          </TouchableOpacity>
 
-        {/* Recover Password Link */}
-        <TouchableOpacity
-          onPress={handleRecoverPassword}
-          style={{ alignSelf: "flex-end", marginBottom: 20, marginTop: 10 }}
-        >
-          <Text style={{ color: "gray", fontSize: 16 }}>
-            {t("recover_password")}
-          </Text>
-        </TouchableOpacity>
+          {/* Recover Password Link */}
+          <TouchableOpacity
+            onPress={handleRecoverPassword}
+            style={{ alignSelf: "flex-end", marginBottom: 20, marginTop: 10 }}
+          >
+            <Text style={{ color: "gray", fontSize: 16 }}>
+              {t("recover_password")}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Sign In Button */}
@@ -228,7 +227,7 @@ export default function Login() {
         style={({ pressed }) => [
           // Style based on pressed state
           {
-            width: 366,
+            width: "90%",
             height: 55,
             backgroundColor: loading ? "#a0a0a0" : "#006892", // Grey out when loading
             justifyContent: "center",

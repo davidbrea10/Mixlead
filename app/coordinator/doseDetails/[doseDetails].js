@@ -7,13 +7,26 @@ import {
   StyleSheet,
   Pressable,
   Image,
+  ActivityIndicator, // Import ActivityIndicator
+  Alert, // Import Alert
+  Platform, // Import Platform
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { db, auth } from "../../../firebase/config";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  query, // Import query
+  where, // Import where
+} from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
+import * as FileSystem from "expo-file-system"; // Import FileSystem
+import * as Sharing from "expo-sharing"; // Import Sharing
 
 export default function DoseDetails() {
   const router = useRouter();
@@ -21,97 +34,290 @@ export default function DoseDetails() {
   const { uid, month, year } = useLocalSearchParams();
   const parsedMonth = parseInt(month, 10);
   const parsedYear = parseInt(year, 10);
+  const isValidParams = uid && !isNaN(parsedMonth) && !isNaN(parsedYear);
   const [dailyDoses, setDailyDoses] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
   const [employeeName, setEmployeeName] = useState("");
+  const [companyName, setCompanyName] = useState(
+    t("employeesAgenda.pdf.unknownCompany"),
+  ); // Add state for company name
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  const loadEmployeeName = async () => {
+  // Consistent month names array
+  const monthNames = Array.from({ length: 12 }, (_, i) =>
+    t(`doseDetails.months.${i + 1}`, { defaultValue: `Month ${i + 1}` }),
+  );
+
+  useEffect(() => {
+    if (isValidParams) {
+      loadEmployeeDetails(); // Load name and company
+      loadDailyDoses();
+    } else {
+      console.error("Invalid parameters received for DoseDetails:", {
+        uid,
+        month,
+        year,
+      });
+      Alert.alert(t("errors.error"), t("errors.invalidParams"));
+      setIsLoading(false);
+      // Optionally navigate back
+      // router.back();
+    }
+  }, [uid, month, year]); // Rerun if any param changes
+
+  const loadEmployeeDetails = async () => {
+    if (!uid) return;
     try {
       const employeeRef = doc(db, "employees", uid);
       const docSnap = await getDoc(employeeRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        const fullName = `${data.firstName} ${data.lastName}`;
+        const fullName =
+          `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+          t("employeesAgenda.pdf.unknownEmployee");
         setEmployeeName(fullName);
+
+        // Fetch company name if companyId exists
+        if (data.companyId) {
+          const companyRef = doc(db, "companies", data.companyId);
+          const companySnap = await getDoc(companyRef);
+          if (companySnap.exists()) {
+            setCompanyName(
+              companySnap.data().Name ||
+                t("employeesAgenda.pdf.unknownCompany"),
+            );
+          }
+        }
+      } else {
+        setEmployeeName(t("employeesAgenda.pdf.unknownEmployee"));
       }
     } catch (error) {
-      console.error("Error loading employee name:", error);
+      console.error("Error loading employee details:", error);
+      // Set default name on error
+      setEmployeeName(t("employeesAgenda.pdf.unknownEmployee"));
     }
   };
 
   const loadDailyDoses = async () => {
-    if (!uid) return;
+    if (!isValidParams) return; // Already checked in useEffect, but good practice
+
+    setIsLoading(true);
+    setDailyDoses([]); // Clear previous data
 
     try {
+      // Construct the path using the uid from params
       const dosesRef = collection(db, "employees", uid, "doses");
-      const snapshot = await getDocs(dosesRef);
+      // OPTIONAL: Add query for efficiency if needed, but client filtering is fine
+      // const q = query(dosesRef, where("year", "==", parsedYear), where("month", "==", parsedMonth));
+      // const snapshot = await getDocs(q);
+      const snapshot = await getDocs(dosesRef); // Fetch all then filter
 
       let doseData = [];
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        console.log("Raw data:", data); // Muestra los datos sin modificaciones
-
-        console.log(
-          `Comparing: month=${data.month} (${typeof data.month}) vs ${month} (${typeof month}), 
-           year=${data.year} (${typeof data.year}) vs ${year} (${typeof year})`,
-        );
-
         if (
-          data.dose &&
+          data.dose != null &&
+          typeof data.dose === "number" &&
+          !isNaN(data.dose) &&
           data.day &&
-          parseInt(data.month) === parsedMonth &&
-          parseInt(data.year) === parsedYear
+          parseInt(data.month, 10) === parsedMonth &&
+          parseInt(data.year, 10) === parsedYear
         ) {
           doseData.push({
+            id: docSnap.id, // Include document ID
             dose: data.dose,
-            day: data.day,
-            month: data.month,
-            year: data.year,
-            totalTime: data.totalTime,
-            totalExposures: data.totalExposures,
+            day: parseInt(data.day, 10),
+            month: parseInt(data.month, 10),
+            year: parseInt(data.year, 10),
+            totalTime: data.totalTime || 0,
+            totalExposures: data.totalExposures || 0,
           });
         }
       });
 
-      doseData.sort((a, b) => a.day - b.day); // Ordena los datos por día
-
-      console.log(doseData);
+      doseData.sort((a, b) => a.day - b.day); // Sort by day
       setDailyDoses(doseData);
     } catch (error) {
-      console.error("Error loading daily doses:", error);
+      console.error("Error loading daily doses for employee:", uid, error);
+      Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (uid) {
-      loadDailyDoses();
-      loadEmployeeName(); // Aquí lo agregas
-    }
-  }, [uid, month, year]);
 
   const handleExpandRow = (index) => {
     setExpandedRows((prev) => ({
       ...prev,
-      [index]: !prev[index],
+      [index]: !prev[index], // Toggle the specific index
     }));
   };
 
   const formatDate = (day, month, year) => {
-    return `${day.toString().padStart(2, "0")}/${month.toString().padStart(2, "0")}/${year}`;
+    try {
+      const date = new Date(year, month - 1, day);
+      if (isNaN(date.getTime())) {
+        return `${day.toString().padStart(2, "0")}/${month.toString().padStart(2, "0")}/${year}`;
+      }
+      return `${day.toString().padStart(2, "0")}/${month.toString().padStart(2, "0")}/${year}`;
+    } catch (e) {
+      return `${day.toString().padStart(2, "0")}/${month.toString().padStart(2, "0")}/${year}`;
+    }
   };
 
   const totalMonthlyDose = () => {
-    return dailyDoses.reduce((total, item) => total + item.dose, 0);
+    return dailyDoses.reduce((total, item) => total + (item.dose || 0), 0);
   };
 
   const formatTime = (totalSeconds) => {
+    if (totalSeconds == null || isNaN(totalSeconds) || totalSeconds < 0) {
+      return "00:00:00";
+    }
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds
+    const seconds = Math.floor(totalSeconds % 60);
+    return `${hours.toString().padStart(2, "0")}:${minutes
       .toString()
-      .padStart(2, "0")}`;
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  // --- PDF Generation Function (Adapted for Coordinator View) ---
+  const generateMonthlyPdf = async () => {
+    if (isGeneratingPdf) return;
+    if (dailyDoses.length === 0) {
+      Alert.alert(
+        t("employeesAgenda.pdf.errorTitle"),
+        t("employeesAgenda.pdf.errorNoDataToExport"),
+      );
+      return;
+    }
+    if (!isValidParams) {
+      Alert.alert(t("errors.error"), t("errors.invalidParams"));
+      return;
+    }
+
+    setIsGeneratingPdf(true);
+
+    // No need to check auth.currentUser here, coordinator is viewing other's data
+
+    try {
+      // 1. Employee Name and Company Name are already in state (`employeeName`, `companyName`)
+
+      // 2. Data is already in `dailyDoses` state
+
+      // 3. Generate HTML Table (same as employee version)
+      let tableHtml = "";
+      dailyDoses.forEach((item) => {
+        tableHtml += `
+          <tr>
+            <td class="day">${item.day}</td>
+            <td class="dose">${item.dose.toFixed(2)} μSv</td>
+            <td class="time">${formatTime(item.totalTime)}</td>
+            <td class="exposures">${item.totalExposures}</td>
+          </tr>
+        `;
+      });
+
+      // 4. Calculate Total Monthly Dose
+      const monthlyTotal = totalMonthlyDose();
+
+      // 5. Construct Full HTML (same as employee version)
+      const currentMonthName =
+        monthNames[parsedMonth - 1] || `Month ${parsedMonth}`;
+      const htmlContent = `
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: 'Helvetica', sans-serif; font-size: 10px; }
+            .header-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 5px; }
+            .header-subtitle { font-size: 14px; font-weight: bold; text-align: center; margin-bottom: 15px; }
+            .info-section { font-size: 11px; margin-bottom: 15px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #ccc; padding: 5px; text-align: center; vertical-align: middle;}
+            th { background-color: #e9e9e9; font-weight: bold; font-size: 11px; }
+            td.day { text-align: center; }
+            td.dose { text-align: right; }
+            td.time { text-align: center; }
+            td.exposures { text-align: center; }
+            .footer-total { margin-top: 20px; text-align: right; font-size: 12px; font-weight: bold; padding-right: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-title">${companyName}</div>
+          <div class="header-subtitle">${t("employeesAgenda.pdf.monthlyReportTitle")}</div>
+
+          <div class="info-section">
+            <div><strong>${t("employeesAgenda.pdf.employeeLabel")}:</strong> ${employeeName}</div>
+            <div><strong>${t("employeesAgenda.pdf.monthLabel")}:</strong> ${currentMonthName}</div>
+            <div><strong>${t("employeesAgenda.pdf.yearLabel")}:</strong> ${parsedYear}</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>${t("employeesAgenda.pdf.tableMonthly.day")}</th>
+                <th>${t("employeesAgenda.pdf.tableMonthly.dose")} (μSv)</th>
+                <th>${t("employeesAgenda.pdf.tableMonthly.time")} (HH:MM:SS)</th>
+                <th>${t("employeesAgenda.pdf.tableMonthly.exposures")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableHtml}
+            </tbody>
+          </table>
+          <div class="footer-total">
+              ${t("employeesAgenda.pdf.monthlyTotalLabel")}: ${monthlyTotal.toFixed(2)} μSv
+          </div>
+        </body>
+        </html>
+      `;
+
+      // 6. Configure PDF Options (A4 Portrait)
+      const fileName = `MonthlyDoseReport_${currentMonthName}_${parsedYear}_${employeeName.replace(/\s+/g, "_")}`;
+      const options = {
+        html: htmlContent,
+        fileName: fileName,
+        directory: Platform.OS === "android" ? "Download" : "Documents",
+        width: 595,
+        height: 842,
+      };
+
+      // 7. Generate PDF
+      const pdfFile = await RNHTMLtoPDF.convert(options);
+      console.log("Coordinator - Monthly PDF generated:", pdfFile.filePath);
+
+      // 8. Share PDF
+      const fileUri =
+        Platform.OS === "android"
+          ? `file://${pdfFile.filePath}`
+          : pdfFile.filePath;
+
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert(
+          t("employeesAgenda.shareErrorTitle"),
+          t("employeesAgenda.pdf.shareErrorMsg"),
+        );
+        setIsGeneratingPdf(false);
+        return;
+      }
+
+      await Sharing.shareAsync(fileUri, {
+        mimeType: "application/pdf",
+        dialogTitle: t("employeesAgenda.pdf.shareDialogTitle"),
+        UTI: "com.adobe.pdf",
+      });
+    } catch (error) {
+      console.error("--- PDF GENERATION ERROR ---", error);
+      Alert.alert(
+        t("errors.error"),
+        t("errors.pdfGenerationFailed") +
+          `: ${error.message || "Unknown error"}`,
+      );
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   return (
@@ -281,10 +487,30 @@ export default function DoseDetails() {
             </Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.downloadButton} onPress={() => {}}>
-          <Text style={styles.downloadButtonText}>
-            {t("doseDetails.monthlySummary.download")}
-          </Text>
+        <TouchableOpacity
+          style={[
+            styles.downloadButton,
+            (isGeneratingPdf ||
+              dailyDoses.length === 0 ||
+              isLoading ||
+              !isValidParams) &&
+              styles.downloadButtonDisabled,
+          ]}
+          onPress={generateMonthlyPdf}
+          disabled={
+            isGeneratingPdf ||
+            dailyDoses.length === 0 ||
+            isLoading ||
+            !isValidParams
+          }
+        >
+          {isGeneratingPdf ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.downloadButtonText}>
+              {t("doseDetails.monthlySummary.download")}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 
