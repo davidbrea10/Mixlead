@@ -5,14 +5,14 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
-  StyleSheet, // Add StyleSheet
-  ActivityIndicator, // Add ActivityIndicator for loading state
+  StyleSheet,
+  ActivityIndicator,
   Alert,
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; // Added useRef
 import { db, auth } from "../../firebase/config";
 import {
   collection,
@@ -21,129 +21,294 @@ import {
   getDoc,
   query,
   where,
+  collectionGroup, // Import collectionGroup for broader queries
+  limit,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { useTranslation } from "react-i18next"; // Import i18n hook
-import RNHTMLtoPDF from "react-native-html-to-pdf"; // <--- ADD THIS
-import * as FileSystem from "expo-file-system"; // Import FileSystem
-import * as Sharing from "expo-sharing"; // Import Sharing
+import { useTranslation } from "react-i18next";
+import { t } from "i18next"; // Import t function for translation
+import RNHTMLtoPDF from "react-native-html-to-pdf";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+
+// --- Helper function to get distinct years from all doses of a company ---
+// NOTE: This performs a potentially large read. Consider optimizing
+// if performance becomes an issue (e.g., using Cloud Functions to maintain a list).
+const getAllYearsWithDoses = async (companyId) => {
+  const years = new Set();
+  try {
+    console.log(
+      `getAllYearsWithDoses: Querying 'doses' collection group where companyId == ${companyId}`,
+    );
+    // This queries ALL documents in ALL 'doses' subcollections
+    // This requires a Firestore index on 'companyId' for the 'doses' collection group.
+    // Ensure your Firestore rules allow reading from the 'doses' collection group based on companyId.
+    // Example Rule for 'doses' collection group:
+    // match /{path=**}/doses/{doseId} {
+    //   allow read: if get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.companyId == resource.data.companyId ||
+    //                get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.role == 'admin'; // Or based on coordinator role and matching companyId of the dose document
+    //   allow write: if request.auth != null && request.auth.uid == parent.parent.id; // Or your existing rule
+    // }
+    // It might be more efficient to query employees first, then query doses for each.
+    // Let's stick to the original employee-first approach and aggregate years client-side for now.
+
+    // 1. Get all employees of the company
+    const employeesQuery = query(
+      collection(db, "employees"),
+      where("companyId", "==", companyId),
+    );
+    const usersSnapshot = await getDocs(employeesQuery);
+    const employeeIds = usersSnapshot.docs.map((doc) => doc.id);
+
+    if (employeeIds.length === 0) {
+      console.log("getAllYearsWithDoses: No employees found for company.");
+      return [new Date().getFullYear()]; // Return current year as default
+    }
+
+    // 2. Fetch doses for each employee and collect years
+    const dosePromises = employeeIds.map((empId) => {
+      const dosesRef = collection(db, "employees", empId, "doses");
+      // We only need the 'year' field, but Firestore fetches the whole doc.
+      // No specific query needed here, just get all doses for the employee.
+      return getDocs(dosesRef);
+    });
+
+    const doseSnapshots = await Promise.all(dosePromises);
+
+    doseSnapshots.forEach((snapshot) => {
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.year) {
+          years.add(data.year);
+        }
+      });
+    });
+
+    // Always include the current year if it's not already present
+    years.add(new Date().getFullYear());
+
+    // Sort years descending
+    return [...years].sort((a, b) => b - a);
+  } catch (error) {
+    console.error("Error fetching all available years:", error);
+    Alert.alert(
+      t("errors.error"),
+      t("errors.loadYearsFailed") + `: ${error.message}`,
+    );
+    return [new Date().getFullYear()]; // Fallback to current year
+  }
+};
+
+// --- Helper function to get employees who have doses in a specific year ---
+const getEmployeesWithDosesInYear = async (companyId, year) => {
+  const employeesWithData = [];
+  try {
+    // 1. Get all employees of the company
+    const employeesQuery = query(
+      collection(db, "employees"),
+      where("companyId", "==", companyId),
+    );
+    const usersSnapshot = await getDocs(employeesQuery);
+
+    if (usersSnapshot.empty) {
+      return [];
+    }
+
+    // 2. For each employee, check if they have *any* dose in the specified year
+    const employeeCheckPromises = usersSnapshot.docs.map(async (empDoc) => {
+      const empId = empDoc.id;
+      const empData = empDoc.data();
+      const dosesRef = collection(db, "employees", empId, "doses");
+      // Query for just one document in that year to confirm existence
+      const yearQuery = query(
+        dosesRef, // Colección: employees/{empId}/doses
+        where("year", "==", year), // Solo filtrar por año
+        limit(1),
+      );
+      const yearDoseSnapshot = await getDocs(yearQuery);
+      if (!yearDoseSnapshot.empty) {
+        // If the snapshot is not empty, this employee has data for the year
+        return {
+          id: empId,
+          name:
+            `${empData.firstName || ""} ${empData.lastName || ""}`.trim() ||
+            t("employeesAgenda.employee.unnamed"),
+        };
+      }
+      return null; // Return null if no data for this year
+    });
+
+    const results = await Promise.all(employeeCheckPromises);
+
+    // Filter out the nulls and sort the valid employees
+    return results
+      .filter((emp) => emp !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error(
+      `Error fetching employees with doses in year ${year}:`,
+      error,
+    );
+    Alert.alert(
+      t("errors.error"),
+      t("errors.loadFilteredEmployeesFailed") + `: ${error.message}`,
+    );
+    return []; // Return empty on error
+  }
+};
+
+const calculateCompanyTotalDoseForYear = async (companyId, year, t) => {
+  let totalDose = 0;
+  try {
+    // 1. Obtener todos los empleados de la compañía
+    const employeesQuery = query(
+      collection(db, "employees"),
+      where("companyId", "==", companyId),
+    );
+    const usersSnapshot = await getDocs(employeesQuery);
+    const employeeIds = usersSnapshot.docs.map((doc) => doc.id);
+
+    if (employeeIds.length === 0) {
+      return 0; // No hay empleados, la dosis es 0
+    }
+
+    // 2. Para cada empleado, obtener sus dosis del año especificado y sumarlas
+    const dosePromises = employeeIds.map(async (empId) => {
+      const dosesRef = collection(db, "employees", empId, "doses");
+      const yearQuery = query(dosesRef, where("year", "==", year));
+      const doseSnapshot = await getDocs(yearQuery);
+      let employeeYearlyDose = 0;
+      doseSnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const doseValue =
+          typeof data.dose === "number"
+            ? data.dose
+            : parseFloat(data.dose || 0);
+        if (!isNaN(doseValue)) {
+          employeeYearlyDose += doseValue;
+        }
+      });
+      return employeeYearlyDose;
+    });
+
+    const yearlyDoses = await Promise.all(dosePromises);
+    totalDose = yearlyDoses.reduce((sum, currentDose) => sum + currentDose, 0);
+
+    console.log(`Total company dose for year ${year}: ${totalDose}`);
+    return totalDose;
+  } catch (error) {
+    console.error(
+      `Error calculating company total dose for year ${year}:`,
+      error,
+    );
+    Alert.alert(
+      t("errors.error"),
+      t("errors.calculateTotalFailed") + `: ${error.message}`, // Asegúrate de tener esta key en i18n
+    );
+    return 0; // Retornar 0 en caso de error
+  }
+};
 
 export default function Home() {
   const router = useRouter();
-  const { t } = useTranslation(); // Initialize translation hook
+  const { t } = useTranslation();
 
-  const [monthlyDoses, setMonthlyDoses] = useState([]); // For the selected employee view
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [availableYears, setAvailableYears] = useState([]);
-  const [totalAnnualDose, setTotalAnnualDose] = useState(0); // For the selected employee view
-  const [employees, setEmployees] = useState([]); // All employees in the company
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false); // Loading state for PDF generation
+  // --- State ---
+  const [monthlyDoses, setMonthlyDoses] = useState([]); // Doses for the selected employee/year
+  const [totalAnnualDose, setTotalAnnualDose] = useState(0); // For the selected employee/year
+  const [companyTotalAnnualDose, setCompanyTotalAnnualDose] = useState(0); // <-- NUEVO ESTADO
+
+  const [allAvailableYears, setAllAvailableYears] = useState([]); // All years with data in the company
+  const [selectedYear, setSelectedYear] = useState(null); // <-- Start with null
+
+  const [allCompanyEmployees, setAllCompanyEmployees] = useState([]); // All employees in the company (for reference)
+  const [filteredEmployees, setFilteredEmployees] = useState([]); // Employees with data for the selected year
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null); // <-- Start with null
+
+  const [isLoadingYears, setIsLoadingYears] = useState(true); // Loading indicator for initial year load
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(false); // Loading indicator for filtered employees
+  const [isLoadingDoses, setIsLoadingDoses] = useState(false); // Loading indicator for employee doses
+  const [isLoadingCompanyTotal, setIsLoadingCompanyTotal] = useState(false); // <-- NUEVO ESTADO DE CARGA (opcional pero recomendado)
+
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // Store companyId to avoid fetching it repeatedly
+  const companyIdRef = useRef(null);
 
   const monthNames = Array.from({ length: 12 }, (_, i) =>
     t(`employeesAgenda.months.${i + 1}`),
   );
 
-  const shortMonthNames = Array.from(
-    { length: 12 },
-    (_, i) =>
-      t(`employeesAgenda.monthsShort.${i + 1}`, {
-        defaultValue: monthNames[i].substring(0, 3),
-      }), // Provide a fallback
-  ); // Assuming you have short month names in your i18n files, e.g., "Jan", "Feb"
-
-  const handleBack = () => {
-    router.back();
-  };
-
-  const handleHome = () => {
-    router.replace("/coordinator/home");
-  };
-
   // --- Effects ---
 
-  // Load employees of the coordinator's company on mount
+  // 1. Initial Load: Get Coordinator's Company ID and ALL available years
   useEffect(() => {
-    const loadCompanyEmployees = async () => {
+    const loadInitialData = async () => {
+      setIsLoadingYears(true);
       const user = auth.currentUser;
       if (!user) {
-        console.error("loadCompanyEmployees: No user logged in.");
-        Alert.alert(t("errors.error"), t("errors.notLoggedIn")); // Alert user
+        Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
+        setIsLoadingYears(false);
         return;
       }
-      const userId = user.uid;
-      console.log("loadCompanyEmployees: Running for user:", userId);
 
       try {
-        let companyId = null;
-        let userRole = null;
-
-        // 1. Find the coordinator's companyId AND ROLE directly from 'employees'
+        // Get Coordinator's Company ID
         console.log(
-          `loadCompanyEmployees: Checking 'employees/${userId}' for coordinator data...`,
+          `loadInitialData: Checking 'employees/${user.uid}' for coordinator data...`,
         );
-        const coordinatorEmpDocRef = doc(db, "employees", userId);
+        const coordinatorEmpDocRef = doc(db, "employees", user.uid);
         const coordinatorEmpDocSnap = await getDoc(coordinatorEmpDocRef);
 
-        if (coordinatorEmpDocSnap.exists()) {
-          const empData = coordinatorEmpDocSnap.data();
-          companyId = empData.companyId;
-          userRole = empData.role; // This is the role rules will check
-          console.log(
-            `loadCompanyEmployees: Found in 'employees': companyId=${companyId}, role=${userRole}`,
-          );
-        } else {
-          // This is a critical error - the logged-in user MUST have a document in 'employees'
-          // if they are supposed to be a coordinator or employee managed by the app.
+        if (
+          !coordinatorEmpDocSnap.exists() ||
+          !coordinatorEmpDocSnap.data().companyId
+        ) {
           console.error(
-            `loadCompanyEmployees: CRITICAL - Logged-in user document not found in 'employees/${userId}'. Cannot proceed.`,
-          );
-          Alert.alert(t("errors.error"), t("errors.employeeDataNotFound")); // Specific error message
-          return; // Stop execution
-        }
-
-        // --- Validation after checking 'employees' ---
-        if (!companyId) {
-          console.error(
-            `loadCompanyEmployees: Coordinator document 'employees/${userId}' is missing the 'companyId' field.`,
+            "loadInitialData: Coordinator doc not found or missing companyId.",
           );
           Alert.alert(t("errors.error"), t("errors.companyIdMissing"));
+          setIsLoadingYears(false);
           return;
         }
 
-        // Validate if the role allows listing (as per your rules)
+        const fetchedCompanyId = coordinatorEmpDocSnap.data().companyId;
+        const userRole = coordinatorEmpDocSnap.data().role; // Check role for permissions
+        companyIdRef.current = fetchedCompanyId; // Store companyId
+
+        // Basic role check (adjust as needed per your rules)
         if (userRole !== "coordinator" && userRole !== "admin") {
-          console.error(
-            `loadCompanyEmployees: User ${userId} role ('${userRole}') found in 'employees' does not grant list permissions according to rules.`,
-          );
-          // Depending on your logic, you might alert the user or just not load employees
           Alert.alert(t("errors.error"), t("errors.insufficientRole"));
-          // We might still want to load their *own* doses, but not list others.
-          // For now, let's prevent the list query if role is insufficient.
-          setEmployees([]); // Clear employee list if role is wrong
-          // If you still want to load the coordinator's own doses, call that function here.
-          // loadMonthlyDosesForSelectedEmployee(userId);
-          return; // Stop before attempting the list query
+          setIsLoadingYears(false);
+          // Potentially allow viewing own doses, but block selection here
+          return;
         }
 
         console.log(
-          `loadCompanyEmployees: Proceeding with companyId: ${companyId}`,
+          `loadInitialData: Found companyId: ${fetchedCompanyId}. Fetching all available years...`,
         );
 
-        // 2. Fetch all employees with that companyId
-        console.log(
-          `loadCompanyEmployees: Querying 'employees' where companyId == ${companyId}`,
-        );
+        // Fetch all unique years across the company that have dose data
+        const years = await getAllYearsWithDoses(fetchedCompanyId);
+        setAllAvailableYears(years);
+
+        // Optionally set the default selected year to the latest available one
+        if (years.length > 0) {
+          // setSelectedYear(years[0]); // Auto-select the most recent year
+          // Let's keep it null initially to force user selection
+          setSelectedYear(null);
+        } else {
+          setSelectedYear(new Date().getFullYear()); // Fallback if no years found
+        }
+
+        // Also load all employees initially IF needed elsewhere (like PDF)
+        // If only needed for filtering, this can be skipped or done within the filtering function
         const employeesQuery = query(
           collection(db, "employees"),
-          where("companyId", "==", companyId),
+          where("companyId", "==", fetchedCompanyId),
         );
         const usersSnapshot = await getDocs(employeesQuery);
-        console.log(
-          `loadCompanyEmployees: Query successful, found ${usersSnapshot.docs.length} employees.`,
-        );
-
         const companyEmployees = [];
         usersSnapshot.forEach((doc) => {
           const data = doc.data();
@@ -152,180 +317,219 @@ export default function Home() {
             name:
               `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
               t("employeesAgenda.employee.unnamed"),
-            // Include role if needed later, e.g., for different icons/actions
-            // role: data.role
           });
         });
-
-        // Sort employees alphabetically by name
         companyEmployees.sort((a, b) => a.name.localeCompare(b.name));
-
-        setEmployees(companyEmployees);
-
-        // Optionally auto-select the first employee AFTER loading the list
-        // if (companyEmployees.length > 0 && !selectedEmployeeId) {
-        //   setSelectedEmployeeId(companyEmployees[0].id);
-        // }
+        setAllCompanyEmployees(companyEmployees); // Store the full list
       } catch (error) {
-        // This catch block will now correctly handle errors during the getDoc from 'employees'
-        // OR during the getDocs query for the list.
-        console.error("--- ERROR START ---");
-        console.error("Error loading company employees:", error);
-        if (error.code) {
-          console.error("Firebase error code:", error.code); // Should still be 'permission-denied' if rules fail query
-        }
-        if (error.message) {
-          console.error("Firebase error message:", error.message);
-        }
-        console.error("--- ERROR END ---");
-        // Provide more specific feedback based on the context
-        if (error.code === "permission-denied") {
-          Alert.alert(t("errors.error"), t("errors.permissionDeniedQuery"));
-        } else {
-          Alert.alert(
-            t("errors.error"),
-            t("errors.loadEmployeesFailed") +
-              `: ${error.code || error.message}`,
-          );
-        }
+        console.error("Error during initial data load:", error);
+        Alert.alert(
+          t("errors.error"),
+          t("errors.initialLoadFailed") + `: ${error.message}`,
+        );
+        // Set default year even on error?
+        setAllAvailableYears([new Date().getFullYear()]);
+        setSelectedYear(new Date().getFullYear());
+      } finally {
+        setIsLoadingYears(false);
       }
     };
 
-    loadCompanyEmployees();
-  }, [t]); // Add t as dependency for i18n strings
+    loadInitialData();
+  }, [t]); // Run only on mount
 
-  // Load doses for the *selected* employee when selection changes
+  // 2. Filter Employees when Year Changes
   useEffect(() => {
-    if (selectedEmployeeId) {
-      loadMonthlyDosesForSelectedEmployee(selectedEmployeeId);
-    } else {
-      // Clear data if no employee is selected
-      setMonthlyDoses([]);
-      setAvailableYears([new Date().getFullYear()]); // Reset years or keep previous? Resetting seems safer.
-      setSelectedYear(new Date().getFullYear());
-      setTotalAnnualDose(0);
-    }
-  }, [selectedEmployeeId]); // Only depends on selectedEmployeeId
-
-  // Recalculate total dose when monthly doses or year changes for the selected employee
-  useEffect(() => {
-    calculateTotalAnnualDoseForSelectedEmployee();
-  }, [monthlyDoses, selectedYear]);
-
-  // --- Data Loading Functions ---
-
-  // Fetches and sets doses/years ONLY for the currently selected employee in the UI
-  const loadMonthlyDosesForSelectedEmployee = async (employeeId) => {
-    try {
-      const dosesRef = collection(db, "employees", employeeId, "doses");
-      const snapshot = await getDocs(dosesRef);
-
-      let doseData = {};
-      let yearsSet = new Set();
-      yearsSet.add(new Date().getFullYear()); // Always include current year
-
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.dose && data.month && data.year) {
-          yearsSet.add(data.year);
-          const key = `${data.year}-${data.month}`;
-          if (!doseData[key]) {
-            doseData[key] = {
-              totalDose: 0,
-              month: data.month,
-              year: data.year,
-            };
-          }
-          // Ensure dose is a number
-          const doseValue =
-            typeof data.dose === "number"
-              ? data.dose
-              : parseFloat(data.dose || 0);
-          doseData[key].totalDose += doseValue;
-        }
-      });
-
-      const sortedYears = [...yearsSet].sort((a, b) => b - a); // Sort descending
-      setAvailableYears(sortedYears);
-      // If the previously selected year isn't available for this employee, reset to the latest available year
-      if (!yearsSet.has(selectedYear) && sortedYears.length > 0) {
-        setSelectedYear(sortedYears[0]);
-      } else if (sortedYears.length === 0) {
-        setSelectedYear(new Date().getFullYear()); // Fallback if no doses ever
+    const updateDataForYear = async () => {
+      if (!selectedYear || !companyIdRef.current) {
+        // Reset states when no year is selected
+        setFilteredEmployees([]);
+        setSelectedEmployeeId(null);
+        setMonthlyDoses([]);
+        setCompanyTotalAnnualDose(0);
+        setTotalAnnualDose(0); // Reset individual total too
+        return;
       }
 
-      setMonthlyDoses(Object.values(doseData));
-    } catch (error) {
-      console.error(
-        "Error loading monthly doses for selected employee:",
-        error,
-      );
-      Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
-    }
-  };
+      setIsLoadingEmployees(true);
+      setIsLoadingCompanyTotal(true);
+      // Reset before fetching new data for the year
+      setFilteredEmployees([]);
+      setSelectedEmployeeId(null); // Crucial: deselect employee when year changes
+      setMonthlyDoses([]);
+      setCompanyTotalAnnualDose(0);
+      setTotalAnnualDose(0); // Reset individual total
 
-  // Calculates total annual dose for the selected employee based on current state
-  const calculateTotalAnnualDoseForSelectedEmployee = () => {
-    const total = monthlyDoses
-      .filter((item) => item.year === selectedYear)
-      .reduce((sum, item) => sum + item.totalDose, 0);
+      try {
+        const employees = await getEmployeesWithDosesInYear(
+          companyIdRef.current,
+          selectedYear,
+          t,
+        );
+        setFilteredEmployees(employees);
+
+        const total = await calculateCompanyTotalDoseForYear(
+          companyIdRef.current,
+          selectedYear,
+          t,
+        );
+        setCompanyTotalAnnualDose(total);
+      } catch (error) {
+        setFilteredEmployees([]);
+        setCompanyTotalAnnualDose(0);
+      } finally {
+        setIsLoadingEmployees(false);
+        setIsLoadingCompanyTotal(false);
+      }
+    };
+    updateDataForYear();
+  }, [selectedYear, t]);
+
+  // 3. Load Doses when Employee Changes (and year is already selected)
+  useEffect(() => {
+    const loadDoses = async () => {
+      if (selectedEmployeeId && selectedYear) {
+        console.log(
+          `Loading doses for employee: ${selectedEmployeeId}, year: ${selectedYear}`,
+        );
+        setIsLoadingDoses(true);
+        setMonthlyDoses([]); // Clear previous doses
+        setTotalAnnualDose(0);
+        try {
+          const dosesRef = collection(
+            db,
+            "employees",
+            selectedEmployeeId,
+            "doses",
+          );
+          // Query only for the selected year
+          const q = query(dosesRef, where("year", "==", selectedYear));
+          const snapshot = await getDocs(q);
+
+          let doseData = {}; // Use object for aggregation per month
+
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (
+              data.dose &&
+              data.month &&
+              data.year === selectedYear // Double check year
+            ) {
+              const month = data.month;
+              if (!doseData[month]) {
+                doseData[month] = {
+                  totalDose: 0,
+                  month: month,
+                  year: data.year,
+                };
+              }
+              const doseValue =
+                typeof data.dose === "number"
+                  ? data.dose
+                  : parseFloat(data.dose || 0);
+              if (!isNaN(doseValue)) {
+                doseData[month].totalDose += doseValue;
+              }
+            }
+          });
+
+          // Convert aggregated data back to array and sort by month
+          const dosesArray = Object.values(doseData).sort(
+            (a, b) => a.month - b.month,
+          );
+          setMonthlyDoses(dosesArray);
+          console.log(`Loaded ${dosesArray.length} monthly dose entries.`);
+        } catch (error) {
+          console.error(
+            "Error loading monthly doses for selected employee:",
+            error,
+          );
+          Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
+          setMonthlyDoses([]);
+        } finally {
+          setIsLoadingDoses(false);
+        }
+      } else {
+        // Clear doses if no employee is selected
+        setMonthlyDoses([]);
+        setTotalAnnualDose(0);
+      }
+    };
+
+    loadDoses();
+  }, [selectedEmployeeId, selectedYear]); // Re-run when employee or year changes
+
+  // 4. Recalculate INDIVIDUAL Employee total dose
+  useEffect(() => {
+    // Siempre calcula basado en monthlyDoses actuales
+    // Si monthlyDoses está vacío (porque no hay empleado seleccionado o no tiene datos), el total será 0
+    const total = monthlyDoses.reduce((sum, item) => sum + item.totalDose, 0);
     setTotalAnnualDose(total);
-  };
+  }, [monthlyDoses]);
 
   // --- Navigation ---
-  const handleViewDetails = (employeeId, month, year) => {
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handleHome = () => {
+    router.replace("/coordinator/home");
+  };
+
+  const handleViewDetails = (month) => {
+    // We already have selectedEmployeeId and selectedYear from state
+    if (!selectedEmployeeId || !selectedYear || !month) {
+      console.warn("handleViewDetails called without necessary parameters.");
+      return;
+    }
     router.push({
       pathname: "/coordinator/doseDetails/[doseDetails]",
       params: {
-        uid: employeeId,
+        uid: selectedEmployeeId,
         month: month.toString(),
-        year: year.toString(),
+        year: selectedYear.toString(),
       },
     });
   };
 
-  // --- PDF Generation ---
+  // --- PDF Generation (Requires allCompanyEmployees state) ---
   const generatePdf = async () => {
     if (isGeneratingPdf) return;
+    // Ensure a year is selected and we have the full employee list
+    if (
+      !selectedYear ||
+      !allCompanyEmployees ||
+      allCompanyEmployees.length === 0
+    ) {
+      Alert.alert(
+        t("errors.error"),
+        t("employeesAgenda.pdf.errorNoYearOrEmployees"),
+      );
+      return;
+    }
+
     setIsGeneratingPdf(true);
 
     const user = auth.currentUser;
-    if (!user) {
-      Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
+    if (!user || !companyIdRef.current) {
+      // Also check if companyId was loaded
+      Alert.alert(t("errors.error"), t("errors.notLoggedInOrNoCompany"));
       setIsGeneratingPdf(false);
       return;
     }
 
     try {
-      // 1. Get Coordinator's Company ID and Name
-      let companyId = null;
+      // 1. Get Company Name (using stored companyIdRef)
       let companyName = t("pdf.unknownCompany");
-      const coordinatorDocRef = doc(db, "employees", user.uid);
-      const coordinatorDocSnap = await getDoc(coordinatorDocRef);
-      if (coordinatorDocSnap.exists()) {
-        companyId = coordinatorDocSnap.data().companyId;
-        if (companyId) {
-          const companyDocRef = doc(db, "companies", companyId);
-          const companyDocSnap = await getDoc(companyDocRef);
-          if (companyDocSnap.exists()) {
-            companyName = companyDocSnap.data().Name || companyName;
-          }
-        } else {
-          console.warn(
-            "generatePdf: Coordinator document exists but missing companyId.",
-          );
-        }
-      } else {
-        console.error(
-          "generatePdf: Coordinator document not found in employees collection.",
-        );
-        Alert.alert(t("errors.error"), t("errors.employeeDataNotFound"));
-        setIsGeneratingPdf(false);
-        return;
+      const companyDocRef = doc(db, "companies", companyIdRef.current);
+      const companyDocSnap = await getDoc(companyDocRef);
+      if (companyDocSnap.exists()) {
+        companyName = companyDocSnap.data().Name || companyName;
       }
 
       // 2. Fetch all doses for the selected year for ALL company employees
-      const allDosesPromises = employees.map(async (emp) => {
+      //    (using the stored allCompanyEmployees list)
+      const allDosesPromises = allCompanyEmployees.map(async (emp) => {
         const dosesRef = collection(db, "employees", emp.id, "doses");
         const q = query(dosesRef, where("year", "==", selectedYear));
         const snapshot = await getDocs(q);
@@ -336,10 +540,11 @@ export default function Home() {
             typeof data.dose === "number"
               ? data.dose
               : parseFloat(data.dose || 0);
-          if (data.month && !isNaN(doseValue)) {
+          if (data.month && data.day && !isNaN(doseValue)) {
+            // Ensure day exists too
             empDoses.push({
               employeeId: emp.id,
-              employeeName: emp.name,
+              employeeName: emp.name, // Use name from allCompanyEmployees
               month: data.month,
               day: data.day,
               dose: doseValue,
@@ -352,10 +557,11 @@ export default function Home() {
       const allDosesArrays = await Promise.all(allDosesPromises);
       const flatDoses = allDosesArrays.flat();
 
-      // 3. Structure data for HTML table
-      const monthlyEmployeeDoses = {};
+      // 3. Structure data for HTML table (using allCompanyEmployees)
+      const monthlyEmployeeDoses = {}; // { month: { employeeId: { name, days: {day: dose}, monthlyTotal } } }
 
-      employees.forEach((emp) => {
+      // Initialize structure for ALL employees for ALL months
+      allCompanyEmployees.forEach((emp) => {
         for (let month = 1; month <= 12; month++) {
           if (!monthlyEmployeeDoses[month]) {
             monthlyEmployeeDoses[month] = {};
@@ -368,9 +574,18 @@ export default function Home() {
         }
       });
 
+      // Populate with actual doses
       flatDoses.forEach((dose) => {
         const { employeeId, month, day, dose: doseValue } = dose;
-        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        // Ensure data is valid before trying to access/add
+        if (
+          month >= 1 &&
+          month <= 12 &&
+          day >= 1 &&
+          day <= 31 &&
+          monthlyEmployeeDoses[month] &&
+          monthlyEmployeeDoses[month][employeeId]
+        ) {
           if (!monthlyEmployeeDoses[month][employeeId].days[day]) {
             monthlyEmployeeDoses[month][employeeId].days[day] = 0;
           }
@@ -379,53 +594,56 @@ export default function Home() {
         }
       });
 
-      // 4. Generate HTML Table - *** MODIFICACIONES AQUÍ ***
+      // 4. Generate HTML Table (Iterating through allCompanyEmployees)
       let tableHtml = "";
       const totalColumns = 33; // 1 (Nombre) + 31 (Días) + 1 (Total)
 
       for (let month = 1; month <= 12; month++) {
-        // Fila del Mes (sin cambios)
         tableHtml += `<tr class="month-header-row"><td colspan="${totalColumns}">${monthNames[month - 1]}</td></tr>`;
 
-        // --- BUCLE MODIFICADO: Iterar SIEMPRE sobre TODOS los empleados ---
-        employees.forEach((emp) => {
-          // Intentar obtener los datos del empleado para este mes específico
+        // Iterate through the canonical list of ALL company employees
+        allCompanyEmployees.forEach((emp) => {
+          // Get the pre-structured data for this employee and month
           const employeeData = monthlyEmployeeDoses[month]?.[emp.id];
 
-          let rowHtml = `<tr><td class="employee-name">${emp.name}</td>`; // Siempre mostrar el nombre
-          let calculatedMonthlyTotal = 0;
+          // Safety check - should always exist due to initialization, but good practice
+          if (!employeeData) {
+            console.warn(
+              `Missing expected data structure for employee ${emp.id} in month ${month}`,
+            );
+            // Optionally render a row indicating missing data or skip
+            tableHtml += `<tr><td class="employee-name">${emp.name}</td><td colspan="32">Data Error</td></tr>`; // Example error row
+            return; // Skip this employee for this month if structure is missing
+          }
 
-          // Generar celdas para los 31 días
+          let rowHtml = `<tr><td class="employee-name">${emp.name}</td>`;
+          let calculatedMonthlyTotal = 0; // Use the pre-calculated total
+
+          // Generate cells for 31 days
           for (let day = 1; day <= 31; day++) {
-            // Obtener la dosis diaria si existen datos, si no, es 0
-            const dailyDose = employeeData?.days?.[day] || 0;
-            calculatedMonthlyTotal += dailyDose; // Sumar incluso si es 0 para el total calculado
+            const dailyDose = employeeData.days?.[day] || 0;
+            // No need to recalculate total here, use employeeData.monthlyTotal
 
-            // Si la dosis es 0, dejar la celda vacía, si no, mostrarla formateada
             const cellContent = dailyDose > 0 ? dailyDose.toFixed(2) : "";
             rowHtml += `<td class="dose-value">${cellContent}</td>`;
           }
 
-          // --- MODIFICACIÓN AQUÍ ---
-          // Añadir celda del total mensual
-          // Formatear siempre a 2 decimales y añadir la unidad "μSv"
-          const formattedTotal = calculatedMonthlyTotal.toFixed(2);
-          const totalCellContentWithUnit = `${formattedTotal} μSv`; // Siempre añadir μSv
+          // Add total cell using the pre-calculated monthlyTotal
+          const formattedTotal = employeeData.monthlyTotal.toFixed(2);
+          const totalCellContentWithUnit = `${formattedTotal} μSv`;
           rowHtml += `<td class="dose-total">${totalCellContentWithUnit}</td></tr>`;
-          // --- FIN DE MODIFICACIÓN ---
 
-          tableHtml += rowHtml; // Añadir la fila completa del empleado a la tabla del mes
+          tableHtml += rowHtml;
         });
-        // Ya no necesitamos el flag monthHasData
       }
 
-      // 5. Construct Full HTML Content (Sin cambios en el resto del HTML o CSS)
+      // 5. Construct Full HTML Content (CSS etc. remains the same)
       const htmlContent = `
         <html>
         <head>
           <meta charset="UTF-8">
           <style>
-            /* ... (Estilos CSS como en la versión anterior) ... */
+            /* Basic styling, adjust as needed */
             body { font-family: 'Helvetica', sans-serif; font-size: 8px; }
             .header-title { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 5px; }
             .header-subtitle { font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 15px; padding: 0 10px; }
@@ -433,9 +651,9 @@ export default function Home() {
             th, td { border: 1px solid #ccc; padding: 3px; text-align: center; vertical-align: middle;}
             th { background-color: #e9e9e9; font-weight: bold; font-size: 8px; }
             .month-header-row td { background-color: #d0d0d0; font-weight: bold; font-size: 10px; text-align: left; padding-left: 10px; border-top: 2px solid #555; border-bottom: 1px solid #aaa; }
-            td.employee-name { text-align: left; font-size: 9px; font-weight: normal; }
+            td.employee-name { text-align: left; font-size: 9px; font-weight: normal; background-color: #f8f8f8; } /* Added background for clarity */
             td.dose-value { text-align: right; font-size: 9px; font-weight: normal;}
-            td.dose-total { text-align: right; font-size: 9px; font-weight: bold; }
+            td.dose-total { text-align: right; font-size: 9px; font-weight: bold; background-color: #f0f0f0; } /* Added background for clarity */
           </style>
         </head>
         <body>
@@ -461,28 +679,25 @@ export default function Home() {
       `;
 
       // 6. Configure PDF Options
-      const fileName = `AnnualDoseReport_${companyName.replace(/ /g, "_")}_${selectedYear}`;
+      const fileName = `AnnualDoseReport_${companyName.replace(/\s+/g, "_")}_${selectedYear}`; // Replace whitespace
       const options = {
         html: htmlContent,
         fileName: fileName,
-        directory: Platform.OS === "android" ? "Downloads" : "Documents",
-        width: 1123, // Ancho A3 apaisado en puntos (aprox)
-        height: 794, // Alto A3 apaisado en puntos (aprox)
+        directory: Platform.OS === "android" ? "Download" : "Documents", // Use 'Download' for Android consistency
+        width: 1123, // A3 landscape width in points
+        height: 794, // A3 landscape height in points
       };
 
-      // 7. Generate PDF using RNHTMLtoPDF
+      // 7. Generate PDF
       console.log("generatePdf: Calling RNHTMLtoPDF.convert...");
       const pdfFile = await RNHTMLtoPDF.convert(options);
-      console.log(
-        "generatePdf: RNHTMLtoPDF finished. File path:",
-        pdfFile.filePath,
-      );
+      console.log("generatePdf: PDF generated:", pdfFile.filePath);
 
-      // 8. Share PDF (using expo-sharing)
-      const fileUri = pdfFile.filePath;
-
-      const platformSpecificUri =
-        Platform.OS === "android" ? `file://${fileUri}` : fileUri;
+      // 8. Share PDF
+      const fileUri =
+        Platform.OS === "android"
+          ? `file://${pdfFile.filePath}`
+          : pdfFile.filePath;
 
       if (!(await Sharing.isAvailableAsync())) {
         Alert.alert(t("pdf.shareErrorTitle"), t("pdf.shareErrorMsg"));
@@ -490,21 +705,13 @@ export default function Home() {
         return;
       }
 
-      await Sharing.shareAsync(platformSpecificUri, {
+      await Sharing.shareAsync(fileUri, {
         mimeType: "application/pdf",
         dialogTitle: t("pdf.shareDialogTitle"),
-        UTI: "com.adobe.pdf", // UTI for iOS
+        UTI: "com.adobe.pdf",
       });
     } catch (error) {
-      console.error("--- PDF GENERATION ERROR START ---");
-      console.error("Error generating PDF with RNHTMLtoPDF:", error);
-      if (error.message) {
-        console.error("Error Message:", error.message);
-      }
-      if (error.stack) {
-        console.error("Stack trace:", error.stack);
-      }
-      console.error("--- PDF GENERATION ERROR END ---");
+      console.error("--- PDF GENERATION ERROR ---", error);
       Alert.alert(
         t("errors.error"),
         t("errors.pdfGenerationFailed") +
@@ -566,63 +773,80 @@ export default function Home() {
         </Pressable>
       </View>
 
-      <View style={{ padding: 16 }}>
-        {/* Employee Selector */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "#fff",
-            borderWidth: 1,
-            borderColor: "#ddd",
-            borderRadius: 20,
-            paddingHorizontal: 10,
-            marginBottom: 10,
-          }}
-        >
-          <Text style={{ fontSize: 20, fontWeight: "bold", marginRight: 10 }}>
-            {t("employeesAgenda.selectEmployee")}
-          </Text>
-          <Picker
-            selectedValue={selectedEmployeeId}
-            onValueChange={(itemValue) => setSelectedEmployeeId(itemValue)}
-            style={{ flex: 1 }}
-          >
-            <Picker.Item
-              label={t("employeesAgenda.employee.placeholder")}
-              value={null}
-            />
-            {employees.map((emp) => (
-              <Picker.Item key={emp.id} label={emp.name} value={emp.id} />
-            ))}
-          </Picker>
-        </View>
-
+      {/* Selectors */}
+      <View style={styles.selectorContainer}>
         {/* Year Selector */}
-        {selectedEmployeeId && (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "#fff",
-              borderWidth: 1,
-              borderColor: "#ddd",
-              borderRadius: 20,
-              paddingHorizontal: 10,
-            }}
-          >
-            <Text style={{ fontSize: 20, fontWeight: "bold", marginRight: 10 }}>
-              {t("employeesAgenda.selectYear")}
-            </Text>
+        <View style={styles.pickerWrapper}>
+          <Text style={styles.pickerLabel}>
+            {t("employeesAgenda.selectYear")}
+          </Text>
+          {isLoadingYears ? (
+            <ActivityIndicator
+              size="small"
+              color="#FF9300"
+              style={{ flex: 1 }}
+            />
+          ) : (
             <Picker
               selectedValue={selectedYear}
-              onValueChange={(itemValue) => setSelectedYear(itemValue)}
-              style={{ flex: 1 }}
+              onValueChange={(itemValue) => {
+                if (itemValue !== selectedYear) {
+                  // Prevent unnecessary updates
+                  setSelectedYear(itemValue);
+                  setSelectedEmployeeId(null); // Reset employee when year changes
+                  setFilteredEmployees([]); // Clear employee list immediately
+                }
+              }}
+              style={styles.picker}
+              enabled={!isLoadingYears}
             >
-              {availableYears.map((year) => (
+              <Picker.Item
+                label={t("employeesAgenda.employee.placeholder")}
+                value={null}
+              />
+              {allAvailableYears.map((year) => (
                 <Picker.Item key={year} label={year.toString()} value={year} />
               ))}
             </Picker>
+          )}
+        </View>
+
+        {/* Employee Selector (conditional) */}
+        {selectedYear && ( // Only show if a year is selected
+          <View style={styles.pickerWrapper}>
+            <Text style={styles.pickerLabel}>
+              {t("employeesAgenda.selectEmployee")}
+            </Text>
+            {isLoadingEmployees ? (
+              <ActivityIndicator
+                size="small"
+                color="#FF9300"
+                style={{ flex: 1 }}
+              />
+            ) : (
+              <Picker
+                selectedValue={selectedEmployeeId}
+                onValueChange={(itemValue) => setSelectedEmployeeId(itemValue)}
+                style={styles.picker}
+                enabled={!isLoadingEmployees && filteredEmployees.length > 0}
+              >
+                <Picker.Item
+                  label={t("employeesAgenda.employee.placeholder")}
+                  value={null}
+                />
+                {filteredEmployees.map((emp) => (
+                  <Picker.Item key={emp.id} label={emp.name} value={emp.id} />
+                ))}
+              </Picker>
+            )}
+            {/* Optional: Message if no employees found for the year */}
+            {!isLoadingEmployees &&
+              filteredEmployees.length === 0 &&
+              selectedYear && (
+                <Text style={styles.noDataTextSmall}>
+                  {t("employeesAgenda.noEmployeesForYear")}
+                </Text>
+              )}
           </View>
         )}
       </View>
@@ -656,9 +880,7 @@ export default function Home() {
                 </Text>
                 <TouchableOpacity
                   style={[styles.cell, styles.eyeButton, { flex: 0.5 }]}
-                  onPress={() =>
-                    handleViewDetails(selectedEmployeeId, item.month, item.year)
-                  }
+                  onPress={() => handleViewDetails(item.month)}
                 >
                   <Ionicons name="eye" size={22} color="#007AFF" />
                 </TouchableOpacity>
@@ -667,42 +889,65 @@ export default function Home() {
         )}
       </ScrollView>
 
-      <View
-        style={{
-          flexDirection: "column",
-          alignItems: "center",
-          marginBottom: 20,
-        }}
-      >
-        <View style={styles.annualDoseContainer}>
-          <View style={{ flex: 1, marginRight: 10 }}>
-            <Text style={styles.annualDoseText}>
-              {t("employeesAgenda.annualDose.title")}
-            </Text>
+      {selectedYear && ( // <-- CAMBIO: Mostrar si hay un año seleccionado
+        <View style={styles.summaryContainer}>
+          <View style={styles.annualDoseContainer}>
+            <View style={{ flex: 1, marginRight: 10 }}>
+              <Text style={styles.annualDoseText}>
+                {/* Cambiar título si se prefiere "Dosis Anual Compañía" o similar */}
+                {t("employeesAgenda.annualDose.title")}
+              </Text>
+            </View>
+            {/* Mostrar carga o el total calculado */}
+            {
+              // Si no hay empleado seleccionado Y se está cargando el total de la compañía
+              !selectedEmployeeId && isLoadingCompanyTotal ? (
+                <ActivityIndicator size="small" color="#007AFF" />
+              ) : // Si SÍ hay empleado seleccionado Y se están cargando sus dosis
+              selectedEmployeeId && isLoadingDoses ? (
+                <ActivityIndicator size="small" color="#007AFF" />
+              ) : (
+                // Si no está cargando, mostrar el valor correspondiente
+                <View style={styles.annualDoseContainerText}>
+                  <Text style={styles.annualDoseValue}>
+                    {
+                      selectedEmployeeId
+                        ? `${totalAnnualDose.toFixed(2)} μSv` // Valor del empleado
+                        : `${companyTotalAnnualDose.toFixed(2)} μSv` // Valor de la compañía
+                    }
+                  </Text>
+                </View>
+              )
+            }
           </View>
-          <View style={styles.annualDoseContainerText}>
-            <Text style={styles.annualDoseValue}>
-              {totalAnnualDose.toFixed(2)} μSv
-            </Text>
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.downloadButton,
+              // Deshabilitado si genera PDF, si no hay año, o si no hay empleados en la compañía (para el contexto del PDF)
+              (isGeneratingPdf ||
+                !selectedYear ||
+                !allCompanyEmployees ||
+                allCompanyEmployees.length === 0) &&
+                styles.downloadButtonDisabled,
+            ]}
+            onPress={generatePdf}
+            disabled={
+              isGeneratingPdf ||
+              !selectedYear ||
+              !allCompanyEmployees ||
+              allCompanyEmployees.length === 0
+            }
+          >
+            {isGeneratingPdf ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.downloadButtonText}>
+                {t("employeesAgenda.annualDose.download")}
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={[
-            styles.downloadButton,
-            isGeneratingPdf && styles.downloadButtonDisabled,
-          ]} // Optional: Style when disabled
-          onPress={generatePdf}
-          disabled={isGeneratingPdf} // Disable button while generating
-        >
-          {isGeneratingPdf ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.downloadButtonText}>
-              {t("employeesAgenda.annualDose.download")}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      )}
 
       {/* Footer */}
       <View
@@ -760,6 +1005,13 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 20,
   },
+  summaryContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 20,
+    alignItems: "center",
+  },
+
   annualDoseContainer: {
     flexDirection: "row", // Cambiado de "row" a "column"
     justifyContent: "center", // Cambiado de "space-between" a "center"
@@ -845,5 +1097,30 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 20,
     textAlign: "center",
+  },
+
+  selectorContainer: {
+    padding: 16,
+  },
+  pickerWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    marginBottom: 12, // Spacing between pickers
+    minHeight: 50, // Ensure consistent height
+  },
+  pickerLabel: {
+    fontSize: 16, // Slightly smaller label
+    fontWeight: "bold",
+    marginRight: 10,
+    color: "#555",
+  },
+  picker: {
+    flex: 1,
+    height: 50, // Explicit height for Android consistency
   },
 });
