@@ -22,10 +22,6 @@ export default function Home() {
     router.push("/coordinator/myAgenda");
   };
 
-  const handleInspection = () => {
-    router.push("/coordinator/inspection");
-  };
-
   const handleCalculation = () => {
     router.push("/coordinator/calculation");
   };

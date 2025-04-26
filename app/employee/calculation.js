@@ -294,7 +294,7 @@ export default function Calculation() {
             </Pressable>
 
             {/* Campo de atenuación si el material es "Other" */}
-            {form.material === "Other" && (
+            {form.material === materialMap.Other && (
               <TextInput
                 style={[
                   styles.inputContainer,
