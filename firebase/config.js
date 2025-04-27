@@ -1,11 +1,18 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import {
+  // Funciones principales de Auth
   getAuth,
   initializeAuth,
-  getReactNativePersistence,
+  // Tipos de Persistencia
+  getReactNativePersistence, // Para RN
+  indexedDBLocalPersistence, // Para Web (preferido)
+  browserLocalPersistence, // Para Web (alternativa)
+  // browserSessionPersistence, // Otra opción web
+  // inMemoryPersistence // Otra opción web/RN
 } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native"; // Importa Platform
 import {
   FIREBASE_API_KEY,
   FIREBASE_AUTH_DOMAIN,
@@ -16,7 +23,7 @@ import {
   FIREBASE_MEASUREMENT_ID,
 } from "@env";
 
-// Configuración de Firebase
+// Configuración de Firebase (sin cambios)
 const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,
   authDomain: FIREBASE_AUTH_DOMAIN,
@@ -27,15 +34,31 @@ const firebaseConfig = {
   measurementId: FIREBASE_MEASUREMENT_ID,
 };
 
-// Inicializa Firebase
+// Inicializa Firebase App (sin cambios)
 const app = initializeApp(firebaseConfig);
 
-// Usa AsyncStorage para persistir la autenticación
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+// --- Inicialización de Auth específica de plataforma ---
+let auth;
 
-// Inicializa Firestore
+if (Platform.OS === "web") {
+  // En la web, usa persistencia web (IndexedDB es preferible)
+  console.log("Initializing Firebase Auth for Web with IndexedDB persistence");
+  auth = initializeAuth(app, {
+    persistence: indexedDBLocalPersistence, // O browserLocalPersistence
+    // popupRedirectResolver: browserPopupRedirectResolver, // Puede ser necesario si usas popups/redirects
+  });
+} else {
+  // En móvil (Android/iOS), usa persistencia de React Native
+  console.log(
+    "Initializing Firebase Auth for React Native with AsyncStorage persistence",
+  );
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+}
+// -------------------------------------------------------
+
+// Inicializa Firestore (sin cambios)
 const db = getFirestore(app);
 
 export { app, db, auth };

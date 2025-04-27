@@ -64,12 +64,13 @@ export default function Calculation() {
   });
 
   const calculateAndNavigate = () => {
+    // Initial checks (remain the same)
     if (!form.isotope || !form.activity || !form.material || !form.value) {
       Alert.alert("Error", t("radiographyCalculator.errorMessage"));
       return;
     }
 
-    // Retrieve the internal values for collimator and material
+    // Retrieve internal values (remain the same)
     const collimatorInternalValue = Object.keys(collimatorMap).find(
       (key) => collimatorMap[key] === form.collimator,
     );
@@ -78,48 +79,95 @@ export default function Calculation() {
       (key) => materialMap[key] === form.material,
     );
 
-    const A = parseFloat(form.activity) * 37; // Convertir Ci a GBq
-    const Γ = GAMMA_FACTOR[form.isotope];
-    const Y =
+    // --- Comma to Period Conversion and Parsing ---
+    // Convert commas to periods before parsing numerical inputs
+    const activityString = form.activity.replace(/,/g, ".");
+    const valueString = form.value.replace(/,/g, ".");
+    const attenuationString =
+      materialInternalValue === "Other" && form.attenuation
+        ? form.attenuation.replace(/,/g, ".")
+        : null; // Handle attenuation only if needed
+
+    const A = parseFloat(activityString) * 37; // Parse converted string
+    const Γ = GAMMA_FACTOR[form.isotope]; // No conversion needed
+    const Y = // Logic remains the same
       collimatorInternalValue === "Yes"
         ? COLLIMATOR_EFFECT.Yes[form.isotope]
         : COLLIMATOR_EFFECT.No;
-    const T = form.limit === "11µSv/h" ? 0.011 : 0.0005;
+    const T = form.limit === "11µSv/h" ? 0.011 : 0.0005; // No conversion needed
+
+    // Parse attenuation only if needed, using the converted string
     const µ =
       materialInternalValue === "Other"
-        ? parseFloat(form.attenuation)
-        : ATTENUATION_COEFFICIENT[materialInternalValue][form.isotope];
-    const inputValue = parseFloat(form.value);
+        ? parseFloat(attenuationString) // Parse converted string
+        : ATTENUATION_COEFFICIENT[materialInternalValue]?.[form.isotope]; // Added optional chaining for safety
 
+    const inputValue = parseFloat(valueString); // Parse converted string
+    // --- End of Conversion and Parsing ---
+
+    // NaN checks (remain the same, now check results of parsing converted strings)
     if (
       isNaN(A) ||
       isNaN(Γ) ||
       isNaN(Y) ||
       isNaN(T) ||
-      isNaN(µ) ||
+      isNaN(µ) || // This will be NaN if material wasn't 'Other' and lookup failed, or if parsing failed
       isNaN(inputValue)
     ) {
+      // Add a more detailed log for debugging NaN issues
+      console.error("NaN check failed. Values:", {
+        A,
+        Γ,
+        Y,
+        T,
+        µ_parsed:
+          materialInternalValue === "Other" ? parseFloat(attenuationString) : µ,
+        inputValue,
+      });
       Alert.alert("Error", t("radiographyCalculator.invalidInputMessage"));
       return;
     }
 
-    let result;
+    // Extra check specifically for µ's validity after potential parsing/lookup
+    if (materialInternalValue === "Other" && isNaN(µ)) {
+      console.error(
+        "Attenuation (µ) is NaN for 'Other' material. Input was:",
+        form.attenuation,
+      );
+      Alert.alert("Error", t("radiographyCalculator.invalidInputMessage"));
+      return;
+    }
+    if (materialInternalValue !== "Other" && (µ === undefined || isNaN(µ))) {
+      console.error(
+        "Attenuation coefficient lookup failed. Material:",
+        materialInternalValue,
+        "Isotope:",
+        form.isotope,
+      );
+      Alert.alert("Error", t("radiographyCalculator.invalidInputMessage"));
+      return;
+    }
 
+    // Calculation logic (remains the same as provided)
+    let result;
     if (
       form.thicknessOrDistance ===
       t("radiographyCalculator.thicknessOrDistance")
     ) {
+      // Note: This formula might need review based on physics principles.
       result =
         Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
         (Math.log(2) / µ) *
-        (1 / inputValue);
+        (1 / inputValue); // inputValue is thickness here? Units need checking.
     } else {
+      // Note: This formula might need review based on physics principles.
       result =
         Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
         (Math.log(2) / µ) *
-        (1 / inputValue);
+        (1 / inputValue); // inputValue is distance here? Units need checking.
     }
 
+    // Final NaN check for result (remains the same)
     if (isNaN(result)) {
       Alert.alert("Error", t("radiographyCalculator.calculationError"));
       return;
