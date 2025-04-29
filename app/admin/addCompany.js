@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   Image,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -104,7 +105,6 @@ export default function AddCompany() {
       <View style={{ flex: 1 }}>
         <View
           style={{
-            paddingTop: 40,
             backgroundColor: "#FF9300",
             flexDirection: "row",
             justifyContent: "space-between",
@@ -116,6 +116,11 @@ export default function AddCompany() {
             shadowOpacity: 0.3,
             shadowRadius: 10,
             elevation: 10,
+            paddingTop: Platform.select({
+              // Apply platform-specific padding
+              ios: 60, // More padding on iOS
+              android: 40, // Base padding on Android
+            }),
           }}
         >
           <Pressable onPress={handleBack}>

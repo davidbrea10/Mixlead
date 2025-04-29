@@ -209,7 +209,11 @@
     "title": "INICIO",
     "companiesButton": "Empresas",
     "employeesButton": "Empleados",
-    "logoutError": "Error al cerrar sesión: "
+    "logoutError": "Error al cerrar sesión: ",
+    "logoutSuccessTitle": "Logout Exitoso",
+    "logoutSuccessMessage": "Has cerrado sesión correctamente.",
+    "logoutErrorTitle": "Error de Logout",
+    "logoutErrorMessage": "Error al cerrar sesión. Por favor, inténtalo de nuevo."
   },
 
   "adminSettings": {

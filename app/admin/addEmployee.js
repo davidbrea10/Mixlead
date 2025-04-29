@@ -170,7 +170,6 @@ export default function AddEmployee() {
       <View style={{ flex: 1 }}>
         <View
           style={{
-            paddingTop: 40,
             backgroundColor: "#FF9300",
             flexDirection: "row",
             justifyContent: "space-between",
@@ -182,6 +181,11 @@ export default function AddEmployee() {
             shadowOpacity: 0.3,
             shadowRadius: 10,
             elevation: 10,
+            paddingTop: Platform.select({
+              // Apply platform-specific padding
+              ios: 60, // More padding on iOS
+              android: 40, // Base padding on Android
+            }),
           }}
         >
           <Pressable onPress={handleBack}>
@@ -257,7 +261,7 @@ export default function AddEmployee() {
             )}
 
             {/* Birth Date */}
-            <View style={{ width: 366, marginBottom: 15 }}>
+            <View style={{ width: "90%", marginBottom: 15 }}>
               <Text style={{ fontSize: 18, marginBottom: 5 }}>
                 {t("add_employee.birthDate")}
               </Text>
@@ -428,7 +432,7 @@ const styles = {
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    width: 366,
+    width: "100%",
     height: 55,
     borderWidth: 1,
     borderColor: "#ccc",
@@ -442,7 +446,7 @@ const styles = {
     fontSize: 18,
   },
   button: {
-    width: 366,
+    width: "90%",
     height: 55,
     backgroundColor: "#006892",
     justifyContent: "center",

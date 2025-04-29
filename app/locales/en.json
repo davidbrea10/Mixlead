@@ -20,6 +20,7 @@
   "email_not_verified_message": "Having trouble logging in?",
   "resend_verification_email": "Resend verification email",
   "error_title": "Oh snap!",
+  "success_title": "Well done!",
 
   "errors": {
     "errorTitle": "Error",
@@ -209,7 +210,11 @@
     "title": "HOME",
     "companiesButton": "Companies",
     "employeesButton": "Employees",
-    "logoutError": "Error logging out: "
+    "logoutError": "Error logging out: ",
+    "logoutSuccessTitle": "Logout Successful",
+    "logoutSuccessMessage": "You have been logged out successfully.",
+    "logoutErrorTitle": "Logout Error",
+    "logoutErrorMessage": "An error occurred while logging out. Please try again."
   },
 
   "adminSettings": {

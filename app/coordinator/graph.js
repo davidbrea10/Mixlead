@@ -423,7 +423,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   header: {
-    paddingTop: Platform.OS === "android" ? 25 : 40,
+    paddingTop: Platform.select({
+      // Apply platform-specific padding
+      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+      android: 40, // Base padding on Android (adjust value as needed)
+    }),
     backgroundColor: "#FF9300",
     flexDirection: "row",
     justifyContent: "space-between",

@@ -1,4 +1,4 @@
-import { View, Text, Pressable, Image } from "react-native";
+import { View, Text, Pressable, Image, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next"; // Import the translation hook
@@ -27,7 +27,6 @@ export default function Settings() {
       {/* Header */}
       <View
         style={{
-          paddingTop: 40,
           backgroundColor: "#FF9300",
           flexDirection: "row",
           justifyContent: "space-between",
@@ -39,6 +38,11 @@ export default function Settings() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
+          paddingTop: Platform.select({
+            // Apply platform-specific padding
+            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+            android: 40, // Base padding on Android (adjust value as needed)
+          }),
         }}
       >
         <Pressable onPress={handleBack}>

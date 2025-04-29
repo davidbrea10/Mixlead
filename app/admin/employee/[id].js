@@ -9,6 +9,7 @@ import {
   Image,
   Modal,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
@@ -160,7 +161,6 @@ export default function EmployeeDetail() {
     >
       <View
         style={{
-          paddingTop: 40,
           backgroundColor: "#FF9300",
           flexDirection: "row",
           justifyContent: "space-between",
@@ -172,6 +172,11 @@ export default function EmployeeDetail() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
+          paddingTop: Platform.select({
+            // Apply platform-specific padding
+            ios: 60, // More padding on iOS
+            android: 40, // Base padding on Android
+          }),
         }}
       >
         <Pressable onPress={() => router.replace("/admin/employees")}>

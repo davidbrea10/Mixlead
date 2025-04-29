@@ -367,19 +367,14 @@ export default function Register() {
             {/* Language Selector */}
             <TouchableOpacity
               onPress={handleLanguageChange}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-              }}
+              style={styles.languageSelector}
             >
               <Image
                 source={flag}
-                style={{ width: 28, height: 28, borderRadius: 14 }}
+                style={styles.flagImage}
                 resizeMode="contain"
               />
-              <Text style={{ marginLeft: 8, fontSize: 16 }}>
-                {t("change_language")}
-              </Text>
+              <Text style={styles.languageText}>{t("change_language")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -671,6 +666,16 @@ const styles = {
     alignItems: "center",
     zIndex: 10,
   },
+  languageSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderRadius: 15,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  flagImage: { width: 28, height: 28, borderRadius: 14 },
+  languageText: { marginLeft: 8, fontSize: 16, color: "#333" },
   label: {
     fontSize: 16, // Slightly smaller label
     marginBottom: 5,

@@ -1,4 +1,11 @@
-import { View, Text, Pressable, Image, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Image,
+  ScrollView,
+  Platform,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next"; // Importar el hook de traducción
@@ -45,7 +52,6 @@ export default function CalculationSummary() {
         {/* Header */}
         <View
           style={{
-            paddingTop: 40,
             backgroundColor: "#FF9300",
             flexDirection: "row",
             alignItems: "center",
@@ -57,6 +63,11 @@ export default function CalculationSummary() {
             shadowRadius: 10,
             elevation: 10,
             marginBottom: 20,
+            paddingTop: Platform.select({
+              // Apply platform-specific padding
+              ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+              android: 40, // Base padding on Android (adjust value as needed)
+            }),
           }}
         >
           <Pressable onPress={handleBack}>

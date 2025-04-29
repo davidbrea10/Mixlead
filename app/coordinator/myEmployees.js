@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   Pressable,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -94,7 +95,6 @@ export default function EmployeesScreen() {
     >
       <View
         style={{
-          paddingTop: 40,
           backgroundColor: "#FF9300",
           flexDirection: "row",
           justifyContent: "space-between",
@@ -106,6 +106,11 @@ export default function EmployeesScreen() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
+          paddingTop: Platform.select({
+            // Apply platform-specific padding
+            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+            android: 40, // Base padding on Android (adjust value as needed)
+          }),
         }}
       >
         <Pressable onPress={() => router.replace("/coordinator/home")}>
