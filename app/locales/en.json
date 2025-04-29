@@ -13,11 +13,47 @@
   "user_not_found": "User data not found.",
   "email_not_verified": "Please verify your email before logging in.",
   "login_successful": "Login successful!",
+  "invalid_credentials": "Invalid email or password.",
+  "too_many_attempts": "Too many login attempts. Please try again later.",
+  "invalid_email_format": "Invalid email format.",
   "loading": "Loading...",
   "email_not_verified_message": "Having trouble logging in?",
   "resend_verification_email": "Resend verification email",
+  "error_title": "Oh snap!",
 
+  "errors": {
+    "errorTitle": "Error",
+    "fillAllFields": "Please fill in all required fields.",
+    "passwordsMismatch": "Passwords do not match.",
+    "fixValidationErrors": "Please fix the errors before submitting.",
+    "genericError": "An unexpected error occurred. Please try again.",
+    "emailExists": "This email address is already registered.",
+    "weakPassword": "Password should be at least 8 characters long and include a letter and a number.",
+    "authOperationNotAllowed": "Email/password accounts are not enabled.",
+    "required": "This field is required",
+    "invalidDni": "Invalid DNI format (e.g., 12345678A)",
+    "dniExists": "This DNI is already registered.",
+    "invalidPhone": "Invalid phone number format (9 digits)",
+    "invalidEmail": "Invalid email format",
+    "ageRestriction": "You must be at least 18 years old",
+    "invalidPassword": "Password must be at least 8 characters long and contain at least one letter and one number."
+
+  },
   "register": {
+    "successTitle": "Registration Successful",
+    "successMessage": "Registration successful! Please check your email to verify your account.",
+    "registeringButton": "Registering...",
+    "button": "Register",
+    "title": "Register",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "dni": "DNI",
+    "phone": "Phone",
+    "birthDate": "Birth Date",
+    "selectBirthDate": "Select Birth Date",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
     "emailVerificationTitle": "Verify Your Email",
     "emailVerificationMessage": "A verification email has been sent to your inbox. Please verify your email before logging in.",
     "okButton": "OK"
@@ -37,7 +73,8 @@
     "successTitle": "Success",
     "successMessage": "A password reset link has been sent to your email.",
     "errorTitle": "Error",
-    "emptyEmail": "Please enter your email address."
+    "emptyEmail": "Please enter your email address.",
+    "sendingButton": "Sending..."
   },
 
   "register.title": "User Register",
@@ -538,5 +575,6 @@
       "11": "Nov",
       "12": "Dec"
   }
+  
 }
   

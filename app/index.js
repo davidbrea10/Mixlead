@@ -19,6 +19,7 @@ import { auth, db } from "../firebase/config";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import i18n from "./locales/i18n";
+import Toast from "react-native-toast-message";
 
 export default function Login() {
   const router = useRouter();
@@ -36,7 +37,13 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert(t("please_enter_credentials"));
+      // Use Error Toast for validation
+      Toast.show({
+        type: "error",
+        text1: t("error_title"), // e.g., "Oh snap!"
+        text2: t("please_enter_credentials"),
+        visibilityTime: 3000, // Optional: duration in ms
+      });
       return;
     }
 
@@ -50,7 +57,13 @@ export default function Login() {
       const user = userCredential.user;
 
       if (!user.emailVerified) {
-        alert(t("email_not_verified"));
+        // Use Error Toast for email verification
+        Toast.show({
+          type: "error",
+          text1: t("error_title"),
+          text2: t("email_not_verified"),
+          visibilityTime: 4000,
+        });
         setLoading(false);
         return;
       }
@@ -62,6 +75,14 @@ export default function Login() {
         const userData = userDoc.data();
         const userRole = userData.role;
 
+        // Show Success Toast just before navigating
+        Toast.show({
+          type: "success",
+          text1: t("success_title"), // e.g., "Well done!"
+          text2: t("login_successful"),
+          visibilityTime: 2000, // Shorter duration as navigation follows
+        });
+
         if (userRole === "admin") {
           router.replace("/admin/home");
         } else if (userRole === "coordinator") {
@@ -69,10 +90,13 @@ export default function Login() {
         } else {
           router.replace("/employee/home");
         }
-        // Considerar si realmente quieres un alert aquí después de una redirección exitosa
-        // alert(t("login_successful"));
       } else {
-        alert(t("user_not_found"));
+        Toast.show({
+          type: "error",
+          text1: t("error_title"),
+          text2: t("user_not_found"),
+          visibilityTime: 3000,
+        });
       }
     } catch (error) {
       let errorMessage = t("login_failed");
@@ -82,14 +106,23 @@ export default function Login() {
       ) {
         errorMessage = t("invalid_credentials");
       } else if (error.code === "auth/wrong-password") {
-        errorMessage = t("invalid_credentials");
+        errorMessage = t("invalid_credentials"); // Corrected: also invalid credentials
       } else if (error.code === "auth/too-many-requests") {
         errorMessage = t("too_many_attempts");
       } else if (error.code === "auth/invalid-email") {
         errorMessage = t("invalid_email_format");
       }
-      console.error("Login Error:", error.code, error.message);
-      alert(errorMessage);
+
+      // Remove or comment out this line to hide logs from the console:
+      // console.error("Login Error:", error.code, error.message);
+
+      // The Toast will still show the user-friendly message in the app:
+      Toast.show({
+        type: "error",
+        text1: t("error_title"),
+        text2: errorMessage,
+        visibilityTime: 4000,
+      });
     } finally {
       setLoading(false);
     }
@@ -236,20 +269,16 @@ export default function Login() {
 // Define los estilos usando StyleSheet
 const styles = StyleSheet.create({
   // New style for the gradient to ensure it covers the whole screen
-  fullScreenGradient: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
+
+  fullScreenGradient: { flex: 1 },
+  safeArea: { flex: 1, backgroundColor: "transparent" },
   headerContainer: {
-    width: "100%",
+    /* ... */ width: "100%",
     flexDirection: "row",
-    justifyContent: "flex-end", // Alinea hacia la derecha
+    justifyContent: "flex-end",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 20 : 20, // Un poco más de margen arriba en iOS
+    paddingTop: Platform.OS === "ios" ? 20 : 20,
   },
   languageSelector: {
     flexDirection: "row",
@@ -258,16 +287,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.5)",
     borderRadius: 15,
   },
-  flagImage: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  languageText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: "#333",
-  },
+  flagImage: { width: 28, height: 28, borderRadius: 14 },
+  languageText: { marginLeft: 8, fontSize: 16, color: "#333" },
   contentContainer: {
     flex: 1,
     width: "90%",
@@ -283,21 +304,9 @@ const styles = StyleSheet.create({
     color: "#444B59",
     textAlign: "center",
   },
-  logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 30,
-    resizeMode: "contain",
-  },
-  inputContainer: {
-    width: "100%",
-    marginBottom: 15,
-  },
-  inputWrapper: {
-    position: "relative",
-    width: "100%",
-    marginBottom: 15,
-  },
+  logo: { width: 150, height: 150, marginBottom: 30, resizeMode: "contain" },
+  inputContainer: { width: "100%", marginBottom: 15 },
+  inputWrapper: { position: "relative", width: "100%", marginBottom: 15 },
   input: {
     height: 55,
     borderWidth: 1,
@@ -329,10 +338,7 @@ const styles = StyleSheet.create({
     marginTop: -5,
     marginBottom: 10,
   },
-  recoverPasswordText: {
-    color: "gray",
-    fontSize: 16,
-  },
+  recoverPasswordText: { color: "gray", fontSize: 16 },
   signInButtonBase: {
     width: "100%",
     height: 55,
@@ -348,33 +354,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 6,
   },
-  signInButtonLoading: {
-    backgroundColor: "#a0a0a0",
-  },
-  signInButtonPressed: {
-    opacity: 0.8,
-  },
-  spinner: {
-    marginRight: 10,
-  },
-  signInButtonText: {
-    color: "#fff",
-    fontSize: 19,
-    fontWeight: "bold",
-  },
-  registerContainer: {
-    // Removed width: '90%' as contentContainer handles width now
-    alignItems: "center",
-    marginTop: 40,
-  },
+  signInButtonLoading: { backgroundColor: "#a0a0a0" },
+  signInButtonPressed: { opacity: 0.8 },
+  spinner: { marginRight: 10 },
+  signInButtonText: { color: "#fff", fontSize: 19, fontWeight: "bold" },
+  registerContainer: { alignItems: "center", marginTop: 40 },
   registerText: {
     fontSize: 18,
     textAlign: "center",
     color: "#444B59",
     lineHeight: 24,
   },
-  registerLink: {
-    color: "#006892",
-    fontWeight: "bold",
-  },
+  registerLink: { color: "#006892", fontWeight: "bold" },
 });

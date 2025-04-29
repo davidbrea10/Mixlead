@@ -7,6 +7,8 @@ import {
   ScrollView,
   Platform,
   Image,
+  StyleSheet, // Import StyleSheet
+  ActivityIndicator, // Import ActivityIndicator
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -30,7 +32,7 @@ import {
 import { useTranslation } from "react-i18next";
 import i18n from "./locales/i18n"; // Importa la configuración de i18next
 import { format } from "date-fns"; // Importamos date-fns para formatear la fecha
-import { es, enUS } from "date-fns/locale"; // Importamos los idiomas soportados por date-fns
+import Toast from "react-native-toast-message";
 
 export default function Register() {
   const router = useRouter();
@@ -58,6 +60,7 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [birthDate, setBirthDate] = useState(new Date());
+  const [loading, setLoading] = useState(false);
 
   const flag =
     i18n.language === "es"
@@ -199,7 +202,7 @@ export default function Register() {
       lastName,
       dni,
       phone,
-      birthDate,
+      birthDate: formBirthDate,
       email,
       password,
       confirmPassword,
@@ -210,20 +213,46 @@ export default function Register() {
       !lastName ||
       !dni ||
       !phone ||
-      !birthDate ||
+      !formBirthDate ||
       !email ||
       !password ||
       !confirmPassword
     ) {
-      alert(t("errors.fillAllFields"));
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", "Error"), // Add a generic title translation
+        text2: t("errors.fillAllFields"),
+        visibilityTime: 3000,
+      });
       return;
     }
 
     if (password !== confirmPassword) {
-      alert(t("errors.passwordsMismatch"));
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", "Error"),
+        text2: t("errors.passwordsMismatch"),
+        visibilityTime: 3000,
+      });
       return;
     }
 
+    // Check if there are any existing validation errors displayed
+    const hasErrors = Object.values(errors).some((error) => error !== "");
+    if (hasErrors) {
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", "Error"),
+        text2: t(
+          "errors.fixValidationErrors",
+          "Please fix the errors before submitting.",
+        ), // Add this translation
+        visibilityTime: 3000,
+      });
+      return;
+    }
+
+    setLoading(true); // Set loading true
     try {
       // Crear usuario en Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
@@ -240,19 +269,68 @@ export default function Register() {
       await setDoc(doc(db, "employees", user.uid), {
         firstName,
         lastName,
-        role: "employee",
+        role: "employee", // Default role
         dni,
         phone,
-        birthDate, // Ya está en formato aaaa-mm-dd
+        birthDate: formBirthDate, // Save formatted date string
         email,
-        companyId: "",
-        createdAt: new Date(),
+        companyId: "", // Initially empty
+        createdAt: new Date(), // Use Firestore server timestamp if preferred
+      });
+
+      Toast.show({
+        type: "success",
+        text1: t("register.successTitle", "Success"), // Add this translation
+        text2: t(
+          "register.successMessage",
+          "Registration successful! Please check your email to verify your account.",
+        ), // Add this translation
+        visibilityTime: 4000,
       });
 
       // Redirigir a la pantalla de confirmación de correo
       router.replace("/emailConfirmation");
     } catch (error) {
-      alert(error.message);
+      // Replace alert with error toast, map common errors
+      let errorMessage = t(
+        "errors.genericError",
+        "An unexpected error occurred. Please try again.",
+      ); // Default message
+      let errorTitle = t("errors.errorTitle", "Error");
+
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage = t(
+          "errors.emailExists",
+          "This email address is already registered.",
+        ); // Add translation
+        setErrors((prev) => ({ ...prev, email: errorMessage })); // Also show error under the field
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = t(
+          "errors.invalidEmail",
+          "The email address is not valid.",
+        );
+        setErrors((prev) => ({ ...prev, email: errorMessage }));
+      } else if (error.code === "auth/operation-not-allowed") {
+        errorMessage = t(
+          "errors.authOperationNotAllowed",
+          "Email/password accounts are not enabled.",
+        );
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = t("errors.weakPassword", "The password is too weak."); // Add translation
+        setErrors((prev) => ({ ...prev, password: errorMessage }));
+      } else {
+        // Log unexpected errors for debugging
+        console.error("Registration Error:", error.code, error.message);
+      }
+
+      Toast.show({
+        type: "error",
+        text1: errorTitle,
+        text2: errorMessage,
+        visibilityTime: 4000,
+      });
+    } finally {
+      setLoading(false); // Set loading false
     }
   };
 
@@ -534,9 +612,31 @@ export default function Register() {
           </View>
 
           {/* Register Button */}
-          <Pressable onPress={handleRegister} style={styles.button}>
-            <Text style={{ color: "#fff", fontSize: 19 }}>
-              {t("register.button")}
+          <Pressable
+            onPress={handleRegister}
+            style={({ pressed }) => [
+              // Add pressed state
+              styles.button,
+              loading && styles.buttonLoading, // Style when loading
+              pressed && !loading && styles.buttonPressed, // Style when pressed
+            ]}
+            disabled={loading} // Disable when loading
+          >
+            {/* Conditionally render ActivityIndicator */}
+            {loading ? (
+              <ActivityIndicator
+                size="small"
+                color="#fff"
+                style={styles.spinner}
+              />
+            ) : null}
+            {/* Conditionally change Text */}
+            <Text style={styles.buttonText}>
+              {
+                loading
+                  ? t("register.registeringButton") // Text when loading
+                  : t("register.button") // Text when not loading
+              }
             </Text>
           </Pressable>
         </ScrollView>
@@ -563,47 +663,100 @@ export default function Register() {
 const styles = {
   headerIcons: {
     position: "absolute",
-    top: 50,
+    top: Platform.OS === "android" ? 20 : 55, // Adjust based on your header style
     left: 20,
     right: 20,
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     zIndex: 10,
   },
   label: {
-    fontSize: 18,
+    fontSize: 16, // Slightly smaller label
     marginBottom: 5,
+    color: "#444B59", // Consistent label color
+    fontWeight: "500",
   },
-
-  errorText: {
-    color: "red",
-    fontSize: 14,
-    marginTop: 5,
-  },
-
   input: {
     width: "100%",
     height: 55,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 15,
     fontSize: 18,
     backgroundColor: "white",
-    justifyContent: "center",
+    justifyContent: "center", // For placeholder vertical centering
+    paddingRight: 50, // Space for clear/eye icon
   },
   clearIcon: {
     position: "absolute",
     right: 10,
-    top: 15,
+    top: 0,
+    height: "100%",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  eyeIcon: {
+    // Specific style for eye icon if needed, otherwise use clearIcon style positioning
+    position: "absolute",
+    right: 10,
+    top: 0,
+    height: "100%",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 14,
+    marginTop: 5, // Space between input and error text
   },
   button: {
-    width: "90%",
+    // Base button style
+    width: "90%", // Match input width
     height: 55,
     backgroundColor: "#006892",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 10,
-    marginTop: 20,
+    marginTop: 20, // Space above button
+    marginBottom: 20, // Space below button before footer
+    flexDirection: "row", // Align spinner and text
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  buttonLoading: {
+    // Style when loading
+    backgroundColor: "#a0a0a0",
+  },
+  buttonPressed: {
+    // Style when pressed
+    opacity: 0.8,
+  },
+  spinner: {
+    // Style for the spinner
+    marginRight: 10,
+  },
+  buttonText: {
+    // Style for button text
+    color: "#fff",
+    fontSize: 19,
+    fontWeight: "bold",
+  },
+  footer: {
+    // Style for the footer view
+    backgroundColor: "#006892",
+    padding: 40, // Or adjust as needed
+    alignItems: "flex-end", // If you need content alignment
+    borderTopEndRadius: 40, // Or borderTopLeftRadius / borderTopRightRadius
+    borderTopStartRadius: 40, // If you want both top corners rounded
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -6 }, // Adjusted for top shadow
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 10, // Use a consistent elevation
   },
 };
