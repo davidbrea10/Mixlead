@@ -6,39 +6,41 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  SafeAreaView, // Importa SafeAreaView
+  StyleSheet, // Importa StyleSheet para una mejor organización
+  Platform, // Importa Platform para ajustes específicos si fueran necesarios
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { doc, getDoc } from "firebase/firestore"; // Importa los métodos para acceder a Firestore
-import { auth, db } from "../firebase/config"; // Importación de Firebase
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebase/config";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useTranslation } from "react-i18next";
-import i18n from "./locales/i18n"; // Importa la configuración de i18next
+import i18n from "./locales/i18n";
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false); // Estado de carga
+  const [loading, setLoading] = useState(false);
 
   const flag =
     i18n.language === "es"
       ? require("../assets/es.png")
       : require("../assets/en.png");
 
-  // Initialize i18n
   const { t } = useTranslation();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert(t("please_enter_credentials")); // Mensaje para campos vacíos
+      alert(t("please_enter_credentials"));
       return;
     }
 
-    setLoading(true); // Mostrar indicador de carga
+    setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -48,8 +50,8 @@ export default function Login() {
       const user = userCredential.user;
 
       if (!user.emailVerified) {
-        alert(t("email_not_verified")); // Mensaje para correo no verificado
-        setLoading(false); // Ocultar indicador de carga
+        alert(t("email_not_verified"));
+        setLoading(false);
         return;
       }
 
@@ -67,20 +69,29 @@ export default function Login() {
         } else {
           router.replace("/employee/home");
         }
-        alert(t("login_successful")); // Mensaje de inicio de sesión exitoso
+        // Considerar si realmente quieres un alert aquí después de una redirección exitosa
+        // alert(t("login_successful"));
       } else {
-        alert(t("user_not_found")); // Mensaje para datos de usuario no encontrados
+        alert(t("user_not_found"));
       }
     } catch (error) {
       let errorMessage = t("login_failed");
-      if (error.code === "auth/user-not-found") {
-        errorMessage += t("user_not_found");
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        errorMessage = t("invalid_credentials");
       } else if (error.code === "auth/wrong-password") {
-        errorMessage += t("password");
+        errorMessage = t("invalid_credentials");
+      } else if (error.code === "auth/too-many-requests") {
+        errorMessage = t("too_many_attempts");
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = t("invalid_email_format");
       }
+      console.error("Login Error:", error.code, error.message);
       alert(errorMessage);
     } finally {
-      setLoading(false); // Ocultar indicador de carga
+      setLoading(false);
     }
   };
 
@@ -98,183 +109,272 @@ export default function Login() {
   };
 
   return (
+    // 1. Make LinearGradient the outermost container
     <LinearGradient
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
-      style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      style={styles.fullScreenGradient} // Use a style that ensures it fills the screen
     >
-      {/* Language Selector */}
-      <TouchableOpacity
-        onPress={handleLanguageChange}
-        style={{
-          position: "absolute",
-          top: 50,
-          right: 20,
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-      >
-        <Image
-          source={flag}
-          style={{ width: 28, height: 28, borderRadius: 14 }}
-          resizeMode="contain"
-        />
-        <Text style={{ marginLeft: 8, fontSize: 16 }}>
-          {t("change_language")}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Welcome Text */}
-      <Text
-        style={{
-          fontSize: 32,
-          fontWeight: "bold",
-          marginBottom: 20,
-          color: "#444B59",
-        }}
-      >
-        {t("welcome_back")}
-      </Text>
-
-      {/* Logo */}
-      <Image
-        source={require("../assets/icon.png")}
-        style={{ width: 193, height: 193, marginBottom: 30 }}
-      />
-      {/* Email Input */}
-      <View style={{ position: "relative", marginBottom: 15, width: "90%" }}>
-        <TextInput
-          placeholder={t("enter_email")}
-          value={email}
-          onChangeText={setEmail}
-          style={{
-            height: 55,
-            borderWidth: 1,
-            borderColor: "#ccc",
-            borderRadius: 10,
-            paddingHorizontal: 15, // Increased padding
-            paddingRight: 40, // Make space for the clear button
-            fontSize: 18,
-            backgroundColor: "white",
-            marginBottom: 10,
-          }}
-          // --- Email Specific Props ---
-          keyboardType="email-address" // Use email keyboard layout
-          autoCapitalize="none" // Don't capitalize automatically
-          autoComplete="email" // Help with autofill (Android)
-          textContentType="emailAddress" // Help with autofill (iOS)
-          autoCorrect={false} // Disable auto-correct for emails
-        />
-        {email.length > 0 && (
+      {/* 2. Place SafeAreaView INSIDE the gradient */}
+      <SafeAreaView style={styles.safeArea}>
+        {/* Nuevo contenedor para encabezado */}
+        <View style={styles.headerContainer}>
           <TouchableOpacity
-            onPress={() => setEmail("")}
-            style={{
-              position: "absolute",
-              right: 10,
-              top: 0, // Align button vertically
-              height: "100%", // Make button full height of input
-              justifyContent: "center", // Center icon vertically
-              paddingHorizontal: 5, // Add padding for easier tap
-            }}
+            onPress={handleLanguageChange}
+            style={styles.languageSelector}
           >
-            <Ionicons name="close-circle" size={24} color="gray" />
-          </TouchableOpacity>
-        )}
-
-        {/* Password Input */}
-        <View style={{ position: "relative", marginBottom: 10 }}>
-          <TextInput
-            placeholder={t("password")}
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
-            style={{
-              height: 55,
-              borderWidth: 1,
-              borderColor: "#ccc",
-              borderRadius: 10,
-              paddingHorizontal: 10,
-              fontSize: 18,
-              backgroundColor: "white",
-            }}
-          />
-          <TouchableOpacity
-            onPress={() => setShowPassword(!showPassword)}
-            style={{ position: "absolute", right: 10, top: 15 }}
-          >
-            <Ionicons
-              name={showPassword ? "eye-off" : "eye"}
-              size={24}
-              color="gray"
+            <Image
+              source={flag}
+              style={styles.flagImage}
+              resizeMode="contain"
             />
-          </TouchableOpacity>
-
-          {/* Recover Password Link */}
-          <TouchableOpacity
-            onPress={handleRecoverPassword}
-            style={{ alignSelf: "flex-end", marginBottom: 20, marginTop: 10 }}
-          >
-            <Text style={{ color: "gray", fontSize: 16 }}>
-              {t("recover_password")}
-            </Text>
+            <Text style={styles.languageText}>{t("change_language")}</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Sign In Button */}
-      <Pressable
-        onPress={handleLogin}
-        disabled={loading} // Disable button when loading
-        style={({ pressed }) => [
-          // Style based on pressed state
-          {
-            width: "90%",
-            height: 55,
-            backgroundColor: loading ? "#a0a0a0" : "#006892", // Grey out when loading
-            justifyContent: "center",
-            alignItems: "center",
-            borderRadius: 10,
-            marginBottom: 20,
-            marginTop: 10,
-            flexDirection: "row", // To align text and spinner
-            opacity: pressed ? 0.8 : 1, // Feedback on press
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 5 }, // Adjusted shadow
-            shadowOpacity: 0.3,
-            shadowRadius: 5,
-            elevation: 10, // Adjusted elevation
-          },
-        ]}
-      >
-        {loading ? (
-          <ActivityIndicator
-            size="small"
-            color="#fff"
-            style={{ marginRight: 10 }}
-          />
-        ) : null}
-        <Text style={{ color: "#fff", fontSize: 19, fontWeight: "bold" }}>
-          {loading ? t("signing_in") : t("sign_in")}
-        </Text>
-      </Pressable>
+        {/* Contenedor principal del contenido */}
+        <View style={styles.contentContainer}>
+          {/* Welcome Text */}
+          <Text style={styles.welcomeText}>{t("welcome_back")}</Text>
 
-      {/* Register Link */}
-      <View style={{ width: "90%", alignItems: "center" }}>
-        <Text
-          style={{
-            marginTop: 25,
-            marginHorizontal: 25,
-            fontSize: 23,
-            textAlign: "center",
-          }}
-        >
-          {t("no_account")}{" "}
-          <Text style={{ color: "blue" }} onPress={handleRegister}>
-            {t("register_here")}
-          </Text>
-        </Text>
-      </View>
+          {/* Logo */}
+          <Image source={require("../assets/icon.png")} style={styles.logo} />
 
-      {/* Loading Indicator */}
+          {/* Email Input */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                placeholder={t("enter_email")}
+                value={email}
+                onChangeText={setEmail}
+                style={styles.input}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+                autoCorrect={false}
+              />
+              {email.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setEmail("")}
+                  style={styles.clearButton}
+                >
+                  <Ionicons name="close-circle" size={24} color="gray" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputWrapper}>
+              <TextInput
+                placeholder={t("password")}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+                style={styles.input}
+                textContentType="password"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={24}
+                  color="gray"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Recover Password Link */}
+            <TouchableOpacity
+              onPress={handleRecoverPassword}
+              style={styles.recoverPasswordButton}
+            >
+              <Text style={styles.recoverPasswordText}>
+                {t("recover_password")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Sign In Button */}
+          <Pressable
+            onPress={handleLogin}
+            disabled={loading}
+            style={({ pressed }) => [
+              styles.signInButtonBase,
+              loading && styles.signInButtonLoading,
+              pressed && !loading && styles.signInButtonPressed,
+            ]}
+          >
+            {loading ? (
+              <ActivityIndicator
+                size="small"
+                color="#fff"
+                style={styles.spinner}
+              />
+            ) : null}
+            <Text style={styles.signInButtonText}>
+              {loading ? t("signing_in") : t("sign_in")}
+            </Text>
+          </Pressable>
+
+          {/* Register Link */}
+          <View style={styles.registerContainer}>
+            <Text style={styles.registerText}>
+              {t("no_account")}{" "}
+              <Text style={styles.registerLink} onPress={handleRegister}>
+                {t("register_here")}
+              </Text>
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
     </LinearGradient>
   );
 }
+
+// Define los estilos usando StyleSheet
+const styles = StyleSheet.create({
+  // New style for the gradient to ensure it covers the whole screen
+  fullScreenGradient: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  headerContainer: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "flex-end", // Alinea hacia la derecha
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "ios" ? 20 : 20, // Un poco más de margen arriba en iOS
+  },
+  languageSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 5,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderRadius: 15,
+  },
+  flagImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  languageText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: "#333",
+  },
+  contentContainer: {
+    flex: 1,
+    width: "90%",
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 20,
+  },
+  welcomeText: {
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "#444B59",
+    textAlign: "center",
+  },
+  logo: {
+    width: 150,
+    height: 150,
+    marginBottom: 30,
+    resizeMode: "contain",
+  },
+  inputContainer: {
+    width: "100%",
+    marginBottom: 15,
+  },
+  inputWrapper: {
+    position: "relative",
+    width: "100%",
+    marginBottom: 15,
+  },
+  input: {
+    height: 55,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    fontSize: 18,
+    backgroundColor: "white",
+    paddingRight: 50,
+  },
+  clearButton: {
+    position: "absolute",
+    right: 10,
+    top: 0,
+    height: "100%",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  eyeButton: {
+    position: "absolute",
+    right: 10,
+    top: 0,
+    height: "100%",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  recoverPasswordButton: {
+    alignSelf: "flex-end",
+    marginTop: -5,
+    marginBottom: 10,
+  },
+  recoverPasswordText: {
+    color: "gray",
+    fontSize: 16,
+  },
+  signInButtonBase: {
+    width: "100%",
+    height: 55,
+    backgroundColor: "#006892",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+    marginTop: 10,
+    flexDirection: "row",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  signInButtonLoading: {
+    backgroundColor: "#a0a0a0",
+  },
+  signInButtonPressed: {
+    opacity: 0.8,
+  },
+  spinner: {
+    marginRight: 10,
+  },
+  signInButtonText: {
+    color: "#fff",
+    fontSize: 19,
+    fontWeight: "bold",
+  },
+  registerContainer: {
+    // Removed width: '90%' as contentContainer handles width now
+    alignItems: "center",
+    marginTop: 40,
+  },
+  registerText: {
+    fontSize: 18,
+    textAlign: "center",
+    color: "#444B59",
+    lineHeight: 24,
+  },
+  registerLink: {
+    color: "#006892",
+    fontWeight: "bold",
+  },
+});
