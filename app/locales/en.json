@@ -231,6 +231,7 @@
     "telephone": "Telephone",
     "birth": "Birth Date",
     "email": "Email",
+    "role": "Role",
     "companyName": "Company Name",
     "companyCode": "Company Code",
     "noCompanyAssigned": "No company assigned",
@@ -579,6 +580,15 @@
       "10": "Oct",
       "11": "Nov",
       "12": "Dec"
+  },
+
+  "success": {
+    "title": "Success",
+    "message": "Operation completed successfully."
+  },
+  "error": {
+    "title": "Error",
+    "message": "An error occurred. Please try again."
   }
   
 }

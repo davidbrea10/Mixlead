@@ -21,16 +21,14 @@ import {
   getDoc,
   query,
   where,
-  collectionGroup, // Import collectionGroup for broader queries
   limit,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
 import { useTranslation } from "react-i18next";
 import { t } from "i18next"; // Import t function for translation
 import RNHTMLtoPDF from "react-native-html-to-pdf";
-import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import RNPickerSelect from "react-native-picker-select";
 
 // --- Helper function to get distinct years from all doses of a company ---
 // NOTE: This performs a potentially large read. Consider optimizing
@@ -227,6 +225,16 @@ export default function Home() {
   const monthNames = Array.from({ length: 12 }, (_, i) =>
     t(`employeesAgenda.months.${i + 1}`),
   );
+
+  const yearItems = allAvailableYears.map((year) => ({
+    label: year.toString(),
+    value: year,
+  }));
+  // Formatea los empleados para la librería
+  const employeeItems = filteredEmployees.map((emp) => ({
+    label: emp.name,
+    value: emp.id,
+  }));
 
   // --- Effects ---
 
@@ -838,7 +846,11 @@ export default function Home() {
     >
       <View
         style={{
-          paddingTop: 40,
+          paddingTop: Platform.select({
+            // Apply platform-specific padding
+            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+            android: 40, // Base padding on Android (adjust value as needed)
+          }),
           backgroundColor: "#FF9300",
           flexDirection: "row",
           alignItems: "center",
@@ -884,71 +896,75 @@ export default function Home() {
 
       {/* Selectors */}
       <View style={styles.selectorContainer}>
-        {/* Year Selector */}
+        {/* Year Selector con RNPickerSelect */}
         <View style={styles.pickerWrapper}>
           <Text style={styles.pickerLabel}>
             {t("employeesAgenda.selectYear")}
           </Text>
-          {isLoadingYears ? (
-            <ActivityIndicator
-              size="small"
-              color="#FF9300"
-              style={{ flex: 1 }}
-            />
-          ) : (
-            <Picker
-              selectedValue={selectedYear}
-              onValueChange={(itemValue) => {
-                if (itemValue !== selectedYear) {
-                  // Prevent unnecessary updates
-                  setSelectedYear(itemValue);
-                  setSelectedEmployeeId(null); // Reset employee when year changes
-                  setFilteredEmployees([]); // Clear employee list immediately
+          <View style={{ flex: 1 }}>
+            {/* Contenedor para que RNPickerSelect se expanda */}
+            <RNPickerSelect
+              onValueChange={(value) => {
+                if (value !== selectedYear) {
+                  setSelectedYear(value);
+                  setSelectedEmployeeId(null);
+                  setFilteredEmployees([]);
                 }
               }}
-              style={styles.picker}
-              enabled={!isLoadingYears}
-            >
-              <Picker.Item
-                label={t("employeesAgenda.employee.placeholder")}
-                value={null}
-              />
-              {allAvailableYears.map((year) => (
-                <Picker.Item key={year} label={year.toString()} value={year} />
-              ))}
-            </Picker>
-          )}
+              items={yearItems}
+              value={selectedYear}
+              placeholder={{
+                label: t("employeesAgenda.employee.placeholder"),
+                value: null,
+              }}
+              style={pickerSelectStyles} // Usa un objeto de estilos específico para RNPickerSelect
+              useNativeAndroidPickerStyle={false} // Para poder estilizar en Android también
+              Icon={() => {
+                // Opcional: Añade un icono de flecha
+                return (
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color="gray"
+                    style={{ paddingRight: 10 }}
+                  />
+                );
+              }}
+            />
+          </View>
         </View>
 
         {/* Employee Selector (conditional) */}
-        {selectedYear && ( // Only show if a year is selected
+        {/* Employee Selector con RNPickerSelect */}
+        {selectedYear && (
           <View style={styles.pickerWrapper}>
             <Text style={styles.pickerLabel}>
               {t("employeesAgenda.selectEmployee")}
             </Text>
-            {isLoadingEmployees ? (
-              <ActivityIndicator
-                size="small"
-                color="#FF9300"
-                style={{ flex: 1 }}
+            <View style={{ flex: 1 }}>
+              <RNPickerSelect
+                onValueChange={(value) => setSelectedEmployeeId(value)}
+                items={employeeItems}
+                value={selectedEmployeeId}
+                placeholder={{
+                  label: t("employeesAgenda.employee.placeholder"),
+                  value: null,
+                }}
+                style={pickerSelectStyles}
+                disabled={isLoadingEmployees || filteredEmployees.length === 0}
+                useNativeAndroidPickerStyle={false}
+                Icon={() => {
+                  return (
+                    <Ionicons
+                      name="chevron-down"
+                      size={20}
+                      color="gray"
+                      style={{ paddingRight: 10 }}
+                    />
+                  );
+                }}
               />
-            ) : (
-              <Picker
-                selectedValue={selectedEmployeeId}
-                onValueChange={(itemValue) => setSelectedEmployeeId(itemValue)}
-                style={styles.picker}
-                enabled={!isLoadingEmployees && filteredEmployees.length > 0}
-              >
-                <Picker.Item
-                  label={t("employeesAgenda.employee.placeholder")}
-                  value={null}
-                />
-                {filteredEmployees.map((emp) => (
-                  <Picker.Item key={emp.id} label={emp.name} value={emp.id} />
-                ))}
-              </Picker>
-            )}
-            {/* Optional: Message if no employees found for the year */}
+            </View>
             {!isLoadingEmployees &&
               filteredEmployees.length === 0 &&
               selectedYear && (
@@ -1083,42 +1099,44 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  // Estilos de Tabla
   row: {
     flexDirection: "row",
     alignItems: "center",
-    borderBottomWidth: 2,
-    borderColor: "#ddd",
+    borderBottomWidth: 1, // Línea más fina
+    borderColor: "#eee", // Color más suave
   },
   headerRow: {
-    backgroundColor: "white",
+    backgroundColor: "#f8f8f8", // Fondo ligero para cabecera
     borderBottomWidth: 2,
     borderColor: "#ddd",
   },
   headerCell: {
-    fontSize: 20,
+    fontSize: 16, // Tamaño de cabecera
     fontWeight: "bold",
     textAlign: "center",
     color: "#333",
-    paddingVertical: 12,
+    paddingVertical: 14, // Más padding vertical
   },
   cell: {
-    fontSize: 20,
+    fontSize: 15, // Tamaño de celda de datos
     textAlign: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     color: "#444",
   },
   cellBorder: {
     borderRightWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#eee", // Color más suave
   },
   eyeButton: {
     alignItems: "center",
   },
   noDataText: {
     textAlign: "center",
-    fontSize: 20,
-    color: "#666",
-    marginTop: 20,
+    fontSize: 16, // Tamaño adecuado para mensaje
+    color: "#888", // Gris más oscuro
+    marginTop: 40, // Más espacio superior
+    paddingHorizontal: 20,
   },
   summaryContainer: {
     paddingHorizontal: 16,
@@ -1202,15 +1220,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
   },
+  // Estilos Botón Descarga
   downloadButton: {
-    width: "70%",
-    backgroundColor: "#C32427",
-    padding: 15,
-    borderRadius: 5,
+    width: "80%", // Un poco más ancho
+    backgroundColor: "#C32427", // Rojo
+    paddingVertical: 14, // Padding vertical
+    borderRadius: 25, // Muy redondeado
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   downloadButtonText: {
     color: "white",
-    fontSize: 20,
+    fontSize: 16, // Tamaño de texto
+    fontWeight: "bold",
     textAlign: "center",
   },
 
@@ -1225,17 +1250,68 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     borderRadius: 20,
     paddingHorizontal: 10,
-    marginBottom: 12, // Spacing between pickers
-    minHeight: 50, // Ensure consistent height
+    marginBottom: 12,
+    // minHeight: 50, // <-- Comenta o elimina esto
+    height: 60, // <-- Establece una altura fija (ajusta el valor 60 según necesites)
   },
   pickerLabel: {
-    fontSize: 16, // Slightly smaller label
+    fontSize: 16,
     fontWeight: "bold",
     marginRight: 10,
     color: "#555",
+    // Podrías necesitar ajustar un poco el alineamiento si la etiqueta y el picker
+    // no quedan perfectamente centrados verticalmente uno respecto al otro.
+    // textAlignVertical: 'center', // Funciona mejor en Android
+  },
+  pickerInnerWrapper: {
+    flex: 1, // Sigue tomando el espacio horizontal
+    // Añadimos overflow: 'hidden' para intentar prevenir que el picker se desborde visualmente
+    // aunque la altura fija en pickerWrapper es la clave.
+    overflow: "hidden",
+    // Puedes intentar centrar el contenido si es necesario, aunque alignItems en el padre ayuda
+    // justifyContent: 'center',
+    // backgroundColor: 'lightcoral', // Temporal para debug
   },
   picker: {
-    flex: 1,
-    height: 50, // Explicit height for Android consistency
+    width: "100%", // Ocupa el ancho del inner wrapper
+    // ¡SIN height FIJA aquí!
+    // ¡SIN flex: 1 aquí!
+    // backgroundColor: 'lightblue', // Temporal para debug
   },
+});
+
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    // borderWidth: 1, // Quita bordes si ya los tienes en pickerWrapper
+    // borderColor: 'gray',
+    // borderRadius: 4,
+    color: "black",
+    paddingRight: 30, // para asegurar que el texto no se solape con el icono
+    // backgroundColor: 'white', // Quita si ya lo tienes en pickerWrapper
+    // Ajusta estos estilos para que coincidan con tu diseño
+  },
+  inputAndroid: {
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    // borderWidth: 0.5,
+    // borderColor: 'purple',
+    // borderRadius: 8,
+    color: "black",
+    paddingRight: 30,
+    // backgroundColor: 'white',
+  },
+  placeholder: {
+    color: "gray",
+  },
+  iconContainer: {
+    // Estilo para el contenedor del icono (la flecha)
+    top: "50%",
+    marginTop: -10, // Aproximadamente la mitad del tamaño del icono
+    right: 15,
+  },
+  // Puedes añadir más estilos según la documentación de la librería
 });

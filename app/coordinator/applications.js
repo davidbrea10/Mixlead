@@ -450,36 +450,44 @@ export default function DoseDetails() {
 }
 
 const styles = StyleSheet.create({
+  // Estilos de Tabla
   row: {
     flexDirection: "row",
     alignItems: "center",
-    borderBottomWidth: 2,
-    borderColor: "#ddd",
+    borderBottomWidth: 1, // Línea más fina
+    borderColor: "#eee", // Color más suave
   },
   headerRow: {
-    backgroundColor: "white",
+    backgroundColor: "#f8f8f8", // Fondo ligero para cabecera
     borderBottomWidth: 2,
     borderColor: "#ddd",
   },
   headerCell: {
-    fontSize: 20,
+    fontSize: 16, // Tamaño de cabecera
     fontWeight: "bold",
     textAlign: "center",
     color: "#333",
-    paddingVertical: 12,
+    paddingVertical: 14, // Más padding vertical
   },
   cell: {
-    fontSize: 20,
+    fontSize: 15, // Tamaño de celda de datos
     textAlign: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     color: "#444",
   },
   cellBorder: {
     borderRightWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#eee", // Color más suave
   },
   eyeButton: {
     alignItems: "center",
+  },
+  noDataText: {
+    textAlign: "center",
+    fontSize: 16, // Tamaño adecuado para mensaje
+    color: "#888", // Gris más oscuro
+    marginTop: 40, // Más espacio superior
+    paddingHorizontal: 20,
   },
   expandedRow: {
     backgroundColor: "#f9f9f9",
@@ -489,7 +497,7 @@ const styles = StyleSheet.create({
   },
   expandedText: {
     color: "#666",
-    fontSize: 20,
+    fontSize: 16,
     textAlign: "center",
   },
 });

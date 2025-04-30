@@ -230,6 +230,7 @@
     "telephone": "Teléfono",
     "birth": "Fecha de Nacimiento",
     "email": "Correo Electrónico",
+    "role": "Rol",
     "companyName": "Nombre de la Empresa",
     "companyCode": "Código de la Empresa",
     "noCompanyAssigned": "No hay empresa asignada",
@@ -564,6 +565,15 @@
       "documentNotFound": "El documento del usuario no existe.",
       "fetchError": "Error al obtener los datos del usuario."
     }
+  },
+
+  "success": {
+    "title": "Éxito",
+    "message": "Acción realizada correctamente."
+  },
+  "error": {
+    "title": "Error",
+    "message": "Ocurrió un error. Por favor, inténtalo de nuevo."
   }
 }
   

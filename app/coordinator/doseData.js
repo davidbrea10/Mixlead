@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  StyleSheet, // <-- Import StyleSheet
+  ActivityIndicator, // <-- Import ActivityIndicator (opcional, para mostrar mientras carga años)
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -15,15 +17,17 @@ import { collection, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { useTranslation } from "react-i18next"; // Import i18n hook
+import RNPickerSelect from "react-native-picker-select";
 
 export default function Home() {
   const { t } = useTranslation(); // Initialize translation hook
   const router = useRouter();
 
   const [monthlyDoses, setMonthlyDoses] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [availableYears, setAvailableYears] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(null); // <-- Iniciar en null para usar placeholder
+  const [availableYears, setAvailableYears] = useState([]); // Contiene los números de año
   const [totalAnnualDose, setTotalAnnualDose] = useState(0);
+  const [isLoading, setIsLoading] = useState(true); // <-- Añadir estado de carga
 
   const handleBack = () => {
     router.back();
@@ -38,12 +42,26 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    calculateTotalAnnualDose();
+    if (selectedYear !== null) {
+      // Calcular solo si hay un año seleccionado
+      calculateTotalAnnualDose();
+    } else {
+      setTotalAnnualDose(0); // Resetear si no hay año seleccionado
+    }
   }, [monthlyDoses, selectedYear]);
 
   const loadMonthlyDoses = async () => {
+    setIsLoading(true); // Iniciar carga
+    setMonthlyDoses([]);
+    setAvailableYears([]);
+    setSelectedYear(null); // Resetear selección
+
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      // Alert.alert(t("errors.notLoggedIn")); // Opcional: Alerta si no está logueado
+      return;
+    }
 
     try {
       const dosesRef = collection(db, "employees", user.uid, "doses");
@@ -51,34 +69,77 @@ export default function Home() {
 
       let doseData = {};
       let yearsSet = new Set();
+      let hasData = false; // Flag para ver si se encontró alguna dosis
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        if (data.dose && data.month && data.year) {
-          yearsSet.add(data.year);
-          const key = `${data.year}-${data.month}`;
+        // Validar que los datos necesarios existan y sean números
+        const doseValue =
+          typeof data.dose === "number"
+            ? data.dose
+            : parseFloat(data.dose || 0);
+        const monthValue =
+          typeof data.month === "number"
+            ? data.month
+            : parseInt(data.month, 10);
+        const yearValue =
+          typeof data.year === "number" ? data.year : parseInt(data.year, 10);
+
+        if (
+          !isNaN(doseValue) &&
+          !isNaN(monthValue) &&
+          !isNaN(yearValue) &&
+          monthValue >= 1 &&
+          monthValue <= 12
+        ) {
+          hasData = true; // Se encontró al menos una dosis válida
+          yearsSet.add(yearValue);
+          const key = `${yearValue}-${monthValue}`;
           if (!doseData[key]) {
             doseData[key] = {
               totalDose: 0,
-              month: data.month,
-              year: data.year,
+              month: monthValue,
+              year: yearValue,
             };
           }
-          doseData[key].totalDose += data.dose;
+          // Sumar solo si la dosis es un número válido
+          if (!isNaN(doseValue)) {
+            doseData[key].totalDose += doseValue;
+          }
         }
       });
 
-      setAvailableYears([...yearsSet].sort((a, b) => a - b));
+      // Ordenar años disponibles (descendente es más común para años)
+      const sortedYears = [...yearsSet].sort((a, b) => b - a);
+      setAvailableYears(sortedYears);
+
+      // Seleccionar automáticamente el año más reciente si hay datos
+      if (hasData && sortedYears.length > 0) {
+        setSelectedYear(sortedYears[0]);
+      } else if (!hasData) {
+        // Si no hay datos, añadir el año actual como opción y seleccionarlo
+        const currentYear = new Date().getFullYear();
+        setAvailableYears([currentYear]);
+        setSelectedYear(currentYear);
+      }
+
       setMonthlyDoses(Object.values(doseData));
     } catch (error) {
       console.error("Error loading monthly doses:", error);
+      // Alert.alert(t("errors.loadDosesFailed")); // Opcional: Alerta de error
+      // Fallback: añadir año actual si falla la carga
+      const currentYear = new Date().getFullYear();
+      setAvailableYears([currentYear]);
+      setSelectedYear(currentYear);
+    } finally {
+      setIsLoading(false); // Finalizar carga
     }
   };
 
   const calculateTotalAnnualDose = () => {
     const total = monthlyDoses
-      .filter((item) => item.year === selectedYear)
-      .reduce((sum, item) => sum + item.totalDose, 0);
+      .filter((item) => item.year === selectedYear) // Filtra por el año seleccionado
+      .reduce((sum, item) => sum + (item.totalDose || 0), 0); // Suma las dosis
     setTotalAnnualDose(total);
   };
 
@@ -92,6 +153,12 @@ export default function Home() {
   const monthNames = Array.from({ length: 12 }, (_, i) =>
     t(`home.months.${i + 1}`),
   );
+
+  // Formatear años para RNPickerSelect
+  const yearItems = availableYears.map((year) => ({
+    label: year.toString(),
+    value: year,
+  }));
 
   return (
     <LinearGradient
@@ -159,41 +226,38 @@ export default function Home() {
         </Pressable>
       </View>
 
-      <View style={{ padding: 16 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "#fff",
-            borderWidth: 1,
-            borderColor: "#ddd",
-            borderRadius: 20,
-            paddingHorizontal: 10,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 20,
-              fontWeight: "bold",
-              marginRight: 10,
-            }}
-          >
-            {t("home.selectYear")}
-          </Text>
-          <Picker
-            selectedValue={selectedYear}
-            onValueChange={(itemValue) => setSelectedYear(itemValue)}
-            style={{ flex: 1, marginLeft: 70 }}
-          >
-            {availableYears.map((year) => (
-              <Picker.Item
-                key={year}
-                label={year.toString()}
-                value={year}
-                style={{ textAlign: "right", fontSize: 20 }}
+      {/* Selector de Año con RNPickerSelect */}
+      <View style={styles.selectorOuterContainer}>
+        <View style={styles.pickerWrapper}>
+          <Text style={styles.pickerLabel}>{t("home.selectYear")}</Text>
+          {isLoading ? (
+            <ActivityIndicator
+              size="small"
+              color="#FF9300"
+              style={{ flex: 1 }}
+            />
+          ) : (
+            <View style={styles.pickerInnerWrapper}>
+              <RNPickerSelect
+                onValueChange={(value) => setSelectedYear(value)}
+                items={yearItems}
+                value={selectedYear}
+                placeholder={{
+                  label: t("home.yearPlaceholder", "Selecciona un año..."), // Añadir key de traducción
+                  value: null,
+                }}
+                style={pickerSelectStyles} // Usar estilos definidos abajo
+                useNativeAndroidPickerStyle={false} // Para estilo consistente
+                Icon={() => {
+                  // Añadir icono de flecha si se desea
+                  return (
+                    <Ionicons name="chevron-down" size={20} color="gray" />
+                  );
+                }}
+                disabled={isLoading || yearItems.length === 0} // Deshabilitar si carga o no hay años
               />
-            ))}
-          </Picker>
+            </View>
+          )}
         </View>
       </View>
 
@@ -289,43 +353,77 @@ export default function Home() {
 }
 
 const styles = {
+  // Estilos del Selector
+  selectorOuterContainer: {
+    padding: 16,
+  },
+  pickerWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 25, // Más redondeado
+    paddingHorizontal: 15, // Más padding
+    minHeight: 55, // Altura mínima consistente
+    // Sombras sutiles opcionales
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  pickerLabel: {
+    fontSize: 16, // Tamaño adecuado para etiqueta
+    fontWeight: "600", // Semi-bold
+    color: "#555",
+    marginRight: 10,
+  },
+  pickerInnerWrapper: {
+    flex: 1, // Ocupa el espacio restante
+    justifyContent: "center", // Centra el RNPickerSelect verticalmente
+  },
+
+  // Estilos de Tabla
   row: {
     flexDirection: "row",
     alignItems: "center",
-    borderBottomWidth: 2,
-    borderColor: "#ddd",
+    borderBottomWidth: 1, // Línea más fina
+    borderColor: "#eee", // Color más suave
   },
   headerRow: {
-    backgroundColor: "white",
+    backgroundColor: "#f8f8f8", // Fondo ligero para cabecera
     borderBottomWidth: 2,
     borderColor: "#ddd",
   },
   headerCell: {
-    fontSize: 20,
+    fontSize: 16, // Tamaño de cabecera
     fontWeight: "bold",
     textAlign: "center",
     color: "#333",
-    paddingVertical: 12,
+    paddingVertical: 14, // Más padding vertical
   },
   cell: {
-    fontSize: 20,
+    fontSize: 15, // Tamaño de celda de datos
     textAlign: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     color: "#444",
   },
   cellBorder: {
     borderRightWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#eee", // Color más suave
   },
   eyeButton: {
     alignItems: "center",
   },
   noDataText: {
     textAlign: "center",
-    fontSize: 20,
-    color: "#666",
-    marginTop: 20,
+    fontSize: 16, // Tamaño adecuado para mensaje
+    color: "#888", // Gris más oscuro
+    marginTop: 40, // Más espacio superior
+    paddingHorizontal: 20,
   },
+
   annualDoseContainer: {
     flexDirection: "row", // Cambiado de "row" a "column"
     justifyContent: "center", // Cambiado de "space-between" a "center"
@@ -401,15 +499,58 @@ const styles = {
     fontSize: 16,
     textAlign: "center",
   },
+  // Estilos Botón Descarga
   downloadButton: {
-    width: "70%",
-    backgroundColor: "#C32427",
-    padding: 15,
-    borderRadius: 5,
+    width: "80%", // Un poco más ancho
+    backgroundColor: "#C32427", // Rojo
+    paddingVertical: 14, // Padding vertical
+    borderRadius: 25, // Muy redondeado
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   downloadButtonText: {
     color: "white",
-    fontSize: 20,
+    fontSize: 16, // Tamaño de texto
+    fontWeight: "bold",
     textAlign: "center",
   },
 };
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    color: "black",
+    paddingRight: 30, // para asegurar que el texto no se solape con el icono (si se añade)
+    // Quitar bordes/fondo si pickerWrapper ya los tiene
+    // borderWidth: 1,
+    // borderColor: 'gray',
+    // borderRadius: 4,
+    // backgroundColor: 'white',
+  },
+  inputAndroid: {
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    color: "black",
+    paddingRight: 30, // para asegurar que el texto no se solape con el icono (si se añade)
+    // Quitar bordes/fondo si pickerWrapper ya los tiene
+    // borderWidth: 0.5,
+    // borderColor: 'purple',
+    // borderRadius: 8,
+    // backgroundColor: 'white',
+  },
+  placeholder: {
+    color: "#9EA0A4", // Color estándar de placeholder
+    fontSize: 16,
+  },
+  iconContainer: {
+    // Estilo para el contenedor del icono (la flecha)
+    top: "50%",
+    marginTop: -10, // Ajustar para centrar el icono verticalmente (aprox. la mitad de su tamaño)
+    right: 15, // Posición a la derecha
+  },
+});

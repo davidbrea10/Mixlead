@@ -571,42 +571,44 @@ export default function Home() {
 }
 
 const styles = {
+  // Estilos de Tabla
   row: {
     flexDirection: "row",
     alignItems: "center",
-    borderBottomWidth: 2,
-    borderColor: "#ddd",
+    borderBottomWidth: 1, // Línea más fina
+    borderColor: "#eee", // Color más suave
   },
   headerRow: {
-    backgroundColor: "white",
+    backgroundColor: "#f8f8f8", // Fondo ligero para cabecera
     borderBottomWidth: 2,
     borderColor: "#ddd",
   },
   headerCell: {
-    fontSize: 20,
+    fontSize: 16, // Tamaño de cabecera
     fontWeight: "bold",
     textAlign: "center",
     color: "#333",
-    paddingVertical: 12,
+    paddingVertical: 14, // Más padding vertical
   },
   cell: {
-    fontSize: 20,
+    fontSize: 15, // Tamaño de celda de datos
     textAlign: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     color: "#444",
   },
   cellBorder: {
     borderRightWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#eee", // Color más suave
   },
   eyeButton: {
     alignItems: "center",
   },
   noDataText: {
     textAlign: "center",
-    fontSize: 20,
-    color: "#666",
-    marginTop: 20,
+    fontSize: 16, // Tamaño adecuado para mensaje
+    color: "#888", // Gris más oscuro
+    marginTop: 40, // Más espacio superior
+    paddingHorizontal: 20,
   },
   annualDoseContainer: {
     flexDirection: "row", // Cambiado de "row" a "column"
@@ -683,15 +685,22 @@ const styles = {
     fontSize: 16,
     textAlign: "center",
   },
+  // Estilos Botón Descarga
   downloadButton: {
-    width: "70%",
-    backgroundColor: "#C32427",
-    padding: 15,
-    borderRadius: 5,
+    width: "80%", // Un poco más ancho
+    backgroundColor: "#C32427", // Rojo
+    paddingVertical: 14, // Padding vertical
+    borderRadius: 25, // Muy redondeado
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   downloadButtonText: {
     color: "white",
-    fontSize: 20,
+    fontSize: 16, // Tamaño de texto
+    fontWeight: "bold",
     textAlign: "center",
   },
 };

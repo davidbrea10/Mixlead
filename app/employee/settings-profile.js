@@ -313,6 +313,8 @@ export default function Profile() {
                       where("role", "==", "coordinator"),
                     );
 
+                    console.log("Coordinators Query:", coordinatorsQuery);
+
                     const coordinatorsSnap = await getDocs(coordinatorsQuery);
 
                     if (coordinatorsSnap.empty) {
@@ -325,6 +327,8 @@ export default function Profile() {
                     for (const docSnap of coordinatorsSnap.docs) {
                       const coordinatorId = docSnap.id;
 
+                      console.log("Coordinator ID:", coordinatorId);
+
                       const applicationRef = doc(
                         db,
                         "employees",
@@ -333,9 +337,17 @@ export default function Profile() {
                         userId,
                       );
 
+                      console.log("Application Reference:", applicationRef);
+
                       const existingApp = await getDoc(applicationRef);
 
+                      console.log(
+                        "Existing Application:",
+                        existingApp.exists(),
+                      );
+
                       if (!existingApp.exists()) {
+                        console.log("Creating new application...");
                         await setDoc(applicationRef, {
                           id: userId,
                           firstName: userData.firstName,
@@ -343,6 +355,7 @@ export default function Profile() {
                           dni: userData.dni,
                           createdAt: new Date(),
                         });
+                        console.log("Application created successfully.");
                       } else {
                         alreadyApplied = true;
                       }

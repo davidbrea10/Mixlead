@@ -186,14 +186,25 @@ export default function Register() {
   };
 
   const onDateChange = (event, selectedDate) => {
-    const currentDate = selectedDate || birthDate;
-    setShowDatePicker(Platform.OS === "ios");
+    // Always hide picker after interaction (except on iOS where 'spinner' display persists)
+    if (Platform.OS !== "ios") {
+      setShowDatePicker(false);
+    }
 
-    // Formatear la fecha como aaaa-mm-dd
-    const formattedDate = format(currentDate, "yyyy-MM-dd"); // Usar formato ISO 8601
-
-    setBirthDate(currentDate); // Guardar la fecha como objeto Date
-    handleInputChange("birthDate", formattedDate); // Guardar la fecha formateada en el estado del formulario
+    if (event.type === "set" && selectedDate) {
+      // Check if a date was selected ('set')
+      const formattedDate = format(selectedDate, "yyyy-MM-dd"); // Format as YYYY-MM-DD
+      setBirthDate(selectedDate); // Update the Date object state for the picker
+      handleInputChange("birthDate", formattedDate); // Update form state with formatted string
+      validateAge(formattedDate); // Validate the newly selected date string
+      // For iOS 'spinner' display, explicitly hide after selection
+      if (Platform.OS === "ios") {
+        setShowDatePicker(false);
+      }
+    } else {
+      // User dismissed the picker (on Android) or iOS spinner was closed
+      setShowDatePicker(false);
+    }
   };
 
   const handleRegister = async () => {
@@ -492,28 +503,39 @@ export default function Register() {
           {/* Birth Date */}
           <View style={{ width: "90%", marginBottom: 15 }}>
             <Text style={styles.label}>{t("register.birthDate")}</Text>
-            <TouchableOpacity
+            {/* Pressable to show current date and open picker */}
+            <Pressable
               onPress={() => setShowDatePicker(true)}
-              style={styles.input}
+              style={styles.pickerButton} // Use a dedicated style
             >
               <Text
-                style={{
-                  color: form.birthDate ? "black" : "gray",
-                  fontSize: 18,
-                }}
+                style={[
+                  styles.pickerButtonText, // Base text style
+                  !form.birthDate && styles.pickerButtonPlaceholder, // Placeholder style
+                ]}
               >
                 {form.birthDate || t("register.selectBirthDate")}
               </Text>
-            </TouchableOpacity>
+              {/* Optional: Add an icon */}
+              <Ionicons name="calendar-outline" size={24} color="gray" />
+            </Pressable>
+
+            {/* Conditionally render the DateTimePicker */}
             {showDatePicker && (
               <DateTimePicker
-                value={birthDate}
+                value={birthDate} // Use the Date object state
                 mode="date"
-                display="default"
+                display={Platform.OS === "ios" ? "spinner" : "default"} // Recommended display modes
                 onChange={onDateChange}
-                maximumDate={new Date()}
+                maximumDate={
+                  new Date(
+                    new Date().setFullYear(new Date().getFullYear() - 18),
+                  )
+                } // Example: Ensure user is at least 18
+                // minimumDate={new Date(1920, 0, 1)} // Optional: Set a minimum date
               />
             )}
+            {/* Display validation error */}
             {errors.birthDate ? (
               <Text style={styles.errorText}>{errors.birthDate}</Text>
             ) : null}
@@ -655,7 +677,9 @@ export default function Register() {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
+  // Use StyleSheet.create
+  // ... (keep existing styles: headerIcons, languageSelector, flagImage, languageText, label, input, clearIcon, eyeIcon, errorText, button, buttonLoading, buttonPressed, spinner, buttonText, footer)
   headerIcons: {
     position: "absolute",
     top: Platform.OS === "android" ? 20 : 55, // Adjust based on your header style
@@ -678,7 +702,7 @@ const styles = {
   languageText: { marginLeft: 8, fontSize: 16, color: "#333" },
   label: {
     fontSize: 16, // Slightly smaller label
-    marginBottom: 5,
+    marginBottom: 8, // Increased space
     color: "#444B59", // Consistent label color
     fontWeight: "500",
   },
@@ -691,7 +715,7 @@ const styles = {
     paddingHorizontal: 15,
     fontSize: 18,
     backgroundColor: "white",
-    justifyContent: "center", // For placeholder vertical centering
+    // Removed justifyContent as it's not needed for TextInput itself
     paddingRight: 50, // Space for clear/eye icon
   },
   clearIcon: {
@@ -703,7 +727,6 @@ const styles = {
     paddingHorizontal: 5,
   },
   eyeIcon: {
-    // Specific style for eye icon if needed, otherwise use clearIcon style positioning
     position: "absolute",
     right: 10,
     top: 0,
@@ -716,6 +739,30 @@ const styles = {
     fontSize: 14,
     marginTop: 5, // Space between input and error text
   },
+
+  // --- Add/Update Picker Button Styles ---
+  pickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 55,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    backgroundColor: "white",
+    justifyContent: "space-between", // Space between text and icon
+    width: "100%", // Ensure it takes full width like input
+    // marginBottom: 10, // Remove margin if field wrapper handles it
+  },
+  pickerButtonText: {
+    fontSize: 18,
+    color: "black", // Color when a date is selected
+  },
+  pickerButtonPlaceholder: {
+    color: "gray", // Color for the placeholder text
+  },
+  // --- End Picker Button Styles ---
+
   button: {
     // Base button style
     width: "90%", // Match input width
@@ -764,4 +811,4 @@ const styles = {
     shadowRadius: 8,
     elevation: 10, // Use a consistent elevation
   },
-};
+}); // End StyleSheet.create

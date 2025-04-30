@@ -1,30 +1,25 @@
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TextInput,
   Pressable,
-  Alert,
+  Alert, // Keep for confirmation
   ScrollView,
   ActivityIndicator,
   Image,
   Modal,
   TouchableOpacity,
   Platform,
+  StyleSheet, // 1. Import StyleSheet
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useState, useEffect } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../firebase/config";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  getDocs,
-} from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message"; // 2. Import Toast
 
 export default function EmployeeDetail() {
   const { id } = useLocalSearchParams();
@@ -37,62 +32,104 @@ export default function EmployeeDetail() {
     phone: "",
     role: "",
     birthDate: "",
-    companyName: "",
+    companyName: "", // Assuming this comes from employee data now
+    companyId: "", // Keep companyId
   });
   const [loading, setLoading] = useState(true);
   const [isRoleModalVisible, setRoleModalVisible] = useState(false);
-  const [isCompanyModalVisible, setCompanyModalVisible] = useState(false);
-  const [companies, setCompanies] = useState([]);
+  // Company selection logic seems removed, focusing on role for now.
+  // const [isCompanyModalVisible, setCompanyModalVisible] = useState(false);
+  // const [companies, setCompanies] = useState([]);
+  const [isSaving, setIsSaving] = useState(false); // 3. Add saving state
+  const [isDeleting, setIsDeleting] = useState(false); // State for delete process
 
-  // Initialize i18n
-  const { t } = useTranslation();
+  const { t } = useTranslation(); // Initialize i18n
 
   useEffect(() => {
     const fetchEmployee = async () => {
+      if (!id) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle", "Error"),
+          text2: t(
+            "employee_details.errors.invalid_id",
+            "Invalid employee ID.",
+          ), // Add translation
+        });
+        router.back();
+        return;
+      }
+      setLoading(true);
       try {
         const docRef = doc(db, "employees", id);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setEmployee(docSnap.data());
+          // Initialize state with fetched data, providing defaults if needed
+          const data = docSnap.data();
+          setEmployee({
+            firstName: data.firstName || "",
+            lastName: data.lastName || "",
+            dni: data.dni || "",
+            email: data.email || "",
+            phone: data.phone || "",
+            role: data.role || "",
+            birthDate: data.birthDate || "",
+            companyId: data.companyId || "", // Ensure companyId is fetched
+            // companyName: data.companyName || "" // If you still store companyName
+          });
         } else {
-          alert("Employee not found");
+          // 4. Replace alert with error toast
+          Toast.show({
+            type: "error",
+            text1: t("errors.errorTitle", "Error"),
+            text2: t(
+              "employee_details.errors.not_found",
+              "Employee not found.",
+            ), // Add translation
+          });
           router.back();
         }
       } catch (error) {
-        alert("Error fetching employee");
+        console.error("Error fetching employee:", error);
+        // 4. Replace alert with error toast
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle", "Error"),
+          text2: t(
+            "employee_details.errors.fetch_error",
+            "Error fetching employee data.",
+          ), // Add translation
+        });
+        router.back();
       } finally {
         setLoading(false);
       }
     };
 
-    const fetchCompanies = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "companies"));
-        const companyList = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setCompanies(companyList);
-      } catch (error) {
-        alert("Error fetching companies");
-      }
-    };
+    // --- Company fetching logic removed as it's not used for selection ---
+    // const fetchCompanies = async () => { ... };
 
     fetchEmployee();
-    fetchCompanies();
-  }, [id]);
+    // fetchCompanies(); // Don't call if not needed
+  }, [id, t, router]); // Add dependencies
 
-  const fieldLabels = {
-    firstName: t("employee_details.firstName"),
-    lastName: t("employee_details.lastName"),
-    dni: t("employee_details.dni"),
-    email: t("employee_details.email"),
-    phone: t("employee_details.phone"),
-    birthDate: t("employee_details.birthDate"),
-    role: t("employee_details.role"),
-    companyId: t("employee_details.companyId"),
-  };
+  // Define editable fields and their labels
+  const fields = [
+    { key: "firstName", label: "employee_details.firstName", editable: true },
+    { key: "lastName", label: "employee_details.lastName", editable: true },
+    { key: "dni", label: "employee_details.dni", editable: true },
+    { key: "email", label: "employee_details.email", editable: false }, // Email usually not editable after creation
+    {
+      key: "phone",
+      label: "employee_details.phone",
+      editable: true,
+      keyboardType: "phone-pad",
+    },
+    { key: "birthDate", label: "employee_details.birthDate", editable: false }, // Birth date usually not editable
+    { key: "companyId", label: "employee_details.companyId", editable: true }, // Allow editing company ID association
+    // Role is handled separately
+  ];
 
   const handleInputChange = (field, value) => {
     setEmployee({ ...employee, [field]: value });
@@ -100,10 +137,8 @@ export default function EmployeeDetail() {
 
   const roles = ["admin", "coordinator", "employee"];
 
-  const handleCompanySelect = (companyName) => {
-    setEmployee({ ...employee, companyName });
-    setCompanyModalVisible(false);
-  };
+  // --- Company selection logic removed ---
+  // const handleCompanySelect = (companyName) => { ... };
 
   const handleRoleSelect = (role) => {
     setEmployee({ ...employee, role });
@@ -111,17 +146,35 @@ export default function EmployeeDetail() {
   };
 
   const handleSave = async () => {
+    setIsSaving(true); // Start saving indicator
     try {
       const docRef = doc(db, "employees", id);
       await updateDoc(docRef, employee);
-      alert("Employee updated successfully");
-      router.push({ pathname: "/admin/employees", params: { refresh: true } });
+      // 5. Replace alert with success toast
+      Toast.show({
+        type: "success",
+        text1: t("success.title"),
+        text2: t("success.message"),
+      });
+      router.replace({
+        pathname: "/admin/employees",
+        params: { refresh: Date.now() },
+      }); // Go back/refresh
     } catch (error) {
-      alert("Error updating employee");
+      console.error("Error updating employee:", error);
+      // 5. Replace alert with error toast
+      Toast.show({
+        type: "error",
+        text1: t("error.title"),
+        text2: t("error.message"), // Add translation
+      });
+    } finally {
+      setIsSaving(false); // Stop saving indicator
     }
   };
 
   const handleDelete = async () => {
+    // 6. Keep Alert.alert for confirmation
     Alert.alert(
       t("employee_details.confirmDeleteTitle"),
       t("employee_details.confirmDelete"),
@@ -129,151 +182,129 @@ export default function EmployeeDetail() {
         {
           text: t("employee_details.cancel"),
           style: "cancel",
+          onPress: () => setIsDeleting(false),
         },
         {
           text: t("employee_details.delete1"),
           style: "destructive",
           onPress: async () => {
+            setIsDeleting(true);
             try {
               const docRef = doc(db, "employees", id);
               await deleteDoc(docRef);
-              alert("Employee deleted successfully");
-              router.push("/admin/home");
+              // 7. Replace alert with success toast
+              Toast.show({
+                type: "success",
+                text1: t("success.successTitle", "Success"),
+                text2: t(
+                  "employee_details.success.delete",
+                  "Employee deleted successfully.",
+                ), // Add translation
+              });
+              router.replace({
+                pathname: "/admin/employees",
+                params: { refresh: Date.now() },
+              }); // Go back/refresh
             } catch (error) {
-              alert("Error deleting employee");
+              console.error("Error deleting employee:", error);
+              // 7. Replace alert with error toast
+              Toast.show({
+                type: "error",
+                text1: t("errors.errorTitle", "Error"),
+                text2: t(
+                  "employee_details.errors.delete_error",
+                  "Error deleting employee.",
+                ), // Add translation
+              });
+            } finally {
+              setIsDeleting(false);
             }
           },
         },
       ],
+      { cancelable: false },
     );
   };
 
   if (loading) {
+    // Centered Loading Indicator
     return (
-      <ActivityIndicator size={50} color="#FF8C00" style={{ marginTop: 20 }} />
+      <LinearGradient
+        colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
+        style={styles.loadingContainer}
+      >
+        <ActivityIndicator size="large" color="#FF8C00" />
+      </LinearGradient>
     );
   }
 
   return (
     <LinearGradient
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
-      style={{ flex: 1 }}
+      style={styles.gradient}
     >
-      <View
-        style={{
-          backgroundColor: "#FF9300",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: 16,
-          borderBottomStartRadius: 40,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.3,
-          shadowRadius: 10,
-          elevation: 10,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS
-            android: 40, // Base padding on Android
-          }),
-        }}
-      >
+      {/* Header */}
+      <View style={styles.header}>
         <Pressable onPress={() => router.replace("/admin/employees")}>
           <Image
             source={require("../../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
+            style={styles.headerIcon}
           />
         </Pressable>
-        <View style={{ flexDirection: "column", alignItems: "center" }}>
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: "bold",
-              color: "white",
-              letterSpacing: 2,
-              textShadowColor: "black",
-              textShadowOffset: { width: 1, height: 1 },
-              textShadowRadius: 1,
-            }}
-          >
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitleMain}>
             {t("employee_details.employeesTitle")}
           </Text>
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: "light",
-              color: "white",
-              letterSpacing: 2,
-              textShadowOffset: { width: 1, height: 1 },
-              textShadowRadius: 1,
-            }}
-          >
-            {`${employee.firstName} ${employee.lastName}` ||
+          <Text style={styles.headerTitleSub}>
+            {`${employee.firstName} ${employee.lastName}`.trim() ||
               t("employee_details.employeeDetailsTitle")}
           </Text>
         </View>
-        <Pressable onPress={() => router.push("/admin/home")}>
-          <Image
-            source={require("../../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
-          />
+        {/* Keep Pressable for layout balance or remove if not needed */}
+        <Pressable
+          onPress={() => router.push("/admin/home")}
+          style={{ width: 50 }}
+        >
+          {/* Optional: Home Icon */}
+          {/* <Image source={require("../../../assets/icon.png")} style={styles.headerIcon} /> */}
         </Pressable>
       </View>
 
-      <ScrollView>
-        <View style={{ flex: 1, padding: 20 }}>
-          {Object.entries(fieldLabels)
-            .filter(([key]) => key !== "role") // Excluir el campo de "role" aquí
-            .map(([key, label]) => (
-              <View key={key} style={{ marginBottom: 15 }}>
-                <Text style={{ fontSize: 18, marginBottom: 5 }}>{label}</Text>
-                <TextInput
-                  value={employee[key]}
-                  onChangeText={(text) => handleInputChange(key, text)}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    width: "100%",
-                    height: 55,
-                    borderWidth: 1,
-                    borderColor: "#ccc",
-                    borderRadius: 10,
-                    paddingHorizontal: 10,
-                    marginBottom: 10,
-                    backgroundColor: "white",
-                    fontSize: 18,
-                  }}
-                />
-              </View>
-            ))}
+      {/* Content */}
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.content}>
+          {/* Map through defined fields */}
+          {fields.map(({ key, label, editable, keyboardType }) => (
+            <View key={key} style={styles.fieldContainer}>
+              <Text style={styles.label}>{t(label)}</Text>
+              <TextInput
+                value={employee[key]}
+                onChangeText={(text) => handleInputChange(key, text)}
+                style={[styles.input, !editable && styles.inputDisabled]} // Style disabled fields
+                editable={editable} // Set editability
+                keyboardType={keyboardType || "default"}
+                placeholder={
+                  !editable
+                    ? t("employee_details.not_editable", "Not Editable")
+                    : ""
+                } // Placeholder for non-editable
+                placeholderTextColor="#999"
+              />
+            </View>
+          ))}
 
           {/* Role Selection */}
-          <View style={{ marginBottom: 15 }}>
-            <Text style={{ fontSize: 18, marginBottom: 5 }}>
-              {t("employee_details.role")}
-            </Text>
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>{t("employee_details.role")}</Text>
             <Pressable
               onPress={() => setRoleModalVisible(true)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                width: "100%",
-                height: 55,
-                borderWidth: 1,
-                borderColor: "#ccc",
-                borderRadius: 10,
-                paddingHorizontal: 10,
-                backgroundColor: "white",
-                justifyContent: "space-between",
-                marginBottom: 10,
-              }}
+              style={styles.pickerButton}
             >
               <Text
-                style={{
-                  fontSize: 18,
-                  color: employee.role ? "black" : "gray",
-                }}
+                style={[
+                  styles.pickerButtonText,
+                  !employee.role && styles.pickerButtonPlaceholder,
+                ]}
               >
                 {employee.role || t("employee_details.selectRole")}
               </Text>
@@ -286,100 +317,75 @@ export default function EmployeeDetail() {
             visible={isRoleModalVisible}
             animationType="slide"
             transparent={true}
+            onRequestClose={() => setRoleModalVisible(false)} // Handle back button on Android
           >
-            <View
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                backgroundColor: "rgba(0,0,0,0.5)",
-              }}
+            <TouchableOpacity
+              style={styles.modalOverlay} // Added overlay press to close
+              activeOpacity={1}
+              onPressOut={() => setRoleModalVisible(false)}
             >
               <View
-                style={{
-                  backgroundColor: "white",
-                  margin: 20,
-                  padding: 20,
-                  borderRadius: 10,
-                }}
+                style={styles.modalContent}
+                onStartShouldSetResponder={() => true}
               >
-                <Text
-                  style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}
-                >
+                {/* Prevent overlay press closing when interacting with content */}
+                <Text style={styles.modalTitle}>
                   {t("employee_details.selectRole")}
                 </Text>
-
                 {roles.map((role) => (
                   <TouchableOpacity
                     key={role}
                     onPress={() => handleRoleSelect(role)}
-                    style={{
-                      paddingVertical: 10,
-                      borderBottomWidth: 1,
-                      borderColor: "#ddd",
-                    }}
+                    style={styles.modalOption}
                   >
-                    <Text>{role}</Text>
+                    <Text style={styles.modalOptionText}>{role}</Text>
                   </TouchableOpacity>
                 ))}
-
                 <Pressable
                   onPress={() => setRoleModalVisible(false)}
-                  style={{
-                    backgroundColor: "#006892",
-                    padding: 10,
-                    borderRadius: 5,
-                    marginTop: 10,
-                    alignItems: "center",
-                  }}
+                  style={styles.modalCloseButton}
                 >
-                  <Text style={{ color: "white" }}>
+                  <Text style={styles.modalCloseButtonText}>
                     {t("employee_details.close")}
                   </Text>
                 </Pressable>
               </View>
-            </View>
+            </TouchableOpacity>
           </Modal>
 
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
+          {/* Action Buttons */}
+          <View style={styles.buttonContainer}>
             <Pressable
               onPress={handleSave}
-              style={{
-                backgroundColor: "#006892",
-                padding: 15,
-                borderRadius: 10,
-                alignItems: "center",
-                flex: 1,
-                marginRight: 10,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-                elevation: 5,
-              }}
+              disabled={isSaving || isDeleting}
+              style={[
+                styles.button,
+                styles.saveButton,
+                (isSaving || isDeleting) && styles.buttonDisabled,
+              ]}
             >
-              <Text style={{ color: "white", fontSize: 18 }}>
-                {t("employee_details.save")}
-              </Text>
+              {isSaving ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#fff"
+                  style={styles.buttonSpinner}
+                />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {t("employee_details.save")}
+                </Text>
+              )}
             </Pressable>
-
             <Pressable
               onPress={handleDelete}
-              style={{
-                backgroundColor: "#D32F2F",
-                padding: 15,
-                borderRadius: 10,
-                alignItems: "center",
-                flex: 1,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-                elevation: 5,
-              }}
+              disabled={isSaving || isDeleting}
+              style={[
+                styles.button,
+                styles.deleteButton,
+                (isSaving || isDeleting) && styles.buttonDisabled,
+              ]}
             >
-              <Text style={{ color: "white", fontSize: 18 }}>
+              <Text style={styles.buttonText}>
                 {t("employee_details.delete")}
               </Text>
             </Pressable>
@@ -387,19 +393,166 @@ export default function EmployeeDetail() {
         </View>
       </ScrollView>
 
-      <View
-        style={{
-          backgroundColor: "#006892",
-          padding: 40,
-          alignItems: "flex-end",
-          borderTopEndRadius: 40,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -10 },
-          shadowOpacity: 0.3,
-          shadowRadius: 10,
-          elevation: 10,
-        }}
-      ></View>
+      {/* Footer (Optional) */}
+      <View style={styles.footer}></View>
     </LinearGradient>
   );
 }
+
+// --- StyleSheet ---
+const styles = StyleSheet.create({
+  gradient: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  header: {
+    backgroundColor: "#FF9300",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderBottomStartRadius: 40,
+    borderBottomEndRadius: 40,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 10,
+    paddingTop: Platform.select({ ios: 60, android: 40 }),
+  },
+  headerIcon: { width: 50, height: 50 },
+  headerTitleContainer: { flex: 1, alignItems: "center", marginHorizontal: 10 },
+  headerTitleMain: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+    letterSpacing: 1.5,
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    textAlign: "center",
+  },
+  headerTitleSub: {
+    fontSize: 18,
+    fontWeight: "300",
+    color: "white",
+    letterSpacing: 1,
+    marginTop: 2,
+    textAlign: "center",
+  },
+  scrollContainer: { flexGrow: 1, paddingBottom: 20 },
+  content: { flex: 1, padding: 20 },
+  fieldContainer: { marginBottom: 20 },
+  label: { fontSize: 16, fontWeight: "500", color: "#333", marginBottom: 8 },
+  input: {
+    height: 55,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    backgroundColor: "white",
+    fontSize: 18,
+    color: "#333",
+  },
+  inputDisabled: {
+    // Style for non-editable fields
+    backgroundColor: "#f5f5f5",
+    color: "#888", // Grey text for disabled fields
+    borderColor: "#e0e0e0",
+  },
+  pickerButton: {
+    // Style for the pressable acting as a picker
+    flexDirection: "row",
+    alignItems: "center",
+    height: 55,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    backgroundColor: "white",
+    justifyContent: "space-between",
+  },
+  pickerButtonText: {
+    fontSize: 18,
+    color: "black",
+  },
+  pickerButtonPlaceholder: {
+    color: "gray",
+  },
+  modalOverlay: {
+    // Make overlay cover screen and allow closing on tap outside
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    width: "80%", // Modal width
+    borderRadius: 10,
+    padding: 20,
+    maxHeight: "60%", // Limit modal height
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  modalOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: "#eee",
+  },
+  modalOptionText: {
+    fontSize: 18,
+    textAlign: "center",
+  },
+  modalCloseButton: {
+    backgroundColor: "#006892",
+    padding: 12,
+    borderRadius: 5,
+    marginTop: 20, // Space above close button
+    alignItems: "center",
+  },
+  modalCloseButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
+  button: {
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  saveButton: { backgroundColor: "#006892", marginRight: 10 },
+  deleteButton: { backgroundColor: "#D32F2F", marginLeft: 10 },
+  buttonDisabled: {
+    backgroundColor: "#a0a0a0",
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  buttonText: { color: "white", fontSize: 18, fontWeight: "bold" },
+  buttonSpinner: {
+    /* marginRight: 5 */
+  }, // Optional margin
+  footer: {
+    backgroundColor: "#006892",
+    padding: 30,
+    borderTopEndRadius: 40,
+    borderTopStartRadius: 40,
+  },
+});
