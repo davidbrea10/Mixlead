@@ -404,7 +404,7 @@ export default function DoseDetails() {
           alignItems: "center",
         }}
       >
-        <Text style={{ fontSize: 22, fontWeight: "600", color: "#006892" }}>
+        <Text style={{ fontSize: 18, fontWeight: "600", color: "#006892" }}>
           {employeeName}
         </Text>
       </View>
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   annualDoseText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     textAlign: "center", // Añadido para centrar el texto
   },

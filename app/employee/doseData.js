@@ -8,6 +8,7 @@ import {
   ActivityIndicator, // Import ActivityIndicator
   Alert, // Import Alert
   Platform, // Import Platform
+  StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -23,6 +24,7 @@ import {
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import RNPickerSelect from "react-native-picker-select";
 import { useTranslation } from "react-i18next"; // Import the translation hook
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
 import * as FileSystem from "expo-file-system"; // Import FileSystem
@@ -30,12 +32,13 @@ import * as Sharing from "expo-sharing"; // Import Sharing
 
 export default function Home() {
   const router = useRouter();
-  const { t } = useTranslation(); // Initialize translation
+  const { t } = useTranslation();
   const [monthlyDoses, setMonthlyDoses] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(null); // <-- Initialize to null for placeholder
   const [availableYears, setAvailableYears] = useState([]);
   const [totalAnnualDose, setTotalAnnualDose] = useState(0);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Consistent month names array (assuming keys like 'months.1', 'months.2' etc.)
   const monthNames = Array.from({ length: 12 }, (_, i) =>
@@ -51,69 +54,90 @@ export default function Home() {
   };
 
   useEffect(() => {
-    loadInitialData(); // Renamed function for clarity
+    loadInitialData();
   }, []);
 
   useEffect(() => {
-    // Recalculate total whenever monthlyDoses or selectedYear changes
-    calculateTotalAnnualDose();
-  }, [monthlyDoses, selectedYear]); // Keep dependency array
+    // Recalculate total only if a year is selected
+    if (selectedYear !== null) {
+      calculateTotalAnnualDose();
+    } else {
+      setTotalAnnualDose(0); // Reset if no year is selected
+    }
+  }, [monthlyDoses, selectedYear]);
 
   const loadInitialData = async () => {
+    setIsLoading(true); // Start loading
+    setMonthlyDoses([]);
+    setAvailableYears([]);
+    setSelectedYear(null); // Reset year selection
+
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
+      return;
+    }
 
     try {
       const dosesRef = collection(db, "employees", user.uid, "doses");
       const snapshot = await getDocs(dosesRef);
 
-      let doseData = {}; // Key: Year-Month, Value: { totalDose, month, year }
+      let doseData = {};
       let yearsSet = new Set();
+      let hasData = false; // Flag to check if any valid dose entry exists
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        // Ensure all necessary fields exist and dose is a number
-        if (
-          data.year &&
-          data.month &&
-          typeof data.dose === "number" &&
-          !isNaN(data.dose)
-        ) {
-          yearsSet.add(data.year);
-          const key = `${data.year}-${data.month}`;
-          if (!doseData[key]) {
-            doseData[key] = {
-              totalDose: 0,
-              month: data.month,
-              year: data.year,
-            };
+        const yearValue =
+          typeof data.year === "number" ? data.year : parseInt(data.year, 10);
+        const monthValue =
+          typeof data.month === "number"
+            ? data.month
+            : parseInt(data.month, 10);
+        const doseValue =
+          typeof data.dose === "number"
+            ? data.dose
+            : parseFloat(data.dose || 0);
+
+        if (!isNaN(yearValue)) {
+          yearsSet.add(yearValue); // Add year to set regardless of other fields for picker options
+
+          // Check if month and dose are valid for aggregation
+          if (
+            !isNaN(monthValue) &&
+            monthValue >= 1 &&
+            monthValue <= 12 &&
+            !isNaN(doseValue)
+          ) {
+            hasData = true; // Found at least one valid entry for aggregation
+            const key = `${yearValue}-${monthValue}`;
+            if (!doseData[key]) {
+              doseData[key] = {
+                totalDose: 0,
+                month: monthValue,
+                year: yearValue,
+              };
+            }
+            doseData[key].totalDose += doseValue;
           }
-          doseData[key].totalDose += data.dose; // Sum doses for the month
-        } else if (data.year) {
-          // Add year even if other data is missing, for the picker
-          yearsSet.add(data.year);
         }
       });
 
       const years = [...yearsSet].sort((a, b) => b - a); // Sort descending
       setAvailableYears(years);
 
-      // Set selectedYear to the latest year with data, or current year if no data
+      // Set selectedYear to the latest year with data, or current year if no data found
       if (years.length > 0) {
-        // Check if the current selectedYear exists in the fetched years
-        if (!years.includes(selectedYear)) {
-          setSelectedYear(years[0]); // Default to the most recent year with data
-        }
-        // Otherwise, keep the initially set current year if it has data or is the only option
+        setSelectedYear(years[0]); // Default to the most recent year
       } else {
-        // If no years found at all, add current year as default
+        // If no years found at all, add current year as default option and select it
         const currentYear = new Date().getFullYear();
         setAvailableYears([currentYear]);
         setSelectedYear(currentYear);
       }
 
-      setMonthlyDoses(Object.values(doseData)); // Store aggregated monthly doses
-      // Initial calculation is triggered by the useEffect hook dependency change
+      setMonthlyDoses(Object.values(doseData));
     } catch (error) {
       console.error("Error loading monthly doses:", error);
       Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
@@ -121,26 +145,35 @@ export default function Home() {
       const currentYear = new Date().getFullYear();
       setAvailableYears([currentYear]);
       setSelectedYear(currentYear);
+    } finally {
+      setIsLoading(false); // Finish loading
     }
   };
 
   const calculateTotalAnnualDose = () => {
-    // Calculate total based on the currently filtered and displayed monthly doses
     const total = monthlyDoses
-      .filter((item) => item.year === selectedYear) // Ensure filtering by selected year
-      .reduce((sum, item) => sum + item.totalDose, 0);
+      .filter((item) => item.year === selectedYear)
+      .reduce((sum, item) => sum + (item.totalDose || 0), 0); // Use || 0 for safety
     setTotalAnnualDose(total);
   };
 
   const handleViewDetails = (month, year) => {
-    // Ensure month and year are valid before navigating
-    if (month && year) {
+    if (month && year && auth.currentUser) {
+      // Also check if user exists
       router.push({
         pathname: "/employee/doseDetails/[doseDetails]",
-        params: { month: month.toString(), year: year.toString() },
+        // Pass uid for consistency, even if details screen might re-fetch it
+        params: {
+          uid: auth.currentUser.uid,
+          month: month.toString(),
+          year: year.toString(),
+        },
       });
     } else {
-      console.warn("Attempted to view details with invalid month or year");
+      console.warn(
+        "Attempted to view details with invalid month, year, or user",
+      );
+      Alert.alert(t("errors.error"), t("errors.navigationParamsMissing"));
     }
   };
 
@@ -359,6 +392,12 @@ export default function Home() {
     }
   };
 
+  // Format years for RNPickerSelect
+  const yearItems = availableYears.map((year) => ({
+    label: year.toString(),
+    value: year,
+  }));
+
   return (
     <LinearGradient
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
@@ -426,41 +465,35 @@ export default function Home() {
       </View>
 
       {/* Main Content */}
-      <View style={{ padding: 16 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "#fff",
-            borderWidth: 1,
-            borderColor: "#ddd",
-            borderRadius: 20,
-            paddingHorizontal: 10,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 20,
-              fontWeight: "bold",
-              marginRight: 10,
-            }}
-          >
-            {t("home.selectYear")}
-          </Text>
-          <Picker
-            selectedValue={selectedYear}
-            onValueChange={(itemValue) => setSelectedYear(itemValue)}
-            style={{ flex: 1, marginLeft: 70 }}
-          >
-            {availableYears.map((year) => (
-              <Picker.Item
-                key={year}
-                label={year.toString()}
-                value={year}
-                style={{ textAlign: "right", fontSize: 20 }} // Align text to the right
+      {/* Year Selector */}
+      <View style={styles.selectorOuterContainer}>
+        <View style={styles.pickerWrapper}>
+          <Text style={styles.pickerLabel}>{t("home.selectYear")}</Text>
+          {isLoading ? (
+            <ActivityIndicator
+              size="small"
+              color="#FF9300"
+              style={{ flex: 1 }}
+            />
+          ) : (
+            <View style={styles.pickerInnerWrapper}>
+              <RNPickerSelect
+                onValueChange={(value) => setSelectedYear(value)}
+                items={yearItems}
+                value={selectedYear}
+                placeholder={{
+                  label: t("home.yearPlaceholder", "Selecciona año..."), // Add translation key
+                  value: null,
+                }}
+                style={pickerSelectStyles} // Use defined styles
+                useNativeAndroidPickerStyle={false}
+                Icon={() => (
+                  <Ionicons name="chevron-down" size={20} color="gray" />
+                )}
+                disabled={isLoading || yearItems.length === 0}
               />
-            ))}
-          </Picker>
+            </View>
+          )}
         </View>
       </View>
       {/* Table Header */}
@@ -571,6 +604,37 @@ export default function Home() {
 }
 
 const styles = {
+  // Selector Styles
+  selectorOuterContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16, // Add top padding if needed
+    paddingBottom: 8, // Add bottom padding if needed
+  },
+  pickerWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    minHeight: 55,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  pickerLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#555",
+    marginRight: 10,
+  },
+  pickerInnerWrapper: {
+    flex: 1,
+    justifyContent: "center",
+  },
   // Estilos de Tabla
   row: {
     flexDirection: "row",
@@ -626,7 +690,7 @@ const styles = {
     borderRadius: 20,
   },
   annualDoseText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     textAlign: "center", // Añadido para centrar el texto
   },
@@ -704,3 +768,30 @@ const styles = {
     textAlign: "center",
   },
 };
+
+// Styles for RNPickerSelect (kept separate for clarity)
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    color: "black",
+    paddingRight: 30, // space for icon
+  },
+  inputAndroid: {
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    color: "black",
+    paddingRight: 30, // space for icon
+  },
+  placeholder: {
+    color: "#9EA0A4",
+    fontSize: 16,
+  },
+  iconContainer: {
+    top: "50%",
+    marginTop: -10, // Adjust based on icon size
+    right: 15,
+  },
+});

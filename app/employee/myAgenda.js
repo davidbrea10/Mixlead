@@ -15,31 +15,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { db, auth } from "../../firebase/config";
-import {
-  collection,
-  doc,
-  addDoc,
-  getDocs,
-  getDoc,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 
 export default function Home() {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const [doses, setDoses] = useState([]);
-  const [exposures, setExposures] = useState([]);
-  const [exposureCount, setExposureCount] = useState(1);
-  const [currentDoseId, setCurrentDoseId] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [dose, setDose] = useState("");
-  const [modifiedExposureCount, setModifiedExposureCount] =
-    useState(exposureCount);
-  const [totalTime, setTotalTime] = useState(0);
-  const [totalExposures, setTotalExposures] = useState(0);
+  const [dose, setDose] = useState(""); // Dose value from modal input
+  const [modalTotalExposures, setModalTotalExposures] = useState(""); // Exposures from modal input
+  const [modalTotalTime, setModalTotalTime] = useState(""); // Time from modal input
 
   const handleBack = () => {
     router.back();
@@ -54,22 +40,35 @@ export default function Home() {
   };
 
   const handleSaveDose = async () => {
+    // Validation using MODAL state variables
+    const doseValue = parseFloat(dose);
+    const exposuresValue = parseInt(modalTotalExposures, 10);
+    const timeValue = parseInt(modalTotalTime, 10);
+
     if (
       !dose.trim() ||
-      isNaN(parseFloat(dose)) ||
-      parseFloat(dose) <= 0 ||
-      isNaN(parseInt(totalExposures, 10)) ||
-      parseInt(totalExposures, 10) <= 0 ||
-      isNaN(parseInt(totalTime, 10)) ||
-      parseInt(totalTime, 10) <= 0
+      isNaN(doseValue) ||
+      doseValue < 0 || // Allow 0 dose if meaningful
+      !modalTotalExposures.trim() ||
+      isNaN(exposuresValue) ||
+      exposuresValue <= 0 ||
+      !modalTotalTime.trim() ||
+      isNaN(timeValue) ||
+      timeValue <= 0
     ) {
-      Alert.alert("Error", t("home.alerts.emptyFields"));
+      Alert.alert(
+        t("home.alerts.error.title"),
+        t("home.alerts.emptyOrInvalidFields"),
+      ); // Use a specific translation key
       return;
     }
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Error", t("home.alerts.userNotAuthenticated"));
+      Alert.alert(
+        t("home.alerts.error.title"),
+        t("home.alerts.userNotAuthenticated"),
+      );
       return;
     }
 
@@ -79,16 +78,21 @@ export default function Home() {
       const month = today.getMonth() + 1;
       const year = today.getFullYear();
 
+      // Reference to the current logged-in employee's doses collection
       const dosesCollectionRef = collection(db, "employees", user.uid, "doses");
 
+      console.log(
+        `Adding new manual dose for employee ${user.uid} on ${day}/${month}/${year}`,
+      );
       await addDoc(dosesCollectionRef, {
-        dose: parseFloat(dose),
-        totalExposures: parseInt(totalExposures, 10),
-        totalTime: parseInt(totalTime, 10),
+        dose: doseValue,
+        totalExposures: exposuresValue,
+        totalTime: timeValue, // Assuming time is in seconds
         day,
         month,
         year,
-        timestamp: serverTimestamp(),
+        timestamp: serverTimestamp(), // Firestore server timestamp
+        entryMethod: "manual", // Optional: tag as manually entered
       });
 
       Alert.alert(
@@ -96,92 +100,18 @@ export default function Home() {
         t("home.alerts.success.doseSaved"),
       );
       setModalVisible(false);
+      // Clear modal fields after successful save
+      setDose("");
+      setModalTotalExposures("");
+      setModalTotalTime("");
     } catch (error) {
       console.error("❌ Error saving dose data:", error);
-      Alert.alert("Error", t("home.alerts.error.couldNotSave"));
+      Alert.alert(
+        t("home.alerts.error.title"),
+        t("home.alerts.error.couldNotSave"),
+      );
     }
   };
-
-  const loadCurrentDose = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-    const day = today.getDate();
-
-    const dosesRef = collection(db, "employees", user.uid, "doses");
-    const snapshot = await getDocs(dosesRef);
-    let existingDose = null;
-
-    for (const docSnap of snapshot.docs) {
-      const data = docSnap.data();
-      if (data.year === year && data.month === month && data.day === day) {
-        existingDose = { id: docSnap.id, ...data };
-      }
-    }
-
-    if (existingDose) {
-      setCurrentDoseId(existingDose.id);
-      setTotalExposures(existingDose.totalExposures || 0);
-      setExposureCount((existingDose.totalExposures || 0) + 1); // Ajustar exposición al siguiente número
-      await loadExposures(existingDose.id);
-    } else {
-      const newDoseRef = await addDoc(dosesRef, {
-        year,
-        month,
-        day,
-        totalTime: 0,
-        totalExposures: 0,
-        dose: 0,
-        createdAt: serverTimestamp(),
-      });
-      setCurrentDoseId(newDoseRef.id);
-      setTotalExposures(0);
-      setExposureCount(1); // Empezar en 1 si no hay exposiciones previas
-    }
-  };
-
-  const loadExposures = async (doseId) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const exposuresRef = collection(
-      db,
-      "employees",
-      user.uid,
-      "doses",
-      doseId,
-      "exposures",
-    );
-    const snapshot = await getDocs(exposuresRef);
-
-    let totalExposures = 0;
-    let totalTime = 0;
-    let exposuresList = [];
-
-    snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      exposuresList.push({
-        id: docSnap.id, // 🔥 Agregar el id del documento
-        ...data,
-      });
-      totalExposures += 1;
-      totalTime += data.time;
-    });
-
-    setExposures(exposuresList);
-    setTotalExposures(totalExposures);
-    setTotalTime(totalTime);
-
-    // 📌 Ajustar el número de exposición
-    setExposureCount(totalExposures + 1);
-  };
-
-  useEffect(() => {
-    loadCurrentDose();
-  }, []);
 
   return (
     <LinearGradient
@@ -267,18 +197,20 @@ export default function Home() {
                 </Text>
                 <TextInput
                   style={styles.input}
-                  value={totalExposures}
-                  onChangeText={setTotalExposures}
-                  keyboardType="numeric"
+                  value={modalTotalExposures} // Use modal state
+                  onChangeText={setModalTotalExposures} // Use modal state
+                  keyboardType="number-pad" // Better for integers
                   placeholder={t("home.modal.enterNumberOfExposures")}
                 />
 
-                <Text style={styles.label}>{t("home.modal.exposureTime")}</Text>
+                <Text style={styles.label}>
+                  {t("home.modal.exposureTime")} (s)
+                </Text>
                 <TextInput
                   style={styles.input}
-                  value={totalTime}
-                  onChangeText={setTotalTime}
-                  keyboardType="numeric"
+                  value={modalTotalTime} // Use modal state
+                  onChangeText={setModalTotalTime} // Use modal state
+                  keyboardType="number-pad" // Better for integers (seconds)
                   placeholder={t("home.modal.enterExposureTime")}
                 />
 

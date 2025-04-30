@@ -1161,7 +1161,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   annualDoseText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     textAlign: "center", // Añadido para centrar el texto
   },
