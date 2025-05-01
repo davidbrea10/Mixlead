@@ -5,6 +5,7 @@ import {
   Image,
   StyleSheet, // Import StyleSheet
   Platform, // Import Platform
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -12,12 +13,20 @@ import { auth } from "../../firebase/config"; // Importa la configuración de Fi
 import { signOut } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message"; // Import Toast
+import { useState } from "react";
 
 export default function Home() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const handleLogout = async () => {
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+
+  const handleLogout = () => {
+    setIsLogoutModalVisible(true); // <-- Solo abre el modal
+  };
+
+  const performLogout = async () => {
+    setIsLogoutModalVisible(false); // Cierra el modal primero
     try {
       await signOut(auth); // Cierra sesión en Firebase
       // Optional: Show success toast
@@ -28,6 +37,7 @@ export default function Home() {
         visibilityTime: 1500,
       });
       // Add delay before navigating
+      // eslint-disable-next-line no-undef
       setTimeout(() => {
         router.replace("/"); // Redirige al login
       }, 500);
@@ -118,6 +128,48 @@ export default function Home() {
           />
         </Pressable>
       </View>
+
+      {/* --- MODAL DE CONFIRMACIÓN DE LOGOUT --- */}
+      <Modal
+        animationType="fade" // O 'slide'
+        transparent={true}
+        visible={isLogoutModalVisible}
+        onRequestClose={() => setIsLogoutModalVisible(false)} // Para el botón atrás de Android
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContentContainer}>
+            <Text style={styles.modalTitle}>
+              {t("adminHome.logoutConfirmTitle")}
+            </Text>
+            <Text style={styles.modalMessage}>
+              {t("adminHome.logoutConfirmMessage")}
+            </Text>
+            <View style={styles.modalButtonRow}>
+              <Pressable
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setIsLogoutModalVisible(false)} // Solo cierra el modal
+              >
+                <Text style={styles.modalButtonText}>
+                  {t("adminHome.logoutCancel")}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={performLogout} // Llama a la función que hace el logout
+              >
+                <Text
+                  style={[
+                    styles.modalButtonText,
+                    styles.modalConfirmButtonText,
+                  ]}
+                >
+                  {t("adminHome.logoutConfirm")}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -128,24 +180,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: Platform.select({
-      // Apply platform-specific padding
-      ios: 60, // More padding on iOS
-      android: 40, // Base padding on Android
-    }),
     backgroundColor: "#FF9300",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    padding: 16,
     borderBottomStartRadius: 40,
-    borderBottomEndRadius: 40, // Round both bottom corners
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
     elevation: 10,
+    marginBottom: 20,
+    paddingTop: Platform.select({
+      // Apply platform-specific padding
+      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+      android: 40, // Base padding on Android (adjust value as needed)
+    }),
   },
   headerIcon: {
     width: 50,
@@ -205,20 +255,85 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   footer: {
-    backgroundColor: "#006892",
     paddingVertical: 16,
     paddingHorizontal: 20,
-    alignItems: "flex-end", // Align icon to the right
+    backgroundColor: "#006892",
+    alignItems: "flex-end",
     borderTopEndRadius: 40,
-    borderTopStartRadius: 40, // Round both top corners
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
     elevation: 10,
   },
   footerIcon: {
     width: 50,
     height: 50,
+  },
+
+  // --- Estilos del Modal ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)", // Fondo semitransparente oscuro
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContentContainer: {
+    width: "85%", // Ancho del modal
+    backgroundColor: "#2D2D2D", // Fondo oscuro para el contenido del modal (ajusta si prefieres blanco)
+    borderRadius: 15, // Bordes redondeados
+    padding: 25, // Padding interno
+    alignItems: "center",
+    // Sombra sutil (opcional)
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#FFFFFF", // Texto blanco
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: "#E0E0E0", // Texto gris claro
+    textAlign: "center",
+    marginBottom: 30, // Más espacio antes de los botones
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    justifyContent: "space-around", // O 'space-between' si quieres que toquen los bordes
+    width: "100%",
+  },
+  modalButton: {
+    borderRadius: 10,
+    paddingVertical: 12,
+    // paddingHorizontal: 20, // Quita o ajusta si usas width
+    // flex: 1, // <-- QUITA ESTA LÍNEA
+    // marginHorizontal: 8, // Quita o ajusta si usas space-around/between
+    width: "45%", // <-- AÑADE UN ANCHO (ej. 45% para dejar espacio entre ellos)
+    // O un valor fijo como 120 si prefieres
+    alignItems: "center", // Mantiene el texto centrado horizontalmente DENTRO del botón
+    justifyContent: "center", // <-- AÑADE ESTO para centrar verticalmente si el texto se va a 2 líneas
+    minHeight: 45, // Opcional: asegura una altura mínima si el texto es corto
+  },
+  modalCancelButton: {
+    backgroundColor: "#555555",
+  },
+  modalConfirmButton: {
+    backgroundColor: "#C32427",
+  },
+  modalButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center", // <-- AÑADE ESTO para asegurar centrado si hay 2 líneas
+  },
+  modalConfirmButtonText: {
+    color: "#FFFFFF", // Puedes mantenerlo blanco o cambiarlo si es necesario
   },
 });

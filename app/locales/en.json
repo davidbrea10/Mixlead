@@ -214,7 +214,12 @@
     "logoutSuccessTitle": "Logout Successful",
     "logoutSuccessMessage": "You have been logged out successfully.",
     "logoutErrorTitle": "Logout Error",
-    "logoutErrorMessage": "An error occurred while logging out. Please try again."
+    "logoutErrorMessage": "An error occurred while logging out. Please try again.",
+    "logoutConfirmTitle": "Confirm Logout",
+    "logoutConfirmMessage": "Are you sure you want to log out?",
+    "logoutCancel": "Cancel",
+    "logoutConfirm": "Log Out"
+    
   },
 
   "adminSettings": {
@@ -256,6 +261,8 @@
   },
 
   "doseDetails": {
+    "deleteSuccessTitle": "Success",
+    "deleteSuccessMessage": "Dose deleted successfully.",
     "title": "Dose Details",
     "monthLabel": "{{month}} {{year}}",
     "table": {
@@ -351,6 +358,9 @@
     "errorMessage": "Please fill in all fields.",
     "invalidInputMessage": "Invalid input values. Please check your inputs.",
     "calculationError": "Calculation resulted in NaN. Please check inputs.",
+    "alerts": {
+      "errorTitle": "Error"
+    },
     "modal": {
       "isotope": "Select Isotope",
       "collimator": "Select use of Collimator",
@@ -403,6 +413,7 @@
   },
 
   "home": {
+    "yearPlaceholder": "Select Year",
     "header": {
       "title": "My Agenda",
       "subtitle": "Annual Dose Data"
@@ -450,8 +461,10 @@
         "title": "Error",
         "emptyFields": "All fields must be filled and greater than zero.",
         "userNotAuthenticated": "User not authenticated.",
-        "couldNotSave": "Could not save the dose data."
+        "couldNotSave": "Could not save the dose data.",
+        "emptyOrInvalidFields": "Please fill in all fields correctly."
       },
+      "userNotAuthenticated": "User not authenticated.",
       "success": {
         "title": "Success",
         "doseSaved": "Dose data has been saved."
@@ -461,7 +474,8 @@
         "message": "There's already a dose you were receiving today. Do you want to replace it?",
         "cancel": "Cancel",
         "replace": "Replace"
-      }
+      },
+      "emptyFields" : "All fields must be filled and greater than zero."
     }
   },
 

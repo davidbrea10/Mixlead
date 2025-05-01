@@ -10,6 +10,7 @@ import {
   ScrollView,
   Platform,
   StyleSheet, // Import StyleSheet
+  Modal,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
@@ -33,6 +34,7 @@ export default function CompanyDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false); // Loading state for Save button
   const [isDeleting, setIsDeleting] = useState(false); // Loading state for Delete button (within Alert)
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   const { t } = useTranslation(); // Initialize i18n
 
@@ -147,50 +149,37 @@ export default function CompanyDetailsScreen() {
 
   const handleDelete = async () => {
     // Keep Alert.alert for confirmation dialog
-    Alert.alert(
-      t("company_details.alert.delete_confirm1"), // Title
-      t("company_details.alert.delete_confirm"), // Message
-      [
-        {
-          text: t("company_details.confirm.cancel"),
-          style: "cancel",
-          onPress: () => setIsDeleting(false), // Reset delete loading state if cancelled
-        },
-        {
-          text: t("company_details.confirm.delete"),
-          style: "destructive",
-          onPress: async () => {
-            setIsDeleting(true); // Start loading (visual feedback might be limited within Alert)
-            try {
-              const docRef = doc(db, "companies", id);
-              await deleteDoc(docRef);
-              // Replace alert with success toast
-              Toast.show({
-                type: "success",
-                text1: t("success.title"),
-                text2: t("company_details.alert.delete_success"),
-              });
-              // Navigate back or refresh list
-              router.replace({
-                pathname: "/admin/companies",
-                params: { refresh: Date.now() },
-              });
-            } catch (error) {
-              console.error("Delete Company Error: ", error);
-              // Replace alert with error toast
-              Toast.show({
-                type: "error",
-                text1: t("error.title"),
-                text2: t("company_details.alert.delete_error"),
-              });
-            } finally {
-              setIsDeleting(false); // Stop loading
-            }
-          },
-        },
-      ],
-      { cancelable: false }, // Prevent dismissal by tapping outside
-    );
+    setIsDeleteModalVisible(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleteModalVisible(false); // Cierra el modal primero
+
+    // Opcional: Indicador de carga si la eliminación es larga
+    // setLoading(true); // Podrías reutilizar el loading general o uno específico
+
+    try {
+      const docRef = doc(db, "companies", id);
+      await deleteDoc(docRef);
+      Toast.show({
+        type: "success",
+        text1: t("success.title"),
+        text2: t("company_details.alert.delete_success"),
+      });
+      router.replace({
+        pathname: "/admin/companies",
+        params: { refresh: Date.now() },
+      });
+    } catch (error) {
+      console.error("Delete Company Error: ", error);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t("company_details.alert.delete_error"),
+      });
+    } finally {
+      // setLoading(false); // Desactiva el indicador de carga si lo usaste
+    }
   };
 
   // --- Copy to Clipboard Function ---
@@ -320,6 +309,55 @@ export default function CompanyDetailsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Custom Delete Confirmation Modal */}
+      <Modal
+        transparent // Fondo transparente para ver el overlay
+        visible={isDeleteModalVisible}
+        animationType="fade" // Animación como el ejemplo
+        onRequestClose={() => setIsDeleteModalVisible(false)} // Permite cerrar con botón atrás (Android)
+      >
+        <View style={styles.modalOverlay}>
+          {/* Contenido del modal */}
+          <View style={styles.modalContent}>
+            {/* Título o Mensaje Principal */}
+            <Text style={styles.modalMessageText}>
+              {/* Usa la traducción existente del mensaje de confirmación */}
+              {t("company_details.alert.delete_confirm")}
+            </Text>
+
+            {/* Fila de Botones */}
+            <View style={styles.modalButtonRow}>
+              {/* Botón Cancelar */}
+              <Pressable
+                onPress={() => setIsDeleteModalVisible(false)}
+                style={[styles.modalButton, styles.modalCancelButton]}
+              >
+                <Text style={styles.modalButtonText}>
+                  {/* Usa la traducción existente */}
+                  {t("company_details.confirm.cancel")}
+                </Text>
+              </Pressable>
+
+              {/* Botón Confirmar Eliminar */}
+              <Pressable
+                onPress={handleConfirmDelete} // Llama a la nueva función
+                style={[styles.modalButton, styles.modalConfirmButton]}
+              >
+                <Text
+                  style={[
+                    styles.modalButtonText,
+                    styles.modalConfirmButtonText,
+                  ]}
+                >
+                  {/* Usa la traducción existente */}
+                  {t("company_details.confirm.delete")}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Footer (Optional - can be removed if not needed) */}
       <View style={styles.footer}></View>
@@ -481,5 +519,75 @@ const styles = StyleSheet.create({
     borderTopEndRadius: 40,
     borderTopStartRadius: 40,
     // Removed shadow/elevation if footer is just for spacing/visuals
+  },
+
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.6)", // Overlay semitransparente oscuro
+  },
+  modalContent: {
+    backgroundColor: "#1F1F1F", // Fondo oscuro como el ejemplo
+    padding: 24,
+    borderRadius: 20, // Bordes redondeados
+    width: "85%", // Ancho relativo
+    maxWidth: 340, // Ancho máximo
+    alignItems: "center", // Centra el contenido
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  // Opcional: Si quieres un título separado del mensaje
+  // modalTitleText: {
+  //   color: "white",
+  //   fontSize: 18,
+  //   fontWeight: 'bold',
+  //   textAlign: "center",
+  //   marginBottom: 10,
+  // },
+  modalMessageText: {
+    // Estilo para el texto de confirmación
+    color: "white",
+    fontSize: 17, // Ligeramente más grande
+    textAlign: "center",
+    marginBottom: 24, // Espacio antes de los botones
+    lineHeight: 24, // Mejor legibilidad
+  },
+  modalButtonRow: {
+    // Contenedor para los botones
+    flexDirection: "row",
+    justifyContent: "space-around", // Espaciado entre botones
+    width: "100%", // Ocupa todo el ancho del modalContent
+    marginTop: 10,
+  },
+  modalButton: {
+    // Estilo base para ambos botones
+    flex: 1, // Para que ocupen espacio similar si es necesario
+    paddingVertical: 12,
+    paddingHorizontal: 20, // Más padding horizontal
+    borderRadius: 10,
+    alignItems: "center",
+    marginHorizontal: 8, // Espacio entre botones
+    minWidth: 100, // Ancho mínimo para que no queden muy pequeños
+  },
+  modalCancelButton: {
+    // Estilo específico para el botón "No" / "Cancelar"
+    backgroundColor: "#4A4A4A", // Un gris oscuro diferente
+  },
+  modalConfirmButton: {
+    // Estilo específico para el botón "Sí" / "Eliminar"
+    backgroundColor: "#D32F2F", // Rojo destructivo (como el botón principal)
+  },
+  modalButtonText: {
+    // Estilo del texto de los botones
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600", // Semi-negrita
+  },
+  modalConfirmButtonText: {
+    // Puedes añadir estilos específicos si quieres diferenciar el texto del botón de confirmación
   },
 });

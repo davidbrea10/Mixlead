@@ -42,6 +42,7 @@ export default function EmployeeDetail() {
   // const [companies, setCompanies] = useState([]);
   const [isSaving, setIsSaving] = useState(false); // 3. Add saving state
   const [isDeleting, setIsDeleting] = useState(false); // State for delete process
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   const { t } = useTranslation(); // Initialize i18n
 
@@ -174,56 +175,43 @@ export default function EmployeeDetail() {
   };
 
   const handleDelete = async () => {
-    // 6. Keep Alert.alert for confirmation
-    Alert.alert(
-      t("employee_details.confirmDeleteTitle"),
-      t("employee_details.confirmDelete"),
-      [
-        {
-          text: t("employee_details.cancel"),
-          style: "cancel",
-          onPress: () => setIsDeleting(false),
-        },
-        {
-          text: t("employee_details.delete1"),
-          style: "destructive",
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              const docRef = doc(db, "employees", id);
-              await deleteDoc(docRef);
-              // 7. Replace alert with success toast
-              Toast.show({
-                type: "success",
-                text1: t("success.successTitle", "Success"),
-                text2: t(
-                  "employee_details.success.delete",
-                  "Employee deleted successfully.",
-                ), // Add translation
-              });
-              router.replace({
-                pathname: "/admin/employees",
-                params: { refresh: Date.now() },
-              }); // Go back/refresh
-            } catch (error) {
-              console.error("Error deleting employee:", error);
-              // 7. Replace alert with error toast
-              Toast.show({
-                type: "error",
-                text1: t("errors.errorTitle", "Error"),
-                text2: t(
-                  "employee_details.errors.delete_error",
-                  "Error deleting employee.",
-                ), // Add translation
-              });
-            } finally {
-              setIsDeleting(false);
-            }
-          },
-        },
-      ],
-      { cancelable: false },
-    );
+    setIsDeleteModalVisible(true);
+  };
+
+  // --- Handle Deletion from Custom Modal ---
+  const handleConfirmDelete = async () => {
+    setIsDeleteModalVisible(false); // Close the modal first
+    // Optional: Add a specific deleting indicator if the process might take time
+    // setLoading(true); // Or a dedicated isDeleting state
+
+    try {
+      const docRef = doc(db, "employees", id);
+      await deleteDoc(docRef);
+      Toast.show({
+        type: "success",
+        text1: t("success.title"), // Using generic key
+        text2: t(
+          "employee_details.success.delete",
+          "Employee deleted successfully.",
+        ),
+      });
+      router.replace({
+        pathname: "/admin/employees",
+        params: { refresh: Date.now() },
+      });
+    } catch (error) {
+      console.error("Error deleting employee:", error);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"), // Using generic key
+        text2: t(
+          "employee_details.errors.delete_error",
+          "Error deleting employee.",
+        ),
+      });
+    } finally {
+      // setLoading(false); // Stop indicator if used
+    }
   };
 
   if (loading) {
@@ -393,6 +381,48 @@ export default function EmployeeDetail() {
         </View>
       </ScrollView>
 
+      {/* Custom Delete Confirmation Modal */}
+      <Modal
+        transparent
+        visible={isDeleteModalVisible}
+        animationType="fade"
+        onRequestClose={() => setIsDeleteModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalMessageText}>
+              {/* Use existing translation key for confirmation message */}
+              {t("employee_details.confirmDelete")}
+            </Text>
+            <View style={styles.modalButtonRow}>
+              {/* Cancel Button */}
+              <Pressable
+                onPress={() => setIsDeleteModalVisible(false)}
+                style={[styles.modalButton, styles.modalCancelButton]}
+              >
+                <Text style={styles.modalButtonText}>
+                  {t("employee_details.cancel")}
+                </Text>
+              </Pressable>
+              {/* Confirm Delete Button */}
+              <Pressable
+                onPress={handleConfirmDelete}
+                style={[styles.modalButton, styles.modalConfirmButton]}
+              >
+                <Text
+                  style={[
+                    styles.modalButtonText,
+                    styles.modalConfirmButtonText,
+                  ]}
+                >
+                  {t("employee_details.delete1")}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Footer (Optional) */}
       <View style={styles.footer}></View>
     </LinearGradient>
@@ -479,45 +509,61 @@ const styles = StyleSheet.create({
     color: "gray",
   },
   modalOverlay: {
-    // Make overlay cover screen and allow closing on tap outside
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   modalContent: {
-    backgroundColor: "white",
-    width: "80%", // Modal width
-    borderRadius: 10,
-    padding: 20,
-    maxHeight: "60%", // Limit modal height
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  modalOption: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: "#eee",
-  },
-  modalOptionText: {
-    fontSize: 18,
-    textAlign: "center",
-  },
-  modalCloseButton: {
-    backgroundColor: "#006892",
-    padding: 12,
-    borderRadius: 5,
-    marginTop: 20, // Space above close button
+    backgroundColor: "#1F1F1F", // Dark background
+    padding: 24,
+    borderRadius: 20,
+    width: "85%",
+    maxWidth: 340,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  modalCloseButtonText: {
+  // Optional: Title style if you add one
+  // modalTitleText: { ... },
+  modalMessageText: {
+    color: "white",
+    fontSize: 17,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    marginTop: 10,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    marginHorizontal: 8,
+    minWidth: 100,
+  },
+  modalCancelButton: {
+    backgroundColor: "#4A4A4A", // Dark grey for Cancel/No
+  },
+  modalConfirmButton: {
+    backgroundColor: "#D32F2F", // Destructive red for Delete/Yes
+  },
+  modalButtonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
+  },
+  modalConfirmButtonText: {
+    // Optional: Specific styles for confirm text
   },
   buttonContainer: {
     flexDirection: "row",

@@ -210,10 +210,14 @@
     "companiesButton": "Empresas",
     "employeesButton": "Empleados",
     "logoutError": "Error al cerrar sesión: ",
-    "logoutSuccessTitle": "Logout Exitoso",
     "logoutSuccessMessage": "Has cerrado sesión correctamente.",
     "logoutErrorTitle": "Error de Logout",
-    "logoutErrorMessage": "Error al cerrar sesión. Por favor, inténtalo de nuevo."
+    "logoutErrorMessage": "Error al cerrar sesión. Por favor, inténtalo de nuevo.",
+    "logoutSuccessTitle": "Sesión Cerrada",
+    "logoutConfirmTitle": "Confirmar Cierre de Sesión",
+    "logoutConfirmMessage": "¿Estás seguro de que quieres cerrar sesión?",
+    "logoutCancel": "Cancelar",
+    "logoutConfirm": "Cerrar Sesión"
   },
 
   "adminSettings": {
@@ -255,6 +259,8 @@
   },
 
   "doseDetails": {
+    "deleteSuccessTitle": "Éxito",
+    "deleteSuccessMessage": "Dosis eliminada correctamente.",
     "title": "Detalles de Dosis",
     "monthLabel": "{{month}} {{year}}",
     "table": {
@@ -350,6 +356,9 @@
     "errorMessage": "Por favor, complete todos los campos.",
     "invalidInputMessage": "Valores de entrada inválidos. Por favor, verifique sus entradas.",
     "calculationError": "El cálculo resultó en NaN. Por favor, revise los datos de entrada.",
+    "alerts": {
+      "errorTitle": "Error"
+    },
     "modal": {
       "isotope": "Seleccionar Isótopo",
       "collimator": "Seleccionar uso de Colimador",
@@ -402,6 +411,7 @@
   },
 
   "home": {
+    "yearPlaceholder": "Seleccionar Año",
     "header": {
       "title": "Mi Agenda",
       "subtitle": "Datos de Dosis Anual"
@@ -449,8 +459,10 @@
         "title": "Error",
         "emptyFields": "Todos los campos deben estar completos y ser mayores que cero.",
         "userNotAuthenticated": "Usuario no autenticado.",
-        "couldNotSave": "No se pudieron guardar los datos de la dosis."
+        "couldNotSave": "No se pudieron guardar los datos de la dosis.",
+        "emptyOrInvalidFields": "Por favor, rellena todos los campos con valores válidos."
       },
+      "userNotAuthenticated": "Usuario no autenticado.",
       "success": {
         "title": "Éxito",
         "doseSaved": "Los datos de la dosis han sido guardados."
@@ -460,7 +472,8 @@
         "message": "Ya existe una dosis registrada para hoy. ¿Deseas reemplazarla?",
         "cancel": "Cancelar",
         "replace": "Reemplazar"
-      }
+      },
+      "emptyFields" : "Todos los campos deben estar completos y ser mayores que cero."
     }
   },
 

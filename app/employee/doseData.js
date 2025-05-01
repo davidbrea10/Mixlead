@@ -11,8 +11,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
+import { useState, useEffect, useCallback } from "react";
 import { db, auth } from "../../firebase/config";
 import {
   collection,
@@ -23,11 +23,9 @@ import {
   where, // Import where
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
 import RNPickerSelect from "react-native-picker-select";
 import { useTranslation } from "react-i18next"; // Import the translation hook
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
-import * as FileSystem from "expo-file-system"; // Import FileSystem
 import * as Sharing from "expo-sharing"; // Import Sharing
 
 export default function Home() {
@@ -53,9 +51,13 @@ export default function Home() {
     router.replace("/employee/home");
   };
 
-  useEffect(() => {
-    loadInitialData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadDataOnFocus(); // Call the renamed loading function
+      // Optional cleanup function
+      // return () => console.log("Home screen lost focus");
+    }, []), // Empty dependency array for useCallback is usually correct here
+  );
 
   useEffect(() => {
     // Recalculate total only if a year is selected
@@ -66,11 +68,12 @@ export default function Home() {
     }
   }, [monthlyDoses, selectedYear]);
 
-  const loadInitialData = async () => {
-    setIsLoading(true); // Start loading
+  const loadDataOnFocus = async () => {
+    console.log("Executing loadDataOnFocus..."); // For debugging
+    setIsLoading(true);
     setMonthlyDoses([]);
     setAvailableYears([]);
-    setSelectedYear(null); // Reset year selection
+    // Don't reset selectedYear here, try to preserve it below
 
     const user = auth.currentUser;
     if (!user) {
@@ -79,13 +82,16 @@ export default function Home() {
       return;
     }
 
+    // Store current selected year to try preserving it
+    const previousSelectedYear = selectedYear;
+
     try {
       const dosesRef = collection(db, "employees", user.uid, "doses");
       const snapshot = await getDocs(dosesRef);
 
       let doseData = {};
       let yearsSet = new Set();
-      let hasData = false; // Flag to check if any valid dose entry exists
+      let hasData = false;
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
@@ -101,16 +107,14 @@ export default function Home() {
             : parseFloat(data.dose || 0);
 
         if (!isNaN(yearValue)) {
-          yearsSet.add(yearValue); // Add year to set regardless of other fields for picker options
-
-          // Check if month and dose are valid for aggregation
+          yearsSet.add(yearValue);
           if (
             !isNaN(monthValue) &&
             monthValue >= 1 &&
             monthValue <= 12 &&
             !isNaN(doseValue)
           ) {
-            hasData = true; // Found at least one valid entry for aggregation
+            hasData = true;
             const key = `${yearValue}-${monthValue}`;
             if (!doseData[key]) {
               doseData[key] = {
@@ -124,29 +128,34 @@ export default function Home() {
         }
       });
 
-      const years = [...yearsSet].sort((a, b) => b - a); // Sort descending
+      const years = [...yearsSet].sort((a, b) => b - a);
       setAvailableYears(years);
 
-      // Set selectedYear to the latest year with data, or current year if no data found
-      if (years.length > 0) {
+      // Logic to set selectedYear: preserve if possible, else default
+      if (years.includes(previousSelectedYear)) {
+        setSelectedYear(previousSelectedYear); // Preserve previous selection
+      } else if (years.length > 0) {
         setSelectedYear(years[0]); // Default to the most recent year
       } else {
-        // If no years found at all, add current year as default option and select it
         const currentYear = new Date().getFullYear();
-        setAvailableYears([currentYear]);
-        setSelectedYear(currentYear);
+        if (!years.includes(currentYear)) {
+          // Add current year if not present
+          setAvailableYears((prev) =>
+            [...prev, currentYear].sort((a, b) => b - a),
+          );
+        }
+        setSelectedYear(currentYear); // Fallback to current year
       }
 
       setMonthlyDoses(Object.values(doseData));
     } catch (error) {
       console.error("Error loading monthly doses:", error);
       Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
-      // Provide default year even on error
       const currentYear = new Date().getFullYear();
-      setAvailableYears([currentYear]);
-      setSelectedYear(currentYear);
+      setAvailableYears([currentYear]); // Fallback on error
+      setSelectedYear(currentYear); // Fallback on error
     } finally {
-      setIsLoading(false); // Finish loading
+      setIsLoading(false);
     }
   };
 

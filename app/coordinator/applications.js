@@ -9,6 +9,7 @@ import {
   Image,
   Modal,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -25,31 +26,56 @@ import {
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { t } from "i18next";
+import Toast from "react-native-toast-message";
 
-export default function DoseDetails() {
+export default function ApplicationsScreen() {
   const router = useRouter();
+  // const { t } = useTranslation(); // Use the hook if possible
   const [expandedRows, setExpandedRows] = useState({});
   const [applications, setApplications] = useState([]);
-  const [successMessage, setSuccessMessage] = useState("");
+  // Remove successMessage state, use Toast directly
+  // const [successMessage, setSuccessMessage] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [isLoading, setIsLoading] = useState(true); // Add loading state for initial fetch
 
   const loadApplications = async () => {
+    setIsLoading(true); // Start loading
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+      // 2. Replace Alert with Toast
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", "Error"),
+        text2: t("errors.notLoggedIn", "User not logged in."),
+      });
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const appsRef = collection(db, "employees", user.uid, "applications");
       const snapshot = await getDocs(appsRef);
 
       const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+        id: doc.id, // This is the applicant's UID
+        ...doc.data(), // Includes firstName, lastName, dni, createdAt, status
       }));
 
       setApplications(data);
     } catch (err) {
       console.error("Error loading applications:", err);
+      // 2. Replace Alert with Toast
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", "Error"),
+        text2: t(
+          "errors.loadApplicationsFailed",
+          "Could not load applications.",
+        ), // Add translation
+      });
+    } finally {
+      setIsLoading(false); // Stop loading
     }
   };
 
@@ -65,37 +91,64 @@ export default function DoseDetails() {
   };
 
   const handleAccept = async (application) => {
+    // Optional: Add a loading state for this specific action
+    // setIsAccepting(true);
     try {
       const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!currentUser) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t("errors.notLoggedIn"),
+        });
+        return;
+      }
 
-      // 1. Obtener el companyId del coordinador actual
-      const currentUserRef = doc(db, "employees", currentUser.uid);
-      const currentUserSnap = await getDoc(currentUserRef);
-      if (!currentUserSnap.exists())
-        throw new Error("Authenticated user not found.");
+      // 1. Get the coordinator's companyId
+      const coordinatorRef = doc(db, "employees", currentUser.uid);
+      const coordinatorSnap = await getDoc(coordinatorRef);
+      if (!coordinatorSnap.exists()) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t(
+            "errors.coordinatorNotFound",
+            "Coordinator profile not found.",
+          ),
+        }); // Add translation
+        return;
+      }
+      const coordinatorCompanyId = coordinatorSnap.data().companyId;
+      if (!coordinatorCompanyId) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t(
+            "errors.coordinatorNoCompany",
+            "Coordinator not assigned to a company.",
+          ),
+        }); // Add translation
+        return;
+      }
 
-      const currentCompanyId = currentUserSnap.data().companyId;
-
-      // 2. Actualizar el employee que fue aceptado (unirlo a la empresa)
-      const targetEmployeeRef = doc(db, "employees", application.id);
+      // 2. Update the accepted employee's document
+      const targetEmployeeRef = doc(db, "employees", application.id); // applicant's ID
       await updateDoc(targetEmployeeRef, {
-        companyId: currentCompanyId,
+        companyId: coordinatorCompanyId, // Assign coordinator's company
       });
 
-      // 3. Buscar a todos los coordinadores con ese mismo companyId
+      // 3. Find all coordinators of the SAME company to delete the application everywhere
       const employeesRef = collection(db, "employees");
       const coordinatorsQuery = query(
         employeesRef,
-        where("companyId", "==", currentCompanyId),
+        where("companyId", "==", coordinatorCompanyId),
         where("role", "==", "coordinator"),
       );
-
       const coordinatorsSnap = await getDocs(coordinatorsQuery);
 
-      // 4. Eliminar la solicitud en cada coordinador
-      const deletePromises = coordinatorsSnap.docs.map((docSnap) => {
-        const coordinatorId = docSnap.id;
+      // 4. Delete the application from every relevant coordinator's subcollection
+      const deletePromises = coordinatorsSnap.docs.map((coordDoc) => {
+        const coordinatorId = coordDoc.id;
         const appRef = doc(
           db,
           "employees",
@@ -105,44 +158,93 @@ export default function DoseDetails() {
         );
         return deleteDoc(appRef);
       });
-
       await Promise.all(deletePromises);
 
-      setSuccessMessage(t("applications.successMessageAccepted"));
-      // eslint-disable-next-line no-undef
-      setTimeout(() => setSuccessMessage(""), 3000);
+      // 5. Show success Toast
+      Toast.show({
+        type: "success",
+        text1: t("success.successTitle", "Success"),
+        text2: t("applications.successMessageAccepted"),
+      });
 
-      // 5. Refrescar la lista
-      loadApplications();
+      // 6. Refrescar la lista
+      loadApplications(); // Reload applications to reflect changes
     } catch (error) {
       console.error("Error accepting application:", error);
+      // 7. Show error Toast
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", "Error"),
+        text2: t(
+          "errors.acceptApplicationFailed",
+          "Could not accept application.",
+        ), // Add translation
+      });
+    } finally {
+      // setIsAccepting(false); // Stop specific loading state if used
     }
   };
 
   const handleConfirmDecline = async () => {
+    // Optional: Add specific loading state
+    // setIsDeclining(true);
     try {
-      if (!selectedApplication) return;
+      if (!selectedApplication) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t("errors.noApplicationSelected", "No application selected."),
+        }); // Add translation
+        setIsModalVisible(false); // Close modal anyway
+        return;
+      }
 
       const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!currentUser) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t("errors.notLoggedIn"),
+        });
+        setIsModalVisible(false);
+        return;
+      }
 
-      const currentUserRef = doc(db, "employees", currentUser.uid);
-      const currentUserSnap = await getDoc(currentUserRef);
-      if (!currentUserSnap.exists()) throw new Error("User not found.");
+      // Get coordinator's company ID to find other relevant coordinators
+      const coordinatorRef = doc(db, "employees", currentUser.uid);
+      const coordinatorSnap = await getDoc(coordinatorRef);
+      if (!coordinatorSnap.exists()) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t("errors.coordinatorNotFound"),
+        });
+        setIsModalVisible(false);
+        return;
+      }
+      const coordinatorCompanyId = coordinatorSnap.data().companyId;
+      if (!coordinatorCompanyId) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t("errors.coordinatorNoCompany"),
+        });
+        setIsModalVisible(false);
+        return;
+      }
 
-      const currentCompanyId = currentUserSnap.data().companyId;
-
+      // Find all coordinators of that company
       const employeesRef = collection(db, "employees");
       const coordinatorsQuery = query(
         employeesRef,
-        where("companyId", "==", currentCompanyId),
+        where("companyId", "==", coordinatorCompanyId),
         where("role", "==", "coordinator"),
       );
-
       const coordinatorsSnap = await getDocs(coordinatorsQuery);
 
-      const deletePromises = coordinatorsSnap.docs.map((docSnap) => {
-        const coordinatorId = docSnap.id;
+      // Delete the application from all relevant coordinators
+      const deletePromises = coordinatorsSnap.docs.map((coordDoc) => {
+        const coordinatorId = coordDoc.id;
         const appRef = doc(
           db,
           "employees",
@@ -152,21 +254,36 @@ export default function DoseDetails() {
         );
         return deleteDoc(appRef);
       });
-
       await Promise.all(deletePromises);
 
-      setSuccessMessage(t("applications.successMessageDeclined"));
-      // eslint-disable-next-line no-undef
-      setTimeout(() => setSuccessMessage(""), 3000);
+      // Show success Toast
+      Toast.show({
+        type: "success", // Or 'info' if preferred for decline
+        text1: t("success.successTitle", "Success"),
+        text2: t("applications.successMessageDeclined"),
+      });
 
       setIsModalVisible(false);
       setSelectedApplication(null);
-      loadApplications();
+      loadApplications(); // Refresh list
     } catch (error) {
       console.error("Error declining application:", error);
+      // Show error Toast
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", "Error"),
+        text2: t(
+          "errors.declineApplicationFailed",
+          "Could not decline application.",
+        ), // Add translation
+      });
+      // Close modal even on error? Or let user retry? Closing for now.
+      setIsModalVisible(false);
+      setSelectedApplication(null);
+    } finally {
+      // setIsDeclining(false); // Stop specific loading state
     }
   };
-
   const handleBack = () => {
     router.back();
   };
@@ -247,8 +364,11 @@ export default function DoseDetails() {
         </Text>
       </View>
       <ScrollView style={{ minWidth: "100%" }}>
-        {/* Datos */}
-        {applications.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FF9300" />
+          </View>
+        ) : applications.length === 0 ? (
           <Text style={{ textAlign: "center", fontSize: 16, color: "#666" }}>
             {t("applications.noApplications")}
           </Text>
@@ -345,24 +465,6 @@ export default function DoseDetails() {
           ))
         )}
       </ScrollView>
-
-      {successMessage ? (
-        <View style={{ padding: 12, alignItems: "center" }}>
-          <Text
-            style={{
-              backgroundColor: "#d4edda",
-              color: "#155724",
-              fontSize: 20,
-              fontWeight: "bold",
-              paddingVertical: 10,
-              paddingHorizontal: 20,
-              borderRadius: 10,
-            }}
-          >
-            {successMessage}
-          </Text>
-        </View>
-      ) : null}
 
       {/* Footer */}
       <View

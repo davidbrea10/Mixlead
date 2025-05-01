@@ -6,17 +6,17 @@ import {
   TextInput,
   TouchableOpacity,
   Modal,
-  Alert,
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { db, auth } from "../../firebase/config";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
 
 export default function Home() {
   const router = useRouter();
@@ -41,14 +41,14 @@ export default function Home() {
 
   const handleSaveDose = async () => {
     // Validation using MODAL state variables
-    const doseValue = parseFloat(dose);
+    const doseValue = parseFloat(dose.replace(/,/g, ".")); // Replace comma before parsing
     const exposuresValue = parseInt(modalTotalExposures, 10);
     const timeValue = parseInt(modalTotalTime, 10);
 
     if (
       !dose.trim() ||
       isNaN(doseValue) ||
-      doseValue < 0 || // Allow 0 dose if meaningful
+      doseValue < 0 ||
       !modalTotalExposures.trim() ||
       isNaN(exposuresValue) ||
       exposuresValue <= 0 ||
@@ -56,20 +56,26 @@ export default function Home() {
       isNaN(timeValue) ||
       timeValue <= 0
     ) {
-      Alert.alert(
-        t("home.alerts.error.title"),
-        t("home.alerts.emptyOrInvalidFields"),
-      ); // Use a specific translation key
-      return;
+      // Replace Alert with Toast for validation error
+      Toast.show({
+        type: "error",
+        text1: t("home.alerts.error.title"),
+        text2: t("home.alerts.emptyOrInvalidFields"),
+        position: "bottom", // Or 'top'
+      });
+      return; // Keep the return
     }
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert(
-        t("home.alerts.error.title"),
-        t("home.alerts.userNotAuthenticated"),
-      );
-      return;
+      // Replace Alert with Toast for authentication error
+      Toast.show({
+        type: "error",
+        text1: t("home.alerts.error.title"),
+        text2: t("home.alerts.userNotAuthenticated"),
+        position: "bottom",
+      });
+      return; // Keep the return
     }
 
     try {
@@ -78,7 +84,6 @@ export default function Home() {
       const month = today.getMonth() + 1;
       const year = today.getFullYear();
 
-      // Reference to the current logged-in employee's doses collection
       const dosesCollectionRef = collection(db, "employees", user.uid, "doses");
 
       console.log(
@@ -87,29 +92,35 @@ export default function Home() {
       await addDoc(dosesCollectionRef, {
         dose: doseValue,
         totalExposures: exposuresValue,
-        totalTime: timeValue, // Assuming time is in seconds
+        totalTime: timeValue,
         day,
         month,
         year,
-        timestamp: serverTimestamp(), // Firestore server timestamp
-        entryMethod: "manual", // Optional: tag as manually entered
+        timestamp: serverTimestamp(),
+        entryMethod: "manual",
       });
 
-      Alert.alert(
-        t("home.alerts.success.title"),
-        t("home.alerts.success.doseSaved"),
-      );
+      // Replace Alert with Toast for success
+      Toast.show({
+        type: "success",
+        text1: t("home.alerts.success.title"),
+        text2: t("home.alerts.success.doseSaved"),
+        position: "bottom",
+      });
+
       setModalVisible(false);
-      // Clear modal fields after successful save
       setDose("");
       setModalTotalExposures("");
       setModalTotalTime("");
     } catch (error) {
       console.error("❌ Error saving dose data:", error);
-      Alert.alert(
-        t("home.alerts.error.title"),
-        t("home.alerts.error.couldNotSave"),
-      );
+      // Replace Alert with Toast for saving error
+      Toast.show({
+        type: "error",
+        text1: t("home.alerts.error.title"),
+        text2: t("home.alerts.error.couldNotSave"),
+        position: "bottom",
+      });
     }
   };
 

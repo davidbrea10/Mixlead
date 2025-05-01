@@ -8,13 +8,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
 
 const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
 const COLLIMATOR_EFFECT = { Yes: { "192Ir": 3, "75Se": 12.5 }, No: 0 };
@@ -65,77 +65,88 @@ export default function Calculation() {
   });
 
   const calculateAndNavigate = () => {
-    // Initial checks (remain the same)
-    if (!form.isotope || !form.activity || !form.material || !form.value) {
-      Alert.alert("Error", t("radiographyCalculator.errorMessage"));
+    // Initial checks
+    if (
+      !form.isotope ||
+      form.isotope === t("radiographyCalculator.modal.isotope") || // Also check placeholder
+      !form.activity ||
+      !form.material ||
+      form.material === t("radiographyCalculator.modal.material") || // Also check placeholder
+      !form.value ||
+      (form.material === materialMap.Other && !form.attenuation) // Check attenuation if 'Other'
+    ) {
+      // Replace Alert with Toast
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle", "Error"), // Use a generic title or specific key
+        text2: t("radiographyCalculator.errorMessage"),
+        position: "bottom", // Or 'top'
+      });
       return;
     }
 
-    // Retrieve internal values (remain the same)
+    // Retrieve internal values (remains the same)
     const collimatorInternalValue = Object.keys(collimatorMap).find(
       (key) => collimatorMap[key] === form.collimator,
     );
-
     const materialInternalValue = Object.keys(materialMap).find(
       (key) => materialMap[key] === form.material,
     );
 
-    // --- Comma to Period Conversion and Parsing ---
-    // Convert commas to periods before parsing numerical inputs
+    // Comma to Period Conversion and Parsing (remains the same)
     const activityString = form.activity.replace(/,/g, ".");
     const valueString = form.value.replace(/,/g, ".");
     const attenuationString =
       materialInternalValue === "Other" && form.attenuation
         ? form.attenuation.replace(/,/g, ".")
-        : null; // Handle attenuation only if needed
+        : null;
 
-    const A = parseFloat(activityString) * 37; // Parse converted string
-    const Γ = GAMMA_FACTOR[form.isotope]; // No conversion needed
-    const Y = // Logic remains the same
+    const A = parseFloat(activityString) * 37;
+    const Γ = GAMMA_FACTOR[form.isotope];
+    const Y =
       collimatorInternalValue === "Yes"
         ? COLLIMATOR_EFFECT.Yes[form.isotope]
         : COLLIMATOR_EFFECT.No;
-    const T = form.limit === "11µSv/h" ? 0.011 : 0.0005; // No conversion needed
-
-    // Parse attenuation only if needed, using the converted string
+    const T = form.limit === "11µSv/h" ? 0.011 : 0.0005;
     const µ =
       materialInternalValue === "Other"
-        ? parseFloat(attenuationString) // Parse converted string
-        : ATTENUATION_COEFFICIENT[materialInternalValue]?.[form.isotope]; // Added optional chaining for safety
+        ? parseFloat(attenuationString)
+        : ATTENUATION_COEFFICIENT[materialInternalValue]?.[form.isotope];
+    const inputValue = parseFloat(valueString);
 
-    const inputValue = parseFloat(valueString); // Parse converted string
-    // --- End of Conversion and Parsing ---
-
-    // NaN checks (remain the same, now check results of parsing converted strings)
+    // NaN checks
     if (
       isNaN(A) ||
       isNaN(Γ) ||
       isNaN(Y) ||
       isNaN(T) ||
-      isNaN(µ) || // This will be NaN if material wasn't 'Other' and lookup failed, or if parsing failed
+      isNaN(µ) ||
       isNaN(inputValue)
     ) {
-      // Add a more detailed log for debugging NaN issues
-      console.error("NaN check failed. Values:", {
-        A,
-        Γ,
-        Y,
-        T,
-        µ_parsed:
-          materialInternalValue === "Other" ? parseFloat(attenuationString) : µ,
-        inputValue,
+      console.error("NaN check failed. Values:", { A, Γ, Y, T, µ, inputValue });
+      // Replace Alert with Toast
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
+        text2: t("radiographyCalculator.invalidInputMessage"),
+        position: "bottom",
       });
-      Alert.alert("Error", t("radiographyCalculator.invalidInputMessage"));
       return;
     }
 
-    // Extra check specifically for µ's validity after potential parsing/lookup
+    // Extra check specifically for µ's validity (remains the same logic)
     if (materialInternalValue === "Other" && isNaN(µ)) {
       console.error(
         "Attenuation (µ) is NaN for 'Other' material. Input was:",
         form.attenuation,
       );
-      Alert.alert("Error", t("radiographyCalculator.invalidInputMessage"));
+      // Replace Alert with Toast
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
+        text2: t("radiographyCalculator.invalidInputMessage"), // Could be more specific if needed
+        position: "bottom",
+      });
       return;
     }
     if (materialInternalValue !== "Other" && (µ === undefined || isNaN(µ))) {
@@ -145,35 +156,46 @@ export default function Calculation() {
         "Isotope:",
         form.isotope,
       );
-      Alert.alert("Error", t("radiographyCalculator.invalidInputMessage"));
+      // Replace Alert with Toast
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
+        text2: t("radiographyCalculator.invalidInputMessage"), // Could be more specific if needed
+        position: "bottom",
+      });
       return;
     }
 
-    // Calculation logic (remains the same as provided)
+    // Calculation logic (remains the same)
     let result;
     if (
       form.thicknessOrDistance ===
       t("radiographyCalculator.thicknessOrDistance")
     ) {
-      // Note: This formula might need review based on physics principles.
       result =
         Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
         (Math.log(2) / µ) *
-        (1 / inputValue); // inputValue is thickness here? Units need checking.
+        (1 / inputValue); // Needs review
     } else {
-      // Note: This formula might need review based on physics principles.
       result =
         Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
         (Math.log(2) / µ) *
-        (1 / inputValue); // inputValue is distance here? Units need checking.
+        (1 / inputValue); // Needs review
     }
 
-    // Final NaN check for result (remains the same)
+    // Final NaN check for result
     if (isNaN(result)) {
-      Alert.alert("Error", t("radiographyCalculator.calculationError"));
+      // Replace Alert with Toast
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
+        text2: t("radiographyCalculator.calculationError"),
+        position: "bottom",
+      });
       return;
     }
 
+    // Navigation (remains the same)
     router.push({
       pathname: "employee/calculationSummary",
       params: {

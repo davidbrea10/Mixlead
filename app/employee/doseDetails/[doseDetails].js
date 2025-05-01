@@ -27,6 +27,7 @@ import { Ionicons } from "@expo/vector-icons";
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
 import * as FileSystem from "expo-file-system"; // Import FileSystem
 import * as Sharing from "expo-sharing"; // Import Sharing
+import Toast from "react-native-toast-message";
 
 export default function DoseDetails() {
   const router = useRouter();
@@ -163,7 +164,10 @@ export default function DoseDetails() {
 
     const user = auth.currentUser;
     if (!user) {
+      // Keep using Alert for critical auth errors or switch to Toast if preferred
       Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
+      // Or:
+      // Toast.show({ type: 'error', text1: t("errors.error"), text2: t("errors.notLoggedIn"), position: 'bottom' });
       return;
     }
 
@@ -172,7 +176,10 @@ export default function DoseDetails() {
 
     if (!docId) {
       console.error("Cannot delete dose: Document ID is missing.");
+      // Keep using Alert for critical errors or switch to Toast if preferred
       Alert.alert(t("errors.error"), t("errors.deleteFailedMissingId"));
+      // Or:
+      // Toast.show({ type: 'error', text1: t("errors.error"), text2: t("errors.deleteFailedMissingId"), position: 'bottom' });
       setIsModalVisible(false);
       return;
     }
@@ -181,7 +188,6 @@ export default function DoseDetails() {
       await deleteDoc(doc(db, "employees", user.uid, "doses", docId));
 
       // Update state *after* successful deletion
-      // Create a new array excluding the deleted item
       setDailyDoses((prevDoses) =>
         prevDoses.filter((_, index) => index !== selectedDoseIndex),
       );
@@ -189,15 +195,31 @@ export default function DoseDetails() {
       // Close modal and reset selection
       setIsModalVisible(false);
       setSelectedDoseIndex(null);
-      // Optional: Show success feedback
-      // Alert.alert(t("doseDetails.deleteSuccessTitle"), t("doseDetails.deleteSuccessMessage"));
+
+      // --- ADD SUCCESS TOAST HERE ---
+      Toast.show({
+        type: "success",
+        text1: t("doseDetails.deleteSuccessTitle", { defaultValue: "Éxito" }), // Provide default if key missing
+        text2: t("doseDetails.deleteSuccessMessage", {
+          defaultValue: "Dosis eliminada correctamente.",
+        }), // Provide default
+        position: "bottom",
+        visibilityTime: 3000, // Optional: duration in ms (default is 4000)
+      });
+      // --- END OF SUCCESS TOAST ---
+
+      // Remove the old Alert if you had one here
+      // // Alert.alert(t("doseDetails.deleteSuccessTitle"), t("doseDetails.deleteSuccessMessage"));
     } catch (error) {
       console.error("Error deleting dose:", error);
-      Alert.alert(
-        t("errors.error"),
-        t("errors.deleteFailed") + `: ${error.message}`,
-      );
-      // Keep modal open on error? Or close? Let's close it.
+      // Keep Alert for errors or switch to Toast
+      // Or:
+      Toast.show({
+        type: "error",
+        text1: t("errors.error"),
+        text2: t("errors.deleteFailed") + `: ${error.message}`,
+        position: "bottom",
+      });
       setIsModalVisible(false);
       setSelectedDoseIndex(null);
     }

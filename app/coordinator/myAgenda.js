@@ -13,36 +13,25 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { db, auth } from "../../firebase/config";
 import {
   collection,
-  doc,
   addDoc, // Necesario para handleSaveDose
-  getDocs, // Puede ser necesario si aún cargas algo
-  getDoc,
-  setDoc, // Ya no sería necesario si solo usas addDoc
   serverTimestamp,
-  query, // Añade query y where si necesitas buscar datos del día
 } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
 
 export default function Home() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  // Elimina estados que ya no necesitas si loadCurrentDose cambia drásticamente
-  // const [currentDoseId, setCurrentDoseId] = useState(null); // <-- Probablemente ya no necesario en este contexto
-  // const [exposures, setExposures] = useState([]); // <-- ¿A qué dosis pertenecen ahora? ¿Necesitas cargarlas aquí?
-  // const [exposureCount, setExposureCount] = useState(1); // <-- ¿Cómo se determina ahora?
-  // const [totalTime, setTotalTime] = useState(0); // <-- ¿Suma de qué? Quizás se calcula en otra pantalla
-  // const [totalExposures, setTotalExposures] = useState(0); // <-- ¿Suma de qué?
-
   const [modalVisible, setModalVisible] = useState(false);
-  // Estados para el modal (estos sí son necesarios)
+  // Estados para el modal
   const [dose, setDose] = useState("");
-  const [modalTotalExposures, setModalTotalExposures] = useState(""); // Renombrado para claridad
-  const [modalTotalTime, setModalTotalTime] = useState(""); // Renombrado para claridad
+  const [modalTotalExposures, setModalTotalExposures] = useState("");
+  const [modalTotalTime, setModalTotalTime] = useState("");
 
   const handleBack = () => {
     router.back();
@@ -56,30 +45,37 @@ export default function Home() {
     router.push("/coordinator/doseData");
   };
 
-  // --- Lógica de Guardado (Correcta para tu nuevo requisito) ---
   const handleSaveDose = async () => {
-    // Validación usando los estados del modal
     if (
       !dose.trim() ||
       isNaN(parseFloat(dose)) ||
-      parseFloat(dose) <= 0 || // Permitir cero si es válido, si no, mantener > 0
-      !modalTotalExposures.trim() || // Usa el estado del modal
+      parseFloat(dose) <= 0 ||
+      !modalTotalExposures.trim() ||
       isNaN(parseInt(modalTotalExposures, 10)) ||
       parseInt(modalTotalExposures, 10) <= 0 ||
-      !modalTotalTime.trim() || // Usa el estado del modal
+      !modalTotalTime.trim() ||
       isNaN(parseInt(modalTotalTime, 10)) ||
       parseInt(modalTotalTime, 10) <= 0
     ) {
-      Alert.alert(t("home.alerts.error.title"), t("home.alerts.emptyFields")); // Asegúrate que las keys de traducción sean correctas
-      return;
+      // Replace Alert with Toast
+      Toast.show({
+        type: "error", // 'success', 'error', 'info'
+        text1: t("home.alerts.error.title"),
+        text2: t("home.alerts.emptyFields"),
+        position: "bottom", // Optional: 'top' or 'bottom'
+      });
+      return; // Keep the return here
     }
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert(
-        t("home.alerts.error.title"),
-        t("home.alerts.userNotAuthenticated"),
-      );
+      // Replace Alert with Toast
+      Toast.show({
+        type: "error",
+        text1: t("home.alerts.error.title"),
+        text2: t("home.alerts.userNotAuthenticated"),
+        position: "bottom",
+      });
       return;
     }
 
@@ -89,20 +85,12 @@ export default function Home() {
       const month = today.getMonth() + 1;
       const year = today.getFullYear();
 
-      // Ruta correcta: la colección de dosis del usuario LOGUEADO (que es el coordinador en este caso?)
-      // OJO: ¿Estás seguro que quieres guardar la dosis en la colección del *coordinador* (user.uid)?
-      // ¿O deberías tener una forma de seleccionar a qué *empleado* se le asigna esta dosis manual?
-      // ********************************************************************************
-      // !!!! ASUNCIÓN PELIGROSA: Asumo que el user.uid corresponde al EMPLEADO !!!!
-      // Si esta pantalla es para el COORDINADOR añadiendo dosis a OTROS, necesitas
-      // un selector de empleado aquí y usar el UID del empleado seleccionado.
-      // ********************************************************************************
-      const employeeUidToSave = user.uid; // <--- ¡¡REVISA ESTO!! ¿Debería ser seleccionable?
+      const employeeUidToSave = user.uid;
 
       const dosesCollectionRef = collection(
         db,
         "employees",
-        employeeUidToSave, // <--- Usar el UID correcto
+        employeeUidToSave,
         "doses",
       );
 
@@ -111,114 +99,38 @@ export default function Home() {
       );
       await addDoc(dosesCollectionRef, {
         dose: parseFloat(dose),
-        totalExposures: parseInt(modalTotalExposures, 10), // Usa el estado del modal
-        totalTime: parseInt(modalTotalTime, 10), // Usa el estado del modal
+        totalExposures: parseInt(modalTotalExposures, 10),
+        totalTime: parseInt(modalTotalTime, 10),
         day,
         month,
         year,
-        timestamp: serverTimestamp(), // O usa createdAt
-        entryMethod: "manual", // Opcional: para saber que fue entrada manual
+        timestamp: serverTimestamp(),
+        entryMethod: "manual",
       });
 
-      Alert.alert(
-        t("home.alerts.success.title"),
-        t("home.alerts.success.doseSaved"),
-      );
+      // Replace Alert with Toast
+      Toast.show({
+        type: "success",
+        text1: t("home.alerts.success.title"),
+        text2: t("home.alerts.success.doseSaved"),
+        position: "bottom",
+      });
+
       setModalVisible(false);
-      // Limpiar los campos del modal después de guardar
       setDose("");
       setModalTotalExposures("");
       setModalTotalTime("");
     } catch (error) {
       console.error("❌ Error saving dose data:", error);
-      Alert.alert(
-        t("home.alerts.error.title"),
-        t("home.alerts.error.couldNotSave"),
-      );
-    }
-  };
-  /*
-  const loadCurrentDose = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-    const day = today.getDate();
-
-    const dosesRef = collection(db, "employees", user.uid, "doses");
-    const snapshot = await getDocs(dosesRef);
-    let existingDose = null;
-
-    for (const docSnap of snapshot.docs) {
-      const data = docSnap.data();
-      if (data.year === year && data.month === month && data.day === day) {
-        existingDose = { id: docSnap.id, ...data };
-      }
-    }
-
-    if (existingDose) {
-      setCurrentDoseId(existingDose.id);
-      setTotalExposures(existingDose.totalExposures || 0);
-      setExposureCount((existingDose.totalExposures || 0) + 1); // Ajustar exposición al siguiente número
-      await loadExposures(existingDose.id);
-    } else {
-      const newDoseRef = await addDoc(dosesRef, {
-        year,
-        month,
-        day,
-        totalTime: 0,
-        totalExposures: 0,
-        dose: 0,
-        createdAt: serverTimestamp(),
+      // Replace Alert with Toast
+      Toast.show({
+        type: "error",
+        text1: t("home.alerts.error.title"),
+        text2: t("home.alerts.error.couldNotSave"),
+        position: "bottom",
       });
-      setCurrentDoseId(newDoseRef.id);
-      setTotalExposures(0);
-      setExposureCount(1); // Empezar en 1 si no hay exposiciones previas
     }
   };
-
-  const loadExposures = async (doseId) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const exposuresRef = collection(
-      db,
-      "employees",
-      user.uid,
-      "doses",
-      doseId,
-      "exposures",
-    );
-    const snapshot = await getDocs(exposuresRef);
-
-    let totalExposures = 0;
-    let totalTime = 0;
-    let exposuresList = [];
-
-    snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      exposuresList.push({
-        id: docSnap.id, // 🔥 Agregar el id del documento
-        ...data,
-      });
-      totalExposures += 1;
-      totalTime += data.time;
-    });
-
-    setExposures(exposuresList);
-    setTotalExposures(totalExposures);
-    setTotalTime(totalTime);
-
-    // 📌 Ajustar el número de exposición
-    setExposureCount(totalExposures + 1);
-  };
-
-  useEffect(() => {
-    loadCurrentDose();
-  }, []);
-  */
 
   return (
     <LinearGradient
@@ -293,10 +205,11 @@ export default function Home() {
                 <Text style={styles.label}>{t("home.modal.dose")}</Text>
                 <TextInput
                   style={styles.input}
-                  value={dose} // Correcto
-                  onChangeText={setDose} // Correcto
+                  value={dose}
+                  onChangeText={setDose}
                   keyboardType="numeric"
                   placeholder={t("home.modal.enterDose")}
+                  placeholderTextColor="gray" // O un gris más oscuro como '#888'
                 />
 
                 <Text style={styles.label}>
@@ -304,19 +217,21 @@ export default function Home() {
                 </Text>
                 <TextInput
                   style={styles.input}
-                  value={modalTotalExposures} // Usa el estado del modal
-                  onChangeText={setModalTotalExposures} // Usa el estado del modal
+                  value={modalTotalExposures}
+                  onChangeText={setModalTotalExposures}
                   keyboardType="numeric"
                   placeholder={t("home.modal.enterNumberOfExposures")}
+                  placeholderTextColor="gray"
                 />
 
                 <Text style={styles.label}>{t("home.modal.exposureTime")}</Text>
                 <TextInput
                   style={styles.input}
-                  value={modalTotalTime} // Usa el estado del modal
-                  onChangeText={setModalTotalTime} // Usa el estado del modal
+                  value={modalTotalTime}
+                  onChangeText={setModalTotalTime}
                   keyboardType="numeric"
                   placeholder={t("home.modal.enterExposureTime")}
+                  placeholderTextColor="gray"
                 />
 
                 <View style={styles.buttonContainer}>
@@ -330,7 +245,7 @@ export default function Home() {
                   </Pressable>
                   <TouchableOpacity
                     style={[styles.modalButton, { flex: 1, marginLeft: 5 }]}
-                    onPress={handleSaveDose} // Correcto
+                    onPress={handleSaveDose}
                   >
                     <Text style={styles.buttonText}>
                       {t("home.modal.save")}
@@ -454,7 +369,7 @@ const styles = {
   },
   modalContent: {
     width: "90%",
-    backgroundColor: "white",
+    backgroundColor: "white", // Fondo blanco
     padding: 20,
     borderRadius: 10,
     alignItems: "center",
@@ -463,6 +378,8 @@ const styles = {
     fontSize: 16,
     fontWeight: "bold",
     marginTop: 10,
+    alignSelf: "flex-start",
+    marginBottom: 5,
   },
   input: {
     width: "100%",
@@ -470,8 +387,10 @@ const styles = {
     borderColor: "gray",
     borderRadius: 5,
     padding: 10,
-    marginTop: 10,
     fontSize: 16,
+    marginBottom: 10,
+    color: "black", // <-- ¡AÑADE ESTA LÍNEA! Especifica el color del texto.
+    // Puedes usar 'black', '#000', '#333' (gris oscuro), etc.
   },
   buttonContainer: {
     flexDirection: "row",
@@ -482,13 +401,11 @@ const styles = {
     backgroundColor: "gray",
     padding: 15,
     borderRadius: 5,
-    marginTop: 10,
   },
   modalButton: {
     backgroundColor: "#006892",
     padding: 15,
     borderRadius: 5,
-    marginTop: 10,
   },
   buttonText: {
     color: "white",

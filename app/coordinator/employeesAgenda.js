@@ -1285,13 +1285,12 @@ const pickerSelectStyles = StyleSheet.create({
     fontSize: 16,
     paddingVertical: 12,
     paddingHorizontal: 10,
-    // borderWidth: 1, // Quita bordes si ya los tienes en pickerWrapper
+    // borderWidth: 1, // Good, keep commented if pickerWrapper handles border
     // borderColor: 'gray',
     // borderRadius: 4,
-    color: "black",
-    paddingRight: 30, // para asegurar que el texto no se solape con el icono
-    // backgroundColor: 'white', // Quita si ya lo tienes en pickerWrapper
-    // Ajusta estos estilos para que coincidan con tu diseño
+    color: "black", // <--- THIS IS CORRECT. Ensure it's not commented out.
+    paddingRight: 30, // to ensure text doesn't overlap icon
+    // backgroundColor: 'white', // Can sometimes help, but usually not needed if wrapper is white
   },
   inputAndroid: {
     fontSize: 16,
@@ -1300,18 +1299,16 @@ const pickerSelectStyles = StyleSheet.create({
     // borderWidth: 0.5,
     // borderColor: 'purple',
     // borderRadius: 8,
-    color: "black",
+    color: "black", // Make sure Android text is also black
     paddingRight: 30,
     // backgroundColor: 'white',
   },
   placeholder: {
-    color: "gray",
+    color: "gray", // Placeholder style is separate
   },
   iconContainer: {
-    // Estilo para el contenedor del icono (la flecha)
     top: "50%",
-    marginTop: -10, // Aproximadamente la mitad del tamaño del icono
+    marginTop: -10, // Adjust vertical centering if needed based on icon size
     right: 15,
   },
-  // Puedes añadir más estilos según la documentación de la librería
 });
