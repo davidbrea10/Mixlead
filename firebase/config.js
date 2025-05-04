@@ -1,7 +1,18 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
 import {
-  Platform, // Importa Platform para ajustes específicos si fueran necesarios
-} from "react-native";
+  // Funciones principales de Auth
+  getAuth,
+  initializeAuth,
+  // Tipos de Persistencia
+  getReactNativePersistence, // Para RN
+  indexedDBLocalPersistence, // Para Web (preferido)
+  browserLocalPersistence, // Para Web (alternativa)
+  // browserSessionPersistence, // Otra opción web
+  // inMemoryPersistence // Otra opción web/RN
+} from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native"; // Importa Platform
 import {
   FIREBASE_API_KEY,
   FIREBASE_AUTH_DOMAIN,
@@ -11,20 +22,8 @@ import {
   FIREBASE_APP_ID,
   FIREBASE_MEASUREMENT_ID,
 } from "@env";
-// Asegúrate de importar estas si usas persistencia en Auth
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  getReactNativePersistence,
-  initializeAuth,
-  // Si usas persistencia web, asegúrate de importar estas si no están disponibles globalmente
-  indexedDBLocalPersistence,
-  browserLocalPersistence
-} from "firebase/auth";
-// Asegúrate de importar getFirestore si usas Firestore
-import { getFirestore } from "firebase/firestore";
 
-// Configuración de Firebase usando variables de entorno
-// Asegúrate de que @env esté configurado y que estas variables estén accesibles
+// Configuración de Firebase (sin cambios)
 const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,
   authDomain: FIREBASE_AUTH_DOMAIN,
@@ -35,31 +34,31 @@ const firebaseConfig = {
   measurementId: FIREBASE_MEASUREMENT_ID,
 };
 
-// Inicializa Firebase App
+// Inicializa Firebase App (sin cambios)
 const app = initializeApp(firebaseConfig);
 
-// >>>>> Inicializa Auth y Firestore AQUÍ <<<<<
+// --- Inicialización de Auth específica de plataforma ---
+let auth;
 
-// Inicializa Auth condicionalmente según la plataforma
-let authInstance; // Usamos un nombre temporal aquí
 if (Platform.OS === "web") {
+  // En la web, usa persistencia web (IndexedDB es preferible)
   console.log("Initializing Firebase Auth for Web with IndexedDB persistence");
-  authInstance = initializeAuth(app, {
-      persistence: typeof indexedDBLocalPersistence !== 'undefined' ? indexedDBLocalPersistence : browserLocalPersistence,
+  auth = initializeAuth(app, {
+    persistence: indexedDBLocalPersistence, // O browserLocalPersistence
+    // popupRedirectResolver: browserPopupRedirectResolver, // Puede ser necesario si usas popups/redirects
   });
 } else {
+  // En móvil (Android/iOS), usa persistencia de React Native
   console.log(
-      "Initializing Firebase Auth for React Native with AsyncStorage persistence",
+    "Initializing Firebase Auth for React Native with AsyncStorage persistence",
   );
-  authInstance = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
   });
 }
+// -------------------------------------------------------
 
-// Inicializa Firestore
-const dbInstance = getFirestore(app);
+// Inicializa Firestore (sin cambios)
+const db = getFirestore(app);
 
-// >>>>> Exporta las instancias inicializadas <<<<<
-export const auth = authInstance; // Exportamos la instancia de Auth
-export const db = dbInstance;   // Exportamos la instancia de Firestore
-export { app }; // Puedes exportar la app principal también si la necesitas
+export { app, db, auth };
