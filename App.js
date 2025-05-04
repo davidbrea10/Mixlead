@@ -1,20 +1,21 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import ToastManager from 'react-native-toast-message';
 
-export default function App() {
+// Importa tu Stack de autenticación
+import AuthStack from './navigation/AuthStack';
+
+function App() {
+  // Por ahora, simplemente renderizamos el NavigationContainer envolviendo el AuthStack
+  // La lógica de autenticación para cambiar de stack se añadirá después
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      {/* Renderizamos directamente el AuthStack */}
+      <AuthStack />
+      {/* ToastManager fuera del navegador */}
+      <ToastManager />
+    </NavigationContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default App; // Asegúrate de que este componente sea el que se exporta como raíz

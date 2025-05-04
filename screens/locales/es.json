@@ -1,0 +1,592 @@
+{
+  "welcome_back": "¡Bienvenido de nuevo!",
+  "enter_email": "Ingresa tu correo electrónico",
+  "password": "Contraseña",
+  "recover_password": "¿Recuperar contraseña?",
+  "sign_in": "Iniciar sesión",
+  "signing_in": "Iniciando sesión...",
+  "no_account": "¿No tienes una cuenta?",
+  "register_here": "¡Regístrate aquí!",
+  "change_language": "Cambiar idioma",
+  "login_failed": "Error de inicio de sesión: ",
+  "please_enter_credentials": "Por favor ingresa correo y contraseña",
+  "user_not_found": "Datos de usuario no encontrados.",
+  "email_not_verified": "Por favor verifica tu correo antes de iniciar sesión.",
+  "login_successful": "¡Inicio de sesión exitoso!",
+  "loading": "Cargando...",
+  "email_not_verified_message": "¿Estás teniendo problemas para iniciar sesión?",
+  "resend_verification_email": "Reenviar correo de verificación",
+  "error_title": "¡Oh no!",
+  "success_title": "¡Bien hecho!",
+  "invalid_credentials": "Correo o contraseña inválidos.",
+  "too_many_attempts": "Demasiados intentos de inicio de sesión. Por favor, inténtalo más tarde.",
+  "invalid_email_format": "Formato de correo inválido.",
+
+  "errors": {
+    "errorTitle": "Error",
+    "fillAllFields": "Por favor, complete todos los campos requeridos.",
+    "passwordsMismatch": "Las contraseñas no coinciden.",
+    "fixValidationErrors": "Por favor, corrija los errores antes de enviar.",
+    "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
+    "emailExists": "Esta dirección de correo electrónico ya está registrada.",
+    "weakPassword": "La contraseña debe tener al menos 8 caracteres e incluir una letra y un número.",
+    "authOperationNotAllowed": "Las cuentas de correo/contraseña no están habilitadas.",
+    "required": "Este campo es obligatorio",
+    "invalidDni": "Formato de DNI inválido (ej: 12345678A)",
+    "dniExists": "Este DNI ya está registrado.",
+    "invalidPhone": "Formato de teléfono inválido (9 dígitos)",
+    "invalidEmail": "Formato de correo electrónico inválido",
+    "ageRestriction": "Debes tener al menos 18 años",
+    "invalidPassword": "La contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número."
+  },
+  "register": {
+    "successTitle": "Registro Exitoso",
+    "successMessage": "¡Registro exitoso! Por favor, revise su correo electrónico para verificar su cuenta.",
+    "registeringButton": "Registrando...",
+    "button": "Registrar",
+     "title": "Registrarse",
+    "firstName": "Nombre",
+    "lastName": "Apellidos",
+    "dni": "DNI",
+    "phone": "Teléfono",
+    "birthDate": "Fecha de Nacimiento",
+    "selectBirthDate": "Seleccionar Fecha de Nacimiento",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "emailVerificationTitle": "Verifica tu Correo",
+    "emailVerificationMessage": "Se ha enviado un correo de verificación a tu bandeja de entrada. Por favor, verifica tu correo antes de iniciar sesión.",
+    "okButton": "Aceptar"
+  },
+
+  "emailConfirmation": {
+    "title": "Verifica tu Correo",
+    "message": "Se ha enviado un correo de verificación a tu bandeja de entrada. Por favor revisa tu correo y verifica tu cuenta.",
+    "backToLogin": "Volver al Inicio"
+  },
+
+  "passwordReset": {
+    "title": "Restablecer Contraseña",
+    "instructions": "Ingresa tu dirección de correo electrónico para recibir un enlace de restablecimiento de contraseña.",
+    "emailPlaceholder": "Correo Electrónico",
+    "sendButton": "Enviar Enlace",
+    "successTitle": "Éxito",
+    "successMessage": "Se ha enviado un enlace de restablecimiento de contraseña a tu correo electrónico.",
+    "errorTitle": "Error",
+    "emptyEmail": "Por favor, ingresa tu dirección de correo electrónico.",
+    "sendingButton": "Enviando..."
+  },
+
+  "register.title": "Registro de Usuario",
+  "register.firstName": "Nombre",
+  "register.lastName": "Apellidos",
+  "register.dni": "DNI",
+  "register.phone": "Teléfono",
+  "register.birthDate": "Fecha de nacimiento",
+  "register.selectBirthDate": "Selecciona fecha de nacimiento",
+  "register.email": "Correo electrónico",
+  "register.password": "Contraseña",
+  "register.confirmPassword": "Confirmar contraseña",
+  "register.button": "Registrar",
+  "errors.required": "Este campo es obligatorio.",
+  "errors.invalidDni": "El formato del DNI es inválido.",
+  "errors.dniExists": "El DNI ya está registrado.",
+  "errors.invalidPhone": "El formato del número de teléfono no es válido.",
+  "errors.invalidEmail": "El formato del correo electrónico no es válido.",
+  "errors.invalidPassword": "La contraseña debe tener al menos 8 caracteres e incluir al menos una letra y un número.",
+  "errors.passwordsMismatch": "Las contraseñas no coinciden.",
+  "errors.ageRestriction": "Debes tener al menos 18 años.",
+  "errors.fixBeforeSubmit": "Por favor, corrige los errores antes de enviar.",
+  "errors.fillAllFields": "Por favor, rellena todos los campos",
+  "errors.registrationFailed": "El registro falló",
+  "errors.pdfGenerationFailed": "Error al generar el PDF",
+  "success.registration": "Registro exitoso",
+
+  "company_details.title": "Empresas",
+  "company_details.subtitle": "Detalles de la Empresa",
+  "company_details.fields.Name": "Nombre",
+  "company_details.fields.CompanyId": "ID de la Empresa",
+  "company_details.fields.Cif": "CIF",
+  "company_details.fields.Telephone": "Teléfono",
+  "company_details.fields.ContactPerson": "Persona de Contacto",
+  "company_details.fields.SecurityNumber": "Número de Seguridad",
+  "company_details.save": "Guardar Cambios",
+  "company_details.delete": "Eliminar Empresa",
+  "company_details.loading": "Cargando...",
+  "company_details.alert.not_found": "Empresa no encontrada",
+  "company_details.alert.fetch_error": "Error al obtener la empresa",
+  "company_details.alert.update_success": "Empresa actualizada correctamente",
+  "company_details.alert.update_error": "Error al actualizar la empresa",
+  "company_details.alert.delete_confirm1": "Confirmar eliminación",
+  "company_details.alert.delete_confirm": "¿Estás seguro de que deseas eliminar esta empresa?",
+  "company_details.alert.delete_success": "Empresa eliminada correctamente",
+  "company_details.alert.delete_error": "Error al eliminar la empresa",
+  "company_details.confirm.cancel": "Cancelar",
+  "company_details.confirm.delete": "Eliminar",
+  "company_details.tap_to_copy": "Toca para copiar",
+
+  "employee_details": {
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "dni": "DNI/NIE",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "birthDate": "Fecha de nacimiento",
+    "role": "Rol",
+    "companyId": "ID de empresa",
+    "selectRole": "Seleccionar rol",
+    "selectRolePlaceholder": "Selecciona un rol",
+    "save": "Guardar cambios",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "delete1": "Eliminar",
+    "confirmDeleteTitle": "Confirmar eliminación",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar este empleado?",
+    "employeesTitle": "Empleados",
+    "employeeDetailsTitle": "Detalles del empleado",
+    "close": "Cerrar"
+  },
+
+  "add_company": {
+    "title": "Añadir Empresa",
+    "companiesTitle": "Empresas",
+    "name": "Nombre",
+    "cif": "CIF",
+    "telephone": "Teléfono",
+    "contactPerson": "Persona de contacto",
+    "securityNumber": "Número de Seguridad Social",
+    "placeholder_name": "Introduce el nombre",
+    "placeholder_cif": "Introduce el CIF",
+    "placeholder_telephone": "Introduce el teléfono",
+    "placeholder_contactPerson": "Introduce la persona de contacto",
+    "placeholder_securityNumber": "Introduce el número de seguridad social",
+    "addButton": "Añadir Empresa",
+    "errorIncomplete": "Por favor, rellena todos los campos",
+    "success": "Empresa registrada con éxito"
+  },
+
+  "add_employee": {
+    "title": "Añadir Empleado",
+    "employeesTitle": "Empleados",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "dni": "DNI",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "role": "Rol",
+    "birthDate": "Fecha de nacimiento",
+    "company": "Empresa",
+    "selectRole": "Seleccionar rol",
+    "selectCompany": "Seleccionar empresa",
+    "selectBirthDate": "Seleccionar fecha de nacimiento",
+    "addButton": "Añadir Empleado",
+    "noCompany": "Sin empresa",
+    "validationError": "Por favor, rellena todos los campos obligatorios",
+    "successMessage": "Empleado registrado con éxito",
+    "errorFetchingCompanies": "Error al obtener las empresas",
+    "password": "Contraseña"
+  },
+
+  "companies": {
+    "title": "Empresas",
+    "searchPlaceholder": "Buscar",
+    "noName": "Nombre no disponible",
+    "successMessage": "Empresa creada con éxito",
+    "errorFetching": "Error al cargar las empresas"
+  },
+
+  "employees": {
+    "title": "Empleados",
+    "searchPlaceholder": "Buscar",
+    "selectCompany": "Selecciona una empresa",
+    "noName": "Nombre no disponible",
+    "companyLabel": "Empresa",
+    "withoutCompany": "Sin empresa",
+    "filterAll": "Todas"
+  },
+
+  "adminHome": {
+    "title": "INICIO",
+    "companiesButton": "Empresas",
+    "employeesButton": "Empleados",
+    "logoutError": "Error al cerrar sesión: ",
+    "logoutSuccessMessage": "Has cerrado sesión correctamente.",
+    "logoutErrorTitle": "Error de Logout",
+    "logoutErrorMessage": "Error al cerrar sesión. Por favor, inténtalo de nuevo.",
+    "logoutSuccessTitle": "Sesión Cerrada",
+    "logoutConfirmTitle": "Confirmar Cierre de Sesión",
+    "logoutConfirmMessage": "¿Estás seguro de que quieres cerrar sesión?",
+    "logoutCancel": "Cancelar",
+    "logoutConfirm": "Cerrar Sesión"
+  },
+
+  "adminSettings": {
+    "title": "Configuración",
+    "profile": "Perfil",
+    "helpFaq": "Ayuda & Preguntas Frecuentes"
+  },
+
+  "profile": {
+    "title": "Tu Perfil",
+    "name": "Nombre",
+    "lastName": "Apellido",
+    "dni": "DNI/NIE",
+    "telephone": "Teléfono",
+    "birth": "Fecha de Nacimiento",
+    "email": "Correo Electrónico",
+    "role": "Rol",
+    "companyName": "Nombre de la Empresa",
+    "companyCode": "Código de la Empresa",
+    "noCompanyAssigned": "No hay empresa asignada",
+    "joinCompanyQuestion": "¿Eres parte de una empresa?",
+    "joinCompanyAction": "Haz clic aquí.",
+    "userNotAuthenticated": "Error: No hay usuario autenticado.",
+    "userDataNotFound": "Error: No se encontraron los datos del usuario.",
+    "fetchUserDataError": "Error al obtener los datos del usuario",
+    "modal": {
+      "title": "¿Eres parte de una empresa?",
+      "description": "Ingresa el código de tu empresa para confirmar tu solicitud. Ten en cuenta que compartirás tus datos personales con ellos. Si no lo sabes ahora, puedes cambiarlo desde la configuración.",
+      "companyCodeLabel": "Código de la Empresa",
+      "companyCodePlaceholder": "Ej: A12345678",
+      "submitSuccess": "Si el código de empresa es correcto, recibirás noticias pronto.",
+      "submitAlreadySent": "Ya enviaste una solicitud.",
+      "submitNoCoordinators": "No se encontraron coordinadores en esta empresa.",
+      "submitError": "Algo salió mal. Inténtalo de nuevo.",
+      "submitEmpty": "El código de la empresa no puede estar vacío.",
+      "continueGuest": "Continuar como invitado",
+      "userNotLoggedIn": "Usuario no autenticado."
+    }
+  },
+
+  "doseDetails": {
+    "deleteSuccessTitle": "Éxito",
+    "deleteSuccessMessage": "Dosis eliminada correctamente.",
+    "title": "Detalles de Dosis",
+    "monthLabel": "{{month}} {{year}}",
+    "table": {
+      "dose": "Dosis",
+      "date": "Fecha",
+      "view": "Ver",
+      "noData": "No hay datos de dosis para este período."
+    },
+    "expanded": {
+      "totalTime": "Tiempo Total: ",
+      "totalExposures": "Exposiciones Totales: "
+    },
+    "monthlySummary": {
+      "label": "Datos de dosis equivalentes del mes:",
+      "value": "{{dose}} μSv",
+      "download": "Descargar datos del mes"
+    },
+    "months": {
+      "1": "Enero",
+      "2": "Febrero",
+      "3": "Marzo",
+      "4": "Abril",
+      "5": "Mayo",
+      "6": "Junio",
+      "7": "Julio",
+      "8": "Agosto",
+      "9": "Septiembre",
+      "10": "Octubre",
+      "11": "Noviembre",
+      "12": "Diciembre"
+    },
+    "modal": {
+      "message": "Estás seguro de que deseas eliminar esta dosis?",
+      "no": "No",
+      "yes": "Sí"
+    }
+  },
+
+  "employee_detail": {
+    "title": "Empleados",
+    "subtitle": "Detalles del Empleado",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "dni": "DNI/NIE",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "birthDate": "Fecha de nacimiento",
+    "saveButton": "Guardar cambios",
+    "deleteButton": "Eliminar",
+    "alert": {
+      "notFound": "Empleado no encontrado",
+      "fetchError": "Error al obtener el empleado",
+      "updateSuccess": "Empleado actualizado correctamente",
+      "updateError": "Error al actualizar el empleado",
+      "deleteConfirm": "¿Estás seguro de que deseas eliminar a este empleado?",
+      "deleteSuccess": "Empleado eliminado correctamente",
+      "deleteError": "Error al eliminar el empleado"
+    }
+  },
+
+  "applications": {
+    "appTitle": "Solicitudes de unión a la Empresa",
+    "name": "Nombre",
+    "lastName": "Apellidos",
+    "view": "Ver",
+    "noApplications": "No se han recibido solicitudes.",
+    "acceptButton": "Aceptar",
+    "declineButton": "Rechazar",
+    "successMessageAccepted": "Solicitud aceptada exitosamente",
+    "successMessageDeclined": "Solicitud rechazada exitosamente",
+    "modalTitle": "¿Estás seguro de que deseas denegar a este usuario?",
+    "modalConfirmButton": "Sí",
+    "modalCancelButton": "No",
+    "goBackButton": "Volver",
+    "homeButton": "Inicio"
+  },
+
+  "radiographyCalculator": {
+    "buttonTitle": "Calculadora de la Distancia/Espesor Necesario",
+    "title": "Calculadora de Blindaje Radiográfico",
+    "isotope": "Isótopo:",
+    "activity": "Actividad:",
+    "valueCi": "Valor (Ci):",
+    "collimator": "Colimador:",
+    "tLimitFor": "T límite:",
+    "material": "Material:",
+    "attenuation": "Coeficiente de Atenuación:",
+    "thicknessOrDistance": "Espesor",
+    "distance": "Distancia",
+    "value": "Valor ({{unit}}):",
+    "calculateDistance": "Calcular Distancia",
+    "calculateThickness": "Calcular Espesor",
+    "errorMessage": "Por favor, complete todos los campos.",
+    "invalidInputMessage": "Valores de entrada inválidos. Por favor, verifique sus entradas.",
+    "calculationError": "El cálculo resultó en NaN. Por favor, revise los datos de entrada.",
+    "alerts": {
+      "errorTitle": "Error"
+    },
+    "modal": {
+      "isotope": "Seleccionar Isótopo",
+      "collimator": "Seleccionar uso de Colimador",
+      "material": "Seleccionar Material",
+      "limit": "Establecer límite de tasa de dosis",
+      "attenuation": "Ingrese el valor de atenuación",
+      "otherMaterial": "Otro"
+    },
+    "options": {
+      "isotopes": {
+        "192Ir": "192Ir",
+        "75Se": "75Se"
+      },
+      "collimator": {
+        "Yes": "Sí",
+        "No": "No"
+      },
+      "materials": {
+        "Mixlead": "Mixlead",
+        "Steel": "Acero",
+        "Concrete": "Hormigón",
+        "Aluminum": "Aluminio",
+        "Lead": "Plomo",
+        "Tungsten": "Tungsteno",
+        "Other": "Otro"
+      },
+      "limits": {
+        "11µSv/h": "11µSv/h",
+        "0.5µSv/h": "0.5µSv/h"
+      }
+    }
+  },
+
+  "calculationSummary": {
+    "title": "Resultados para {{type}}",
+    "resultsFor": "Resultados para:",
+    "isotope": "Isótopo:",
+    "collimator": "Colimador:",
+    "thickness": "Espesor:",
+    "distance": "Distancia:",
+    "activity": "Actividad:",
+    "ci": "Ci",
+    "material": "Material:",
+    "attenuation": "Atenuación:",
+    "limit": "Límite:",
+    "resultDistance": "DISTANCIA: {{result}} m",
+    "resultThickness": "ESPESOR: {{result}} mm",
+    "graph": "Gráfico",
+    "table": "Tabla"
+  },
+
+  "home": {
+    "yearPlaceholder": "Seleccionar Año",
+    "header": {
+      "title": "Mi Agenda",
+      "subtitle": "Datos de Dosis Anual"
+    },
+    "selectYear": "Seleccionar Año",
+    "table": {
+      "dose": "Dosis",
+      "month": "Mes",
+      "view": "Ver",
+      "noData": "No hay datos de dosis disponibles para {{year}}."
+    },
+    "months": {
+      "1": "Enero",
+      "2": "Febrero",
+      "3": "Marzo",
+      "4": "Abril",
+      "5": "Mayo",
+      "6": "Junio",
+      "7": "Julio",
+      "8": "Agosto",
+      "9": "Septiembre",
+      "10": "Octubre",
+      "11": "Noviembre",
+      "12": "Diciembre"
+    },
+    "annualDose": {
+      "title": "Datos equivalentes de dosis del informe anual:",
+      "download": "Descargar Datos Anuales"
+    },
+
+    "doseData": "Datos de Dosis",
+    "addDataManually": "Agregar Datos de Hoy Manualmente",
+    "modal": {
+      "dose": "Dosis (µSv)",
+      "numberOfExposures": "Número de Exposiciones",
+      "exposureTime": "Tiempo de Exposición (s)",
+      "cancel": "Cancelar",
+      "save": "Guardar Dosis",
+      "enterDose": "Ingrese la dosis",
+      "enterNumberOfExposures": "Ingrese el número de exposiciones",
+      "enterExposureTime": "Ingrese el tiempo de exposición"
+    },
+    "alerts": {
+      "error": {
+        "title": "Error",
+        "emptyFields": "Todos los campos deben estar completos y ser mayores que cero.",
+        "userNotAuthenticated": "Usuario no autenticado.",
+        "couldNotSave": "No se pudieron guardar los datos de la dosis.",
+        "emptyOrInvalidFields": "Por favor, rellena todos los campos con valores válidos."
+      },
+      "userNotAuthenticated": "Usuario no autenticado.",
+      "success": {
+        "title": "Éxito",
+        "doseSaved": "Los datos de la dosis han sido guardados."
+      },
+      "confirmReplacement": {
+        "title": "Confirmar Reemplazo",
+        "message": "Ya existe una dosis registrada para hoy. ¿Deseas reemplazarla?",
+        "cancel": "Cancelar",
+        "replace": "Reemplazar"
+      },
+      "emptyFields" : "Todos los campos deben estar completos y ser mayores que cero."
+    }
+  },
+
+  "employeesAgenda": {
+    "header": {
+      "title": "Agendas de Empleados"
+    },
+    "selectEmployee": "Seleccionar Empleado",
+    "employee": {
+      "placeholder": "-- Seleccionar --",
+      "unnamed": "Sin Nombre"
+    },
+    "selectYear": "Seleccionar Año",
+    "table": {
+      "dose": "Dosis",
+      "month": "Mes",
+      "view": "Ver",
+      "noData": "No hay datos de dosis disponibles para {{year}}."
+    },
+    "months": {
+      "1": "Enero",
+      "2": "Febrero",
+      "3": "Marzo",
+      "4": "Abril",
+      "5": "Mayo",
+      "6": "Junio",
+      "7": "Julio",
+      "8": "Agosto",
+      "9": "Septiembre",
+      "10": "Octubre",
+      "11": "Noviembre",
+      "12": "Diciembre"
+    },
+    "unknown": "Desconocido",
+    "annualDose": {
+      "title": "Datos equivalentes de dosis del informe anual:",
+      "downloadCompany": "Descargar Datos Anuales",
+      "downloadEmployee": "Descargar Datos Anuales del Empleado"
+    },
+    "pdf": {
+      "selectYearError": "Por favor, seleccione un año primero.",
+      "noEmployeesFound": "No se encontraron empleados para esta empresa.",
+      "title": "CONTROL DOSIMÉTRICO ANUAL",
+      "employeeTitle": "Control Dosimétrico Anual del Empleado",
+      "location": "CÁDIZ",
+      "year": "Año",
+      "table": {
+        "headerNameDay": "Nombre / Día",
+        "headerTotal": "Total μSv",
+        "employeeHeader": "Nombre / Día",
+        "totalHeader": "Total μSv",
+        "monthHeader": "Mes / Día"
+      },
+      "annualTotalTitle": "TOTALES ANUALES",
+      "sharingNotAvailable": "La función de compartir no está disponible en este dispositivo.",
+      "shareDialogTitle": "Compartir Informe de Dosimetría Anual",
+      "generationError": "Error al generar el PDF",
+      "unknownCompany": "Empresa Desconocida",
+      "reportTitle": "CONTROL DOSIMÉTRICO ANUAL",
+      "company": "EMPRESA",
+      "shareErrorTitle": "Compartir no Disponible",
+      "shareErrorMsg": "La función de compartir no está disponible en este dispositivo.",
+      "monthlyReportTitle": "INFORME DOSIMÉTRICO MENSUAL",
+      "employeeLabel": "Empleado",
+      "monthLabel": "Mes",
+      "yearLabel": "Año",
+      "monthlyTotalLabel": "Total Mensual",
+      "annualTotalLabel": "Total Anual",
+      "tableMonthly": {
+        "day": "Día",
+        "dose": "Dosis",
+        "time": "Tiempo",
+        "exposures": "Exposiciones"
+      },
+      "unknownEmployee": "Empleado Desconocido"
+    }
+  },
+
+  "graph": {
+    "header": {
+      "title": "Mapa"
+    },
+    "map": {
+      "initialMarkerPopup": "Punto Inicial",
+      "markedLocationPopup": "Ubicación del Material Marcada"
+    },
+    "location": {
+      "permissionDeniedTitle": "Permiso Denegado",
+      "permissionDeniedMessage": "Se requiere permiso de ubicación para mostrar tu posición en el mapa. Por favor, actívalo en los ajustes de tu dispositivo.",
+      "errorTitle": "Error de Ubicación",
+      "errorMessage": "No se pudo obtener tu ubicación. Por favor, inténtalo de nuevo o revisa los ajustes de tu dispositivo."
+    }
+  },
+
+  "myEmployees": {
+    "title": "Mis Empleados",
+    "searchPlaceholder": "Buscar",
+    "loading": "Cargando empleados...",
+    "noResults": "No se encontraron empleados.",
+    "errors": {
+      "noCompanyId": "El usuario no tiene un companyId asignado.",
+      "documentNotFound": "El documento del usuario no existe.",
+      "fetchError": "Error al obtener los datos del usuario."
+    }
+  },
+
+  "success": {
+    "title": "Éxito",
+    "message": "Acción realizada correctamente."
+  },
+  "error": {
+    "title": "Error",
+    "message": "Ocurrió un error. Por favor, inténtalo de nuevo."
+  }
+}
+  

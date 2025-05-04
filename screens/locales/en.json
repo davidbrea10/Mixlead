@@ -1,0 +1,609 @@
+{
+  "welcome_back": "Welcome Back!",
+  "enter_email": "Enter your email",
+  "password": "Password",
+  "recover_password": "Recover password?",
+  "sign_in": "Sign In",
+  "signing_in": "Signing in...",
+  "no_account": "Don't have an account?",
+  "register_here": "Register here!",
+  "change_language": "Change language",
+  "login_failed": "Login failed: ",
+  "please_enter_credentials": "Please enter email and password",
+  "user_not_found": "User data not found.",
+  "email_not_verified": "Please verify your email before logging in.",
+  "login_successful": "Login successful!",
+  "invalid_credentials": "Invalid email or password.",
+  "too_many_attempts": "Too many login attempts. Please try again later.",
+  "invalid_email_format": "Invalid email format.",
+  "loading": "Loading...",
+  "email_not_verified_message": "Having trouble logging in?",
+  "resend_verification_email": "Resend verification email",
+  "error_title": "Oh snap!",
+  "success_title": "Well done!",
+
+  "errors": {
+    "errorTitle": "Error",
+    "fillAllFields": "Please fill in all required fields.",
+    "passwordsMismatch": "Passwords do not match.",
+    "fixValidationErrors": "Please fix the errors before submitting.",
+    "genericError": "An unexpected error occurred. Please try again.",
+    "emailExists": "This email address is already registered.",
+    "weakPassword": "Password should be at least 8 characters long and include a letter and a number.",
+    "authOperationNotAllowed": "Email/password accounts are not enabled.",
+    "required": "This field is required",
+    "invalidDni": "Invalid DNI format (e.g., 12345678A)",
+    "dniExists": "This DNI is already registered.",
+    "invalidPhone": "Invalid phone number format (9 digits)",
+    "invalidEmail": "Invalid email format",
+    "ageRestriction": "You must be at least 18 years old",
+    "invalidPassword": "Password must be at least 8 characters long and contain at least one letter and one number."
+
+  },
+  "register": {
+    "successTitle": "Registration Successful",
+    "successMessage": "Registration successful! Please check your email to verify your account.",
+    "registeringButton": "Registering...",
+    "button": "Register",
+    "title": "Register",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "dni": "DNI",
+    "phone": "Phone",
+    "birthDate": "Birth Date",
+    "selectBirthDate": "Select Birth Date",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "emailVerificationTitle": "Verify Your Email",
+    "emailVerificationMessage": "A verification email has been sent to your inbox. Please verify your email before logging in.",
+    "okButton": "OK"
+  },
+
+  "emailConfirmation": {
+    "title": "Verify Your Email",
+    "message": "A verification email has been sent to your inbox. Please check your email and verify your account.",
+    "backToLogin": "Back to Login"
+  },
+
+  "passwordReset": {
+    "title": "Reset Password",
+    "instructions": "Enter your email address to receive a password reset link.",
+    "emailPlaceholder": "Email Address",
+    "sendButton": "Send Reset Link",
+    "successTitle": "Success",
+    "successMessage": "A password reset link has been sent to your email.",
+    "errorTitle": "Error",
+    "emptyEmail": "Please enter your email address.",
+    "sendingButton": "Sending..."
+  },
+
+  "register.title": "User Register",
+  "register.firstName": "First Name",
+  "register.lastName": "Last Name",
+  "register.dni": "DNI",
+  "register.phone": "Phone",
+  "register.birthDate": "Birth Date",
+  "register.selectBirthDate": "Select Birth Date",
+  "register.email": "Email",
+  "register.password": "Password",
+  "register.confirmPassword": "Confirm Password",
+  "register.button": "Register",
+  "errors.required": "This field is required.",
+  "errors.invalidDni": "DNI format is invalid.",
+  "errors.dniExists": "DNI is already registered.",
+  "errors.invalidPhone": "Invalid phone number format.",
+  "errors.invalidEmail": "Invalid email format.",
+  "errors.invalidPassword": "Password must be at least 8 characters long and include at least one letter and one number.",
+  "errors.passwordsMismatch": "Passwords do not match.",
+  "errors.ageRestriction": "You must be at least 18 years old.",
+  "errors.fixBeforeSubmit": "Please fix the errors before submitting.",
+  "errors.fillAllFields": "Please fill in all fields",
+  "errors.registrationFailed": "Registration failed",
+  "errors.pdfGenerationFailed": "Failed to generate PDF report",
+  "success.registration": "Registration Successful",
+
+  "company_details.title": "Companies",
+  "company_details.subtitle": "Company Details",
+  "company_details.fields.Name": "Name",
+  "company_details.fields.CompanyId": "Company ID",
+  "company_details.fields.Cif": "CIF",
+  "company_details.fields.Telephone": "Telephone",
+  "company_details.fields.ContactPerson": "Contact Person",
+  "company_details.fields.SecurityNumber": "Security Number",
+  "company_details.save": "Save Changes",
+  "company_details.delete": "Delete Company",
+  "company_details.loading": "Loading...",
+  "company_details.alert.not_found": "Company not found",
+  "company_details.alert.fetch_error": "Error fetching company",
+  "company_details.alert.update_success": "Company updated successfully",
+  "company_details.alert.update_error": "Error updating company",
+  "company_details.alert.delete_confirm1": "Confirm Delete",
+  "company_details.alert.delete_confirm": "Are you sure you want to delete this company?",
+  "company_details.alert.delete_success": "Company deleted successfully",
+  "company_details.alert.delete_error": "Error deleting company",
+  "company_details.confirm.cancel": "Cancel",
+  "company_details.confirm.delete": "Delete",
+  "company_details.tap_to_copy": "Tap to copy",
+
+  "employee_details": {
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "dni": "DNI/NIE",
+    "email": "Email",
+    "phone": "Telephone",
+    "birthDate": "Birthdate",
+    "role": "Role",
+    "companyId": "Company ID",
+    "selectRole": "Select Role",
+    "selectRolePlaceholder": "Select role",
+    "save": "Save Changes",
+    "delete": "Delete Employee",
+    "cancel": "Cancel",
+    "delete1": "Delete",
+    "confirmDeleteTitle": "Confirm Delete",
+    "confirmDelete": "Are you sure you want to delete this employee?",
+    "employeesTitle": "Employees",
+    "employeeDetailsTitle": "Employee Details",
+    "close": "Close"
+  },
+
+  "add_company": {
+    "title": "Add Company",
+    "companiesTitle": "Companies",
+    "name": "Name",
+    "cif": "CIF",
+    "telephone": "Telephone",
+    "contactPerson": "Contact Person",
+    "securityNumber": "Social Security Number",
+    "placeholder_name": "Enter name",
+    "placeholder_cif": "Enter CIF",
+    "placeholder_telephone": "Enter telephone",
+    "placeholder_contactPerson": "Enter contact person",
+    "placeholder_securityNumber": "Enter social security number",
+    "addButton": "Add Company",
+    "errorIncomplete": "Please fill in all fields",
+    "success": "Company Registered Successfully"
+  },
+
+  "add_employee": {
+    "title": "Add Employee",
+    "employeesTitle": "Employees",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "dni": "DNI",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role",
+    "birthDate": "Birth Date",
+    "company": "Company",
+    "selectRole": "Select Role",
+    "selectCompany": "Select Company",
+    "selectBirthDate": "Select Birth Date",
+    "addButton": "Add Employee",
+    "noCompany": "No company",
+    "validationError": "Please fill in all required fields",
+    "successMessage": "Employee Registered Successfully",
+    "errorFetchingCompanies": "Error fetching companies",
+    "password": "Password"
+  },
+
+  "companies": {
+    "title": "Companies",
+    "searchPlaceholder": "Search",
+    "noName": "Name not available",
+    "successMessage": "Company created successfully",
+    "errorFetching": "Error fetching companies"
+  },
+
+  "employees": {
+    "title": "Employees",
+    "searchPlaceholder": "Search",
+    "selectCompany": "Select a company",
+    "noName": "Name not available",
+    "companyLabel": "Company",
+    "withoutCompany": "Without company",
+    "filterAll": "All"
+  },
+
+  "adminHome": {
+    "title": "HOME",
+    "companiesButton": "Companies",
+    "employeesButton": "Employees",
+    "logoutError": "Error logging out: ",
+    "logoutSuccessTitle": "Logout Successful",
+    "logoutSuccessMessage": "You have been logged out successfully.",
+    "logoutErrorTitle": "Logout Error",
+    "logoutErrorMessage": "An error occurred while logging out. Please try again.",
+    "logoutConfirmTitle": "Confirm Logout",
+    "logoutConfirmMessage": "Are you sure you want to log out?",
+    "logoutCancel": "Cancel",
+    "logoutConfirm": "Log Out"
+    
+  },
+
+  "adminSettings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "helpFaq": "Help & FAQ"
+  },
+
+  "profile": {
+    "title": "Your Profile",
+    "name": "Name",
+    "lastName": "Last Name",
+    "dni": "DNI/NIE",
+    "telephone": "Telephone",
+    "birth": "Birth Date",
+    "email": "Email",
+    "role": "Role",
+    "companyName": "Company Name",
+    "companyCode": "Company Code",
+    "noCompanyAssigned": "No company assigned",
+    "joinCompanyQuestion": "Are you part of a company?",
+    "joinCompanyAction": "Click Here.",
+    "userNotAuthenticated": "Error: No authenticated user.",
+    "userDataNotFound": "Error: No user data found.",
+    "fetchUserDataError": "Error fetching user data",
+    "modal": {
+      "title": "Are you part of a company?",
+      "description": "Enter your company code to confirm your request. Please note that you will be sharing your personal data with them. If you don’t know it right now, you can change it from the settings.",
+      "companyCodeLabel": "Company Code",
+      "companyCodePlaceholder": "Ex: A12345678",
+      "submitSuccess": "If the company code is correct you will receive news soon.",
+      "submitAlreadySent": "You already sent a request.",
+      "submitNoCoordinators": "No coordinators found in this company.",
+      "submitError": "Something went wrong. Try again.",
+      "submitEmpty": "Company code cannot be empty.",
+      "continueGuest": "Continue as a guest",
+      "userNotLoggedIn": "User not logged in."
+    }
+  },
+
+  "doseDetails": {
+    "deleteSuccessTitle": "Success",
+    "deleteSuccessMessage": "Dose deleted successfully.",
+    "title": "Dose Details",
+    "monthLabel": "{{month}} {{year}}",
+    "table": {
+      "dose": "Dose",
+      "date": "Date",
+      "view": "View",
+      "noData": "No dose data available for this period."
+    },
+    "expanded": {
+      "totalTime": "Total Time: ",
+      "totalExposures": "Total Exposures: "
+    },
+    "monthlySummary": {
+      "label": "Equivalent dose data for the month:",
+      "value": "{{dose}} μSv",
+      "download": "Download Monthly Data"
+    },
+    "months": {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "modal": {
+      "message": "Are you sure you want to delete this dose?",
+      "no": "No",
+      "yes": "Yes"
+    }
+  },
+
+  "employee_detail": {
+    "title": "Employees",
+    "subtitle": "Employee Details",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "dni": "DNI/NIE",
+    "email": "Email",
+    "phone": "Telephone",
+    "birthDate": "Birthdate",
+    "saveButton": "Save Changes",
+    "deleteButton": "Delete Employee",
+    "alert": {
+      "notFound": "Employee not found",
+      "fetchError": "Error fetching employee",
+      "updateSuccess": "Employee updated successfully",
+      "updateError": "Error updating employee",
+      "deleteConfirm": "Are you sure you want to delete this employee?",
+      "deleteSuccess": "Employee deleted successfully",
+      "deleteError": "Error deleting employee"
+    }
+  },
+
+  "applications": {
+    "appTitle": "Applications for Company Merger",
+    "name": "Name",
+    "lastName": "Last Name",
+    "view": "View",
+    "noApplications": "No applications received.",
+    "acceptButton": "Accept",
+    "declineButton": "Decline",
+    "successMessageAccepted": "Application successfully accepted",
+    "successMessageDeclined": "Application successfully declined",
+    "modalTitle": "Are you sure you want to deny this user?",
+    "modalConfirmButton": "Yes",
+    "modalCancelButton": "No",
+    "goBackButton": "Go Back",
+    "homeButton": "Home"
+  },
+
+  "radiographyCalculator": {
+    "buttonTitle": "Calculation of Neccessaty Distance/Thickness",
+    "title": "Radiography Shielding Calculator",
+    "isotope": "Isotope:",
+    "activity": "Activity:",
+    "valueCi": "Value (Ci):",
+    "collimator": "Collimator:",
+    "tLimitFor": "T Limit For:",
+    "material": "Material:",
+    "attenuation": "Attenuation Coefficient:",
+    "thicknessOrDistance": "Thickness",
+    "distance": "Distance",
+    "value": "Value ({{unit}}):",
+    "calculateDistance": "Calculate Distance",
+    "calculateThickness": "Calculate Thickness",
+    "errorMessage": "Please fill in all fields.",
+    "invalidInputMessage": "Invalid input values. Please check your inputs.",
+    "calculationError": "Calculation resulted in NaN. Please check inputs.",
+    "alerts": {
+      "errorTitle": "Error"
+    },
+    "modal": {
+      "isotope": "Select Isotope",
+      "collimator": "Select use of Collimator",
+      "material": "Select Material",
+      "limit": "Set Limit dose rate",
+      "attenuation": "Enter attenuation value",
+      "otherMaterial": "Other"
+    },
+    "options": {
+      "isotopes": {
+        "192Ir": "192Ir",
+        "75Se": "75Se"
+      },
+      "collimator": {
+        "Yes": "Yes",
+        "No": "No"
+      },
+      "materials": {
+        "Mixlead": "Mixlead",
+        "Steel": "Steel",
+        "Concrete": "Concrete",
+        "Aluminum": "Aluminum",
+        "Lead": "Lead",
+        "Tungsten": "Tungsten",
+        "Other": "Other"
+      },
+      "limits": {
+        "11µSv/h": "11µSv/h",
+        "0.5µSv/h": "0.5µSv/h"
+      }
+    }
+  },
+
+  "calculationSummary": {
+    "title": "Results for {{type}}",
+    "resultsFor": "Results for:",
+    "isotope": "Isotope:",
+    "collimator": "Collimator:",
+    "thickness": "Thickness:",
+    "distance": "Distance:",
+    "activity": "Activity:",
+    "ci": "Ci",
+    "material": "Material:",
+    "attenuation": "Attenuation:",
+    "limit": "Limit:",
+    "resultDistance": "DISTANCE: {{result}} m",
+    "resultThickness": "THICKNESS: {{result}} mm",
+    "graph": "Graph",
+    "table": "Table"
+  },
+
+  "home": {
+    "yearPlaceholder": "Select Year",
+    "header": {
+      "title": "My Agenda",
+      "subtitle": "Annual Dose Data"
+    },
+    "selectYear": "Select Year",
+    "table": {
+      "dose": "Dose",
+      "month": "Month",
+      "view": "View",
+      "noData": "No dose data available for {{year}}."
+    },
+    "months": {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "annualDose": {
+      "title": "Equivalent dose data from annual report:",
+      "download": "Download Annual Data"
+    },
+
+    "doseData": "Dose Data",
+    "addDataManually": "Add Today's Data Manually",
+    "modal": {
+      "dose": "Dose (µSv)",
+      "numberOfExposures": "Number of Exposures",
+      "exposureTime": "Exposure Time (s)",
+      "cancel": "Cancel",
+      "save": "Save Dose",
+      "enterDose": "Enter dose",
+      "enterNumberOfExposures": "Enter number of exposures",
+      "enterExposureTime": "Enter exposure time"
+    },
+    "alerts": {
+      "error": {
+        "title": "Error",
+        "emptyFields": "All fields must be filled and greater than zero.",
+        "userNotAuthenticated": "User not authenticated.",
+        "couldNotSave": "Could not save the dose data.",
+        "emptyOrInvalidFields": "Please fill in all fields correctly."
+      },
+      "userNotAuthenticated": "User not authenticated.",
+      "success": {
+        "title": "Success",
+        "doseSaved": "Dose data has been saved."
+      },
+      "confirmReplacement": {
+        "title": "Confirm Replacement",
+        "message": "There's already a dose you were receiving today. Do you want to replace it?",
+        "cancel": "Cancel",
+        "replace": "Replace"
+      },
+      "emptyFields" : "All fields must be filled and greater than zero."
+    }
+  },
+
+  "employeesAgenda": {
+    "header": {
+      "title": "Employee Agendas"
+    },
+    "selectEmployee": "Select Employee",
+    "employee": {
+      "placeholder": "-- Select --",
+      "unnamed": "Unnamed"
+    },
+    "selectYear": "Select Year",
+    "table": {
+      "dose": "Dose",
+      "month": "Month",
+      "view": "View",
+      "noData": "No dose data available for {{year}}."
+    },
+    "months": {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "unknown": "Unknown",
+    "annualDose": {
+      "title": "Equivalent dose data from annual report:",
+      "downloadCompany": "Download Annual Data",
+      "downloadEmployee": "Download Employee Data"
+    },
+    "pdf": {
+      "selectYearError": "Please select a year first.",
+      "noEmployeesFound": "No employees found for this company.",
+      "title": "ANNUAL DOSIMETRIC CONTROL",
+      "employeeTitle": "Annual Dosimetric Control - Employee ",
+      "location": "LOCATION",
+      "year": "Year",
+      "table": {
+        "headerNameDay": "Name / Day",
+        "headerTotal": "Total μSv",
+        "employeeHeader": "Name / Day",
+        "totalHeader": "Total μSv",
+        "monthHeader": "Month / Day"
+      },
+      "annualTotalTitle": "ANNUAL TOTALS",
+      "sharingNotAvailable": "Sharing is not available on this device.",
+      "shareDialogTitle": "Share Annual Dosimetry Report",
+      "generationError": "Error generating PDF",
+      "unknownCompany": "Unknown Company",
+      "reportTitle": "ANNUAL DOSIMETRIC CONTROL", 
+      "company": "COMPANY",
+      "shareErrorTitle": "Sharing Unavailable",
+      "shareErrorMsg": "Sharing is not available on this device.",
+      "monthlyReportTitle": "MONTHLY DOSIMETRIC CONTROL",
+      "employeeLabel": "Employee",
+      "monthLabel": "Month",
+      "yearLabel": "Year",
+      "monthlyTotalLabel": "Monthly Total",
+      "annualTotalLabel": "Annual Total",
+      "tableMonthly": {
+        "day": "Day",
+        "dose": "Dose",
+        "time": "Time",
+        "exposures": "Exposures"
+      },
+      "unknownEmployee": "Unknown Employee"
+    }
+  },
+
+  "graph": {
+    "header": {
+      "title": "Map"
+    },
+    "map": {
+      "initialMarkerPopup": "Initial Point",
+      "markedLocationPopup": "Material Location Marked"
+    },
+    "location": {
+      "permissionDeniedTitle": "Permission Denied",
+      "permissionDeniedMessage": "Location permission is required to show your position on the map. Please enable it in your device settings.",
+      "errorTitle": "Location Error",
+      "errorMessage": "Could not retrieve your location. Please try again or check your device settings."
+    }
+  },
+
+  "myEmployees": {
+    "title": "My Employees",
+    "searchPlaceholder": "Search",
+    "loading": "Loading employees...",
+    "noResults": "No employees found.",
+    "errors": {
+      "noCompanyId": "User does not have a companyId assigned.",
+      "documentNotFound": "User document does not exist.",
+      "fetchError": "Error fetching user data."
+    }
+  },
+  "monthsShort": {
+      "1": "Jan",
+      "2": "Feb",
+      "3": "Mar",
+      "4": "Apr",
+      "5": "May",
+      "6": "Jun",
+      "7": "Jul",
+      "8": "Aug",
+      "9": "Sep",
+      "10": "Oct",
+      "11": "Nov",
+      "12": "Dec"
+  },
+
+  "success": {
+    "title": "Success",
+    "message": "Operation completed successfully."
+  },
+  "error": {
+    "title": "Error",
+    "message": "An error occurred. Please try again."
+  }
+  
+}
+  
