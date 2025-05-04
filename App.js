@@ -1,21 +1,32 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import ToastManager from 'react-native-toast-message';
+import { StatusBar } from "expo-status-bar";
+import { StyleSheet, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useEffect } from "react";
+import * as NavigationBar from "expo-navigation-bar";
 
-// Importa tu Stack de autenticación
-import AuthStack from './navigation/AuthStack';
+import { Main } from "./components/Main";
 
-function App() {
-  // Por ahora, simplemente renderizamos el NavigationContainer envolviendo el AuthStack
-  // La lógica de autenticación para cambiar de stack se añadirá después
+export default function App() {
+  useEffect(() => {
+    NavigationBar.setVisibilityAsync("hidden");
+    NavigationBar.setBehaviorAsync("inset-swipe"); // Permite mostrarla con un gesto
+  }, []);
   return (
-    <NavigationContainer>
-      {/* Renderizamos directamente el AuthStack */}
-      <AuthStack />
-      {/* ToastManager fuera del navegador */}
-      <ToastManager />
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <View style={styles.container}>
+        <StatusBar hidden />
+        <Main />
+      </View>
+    </SafeAreaProvider>
   );
 }
 
-export default App; // Asegúrate de que este componente sea el que se exporta como raíz
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    backgroundColor: "#FFFFFF",
+  },
+});
