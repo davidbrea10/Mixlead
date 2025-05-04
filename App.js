@@ -1,21 +1,31 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Platform } from "react-native"; // Asegúrate de importar Platform si lo usas en useEffect
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useEffect } from "react";
 import * as NavigationBar from "expo-navigation-bar";
 
-import { Main } from "./components/Main";
-
 export default function App() {
   useEffect(() => {
-    NavigationBar.setVisibilityAsync("hidden");
-    NavigationBar.setBehaviorAsync("inset-swipe"); // Permite mostrarla con un gesto
+    // Esta configuración solo aplica en Android
+    if (Platform.OS === "android") {
+      const configureNavigationBar = async () => {
+        try {
+          await NavigationBar.setVisibilityAsync("hidden");
+          await NavigationBar.setBehaviorAsync("inset-swipe");
+          await NavigationBar.setBackgroundColorAsync("#ffffff"); // O un color que combine
+        } catch (e) {
+          console.warn("Failed to configure navigation bar", e);
+        }
+      };
+
+      configureNavigationBar();
+    }
   }, []);
+
   return (
     <SafeAreaProvider>
       <View style={styles.container}>
         <StatusBar hidden />
-        <Main />
       </View>
     </SafeAreaProvider>
   );
@@ -24,9 +34,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFFFFF", // Define el color de fondo global aquí si es necesario
   },
 });
