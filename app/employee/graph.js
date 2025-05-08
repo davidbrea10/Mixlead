@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Modal,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -47,6 +49,7 @@ export default function Graph() {
   const [isWebViewReady, setIsWebViewReady] = useState(false);
   const [currentCoords, setCurrentCoords] = useState(null);
   const [isMaterialMarked, setIsMaterialMarked] = useState(false);
+  const [isLegendModalVisible, setIsLegendModalVisible] = useState(true);
 
   const exclusionRadius = params.radius ? parseFloat(params.radius) : null;
   // console.log("Received Radius:", exclusionRadius);
@@ -604,7 +607,6 @@ export default function Graph() {
             )}
           </TouchableOpacity>
 
-          {/* Button to Mark Material */}
           {/* Button to Mark Material / Unmark Material */}
           {exclusionRadius != null && (
             <TouchableOpacity
@@ -639,10 +641,133 @@ export default function Graph() {
               )}
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            style={styles.helpButton} // Añade este estilo en StyleSheet
+            onPress={() => setIsLegendModalVisible(true)} // Acción: Abrir el modal
+          >
+            {/* Puedes usar Ionicons u otro set de iconos */}
+            <Ionicons name="help-circle-outline" size={30} color="#006892" />
+          </TouchableOpacity>
         </View>
 
         {/* Footer */}
         <View style={styles.footer}></View>
+
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={isLegendModalVisible}
+          onRequestClose={() => setIsLegendModalVisible(false)} // Botón atrás Android
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContentContainer}>
+              <Text style={styles.modalTitle}>
+                {t("graph.legend.title", "Leyenda de Zonas")}
+              </Text>
+              <ScrollView style={styles.modalScrollView}>
+                {/* Zona Vigilada / Controlada (Verde) */}
+                <View style={styles.legendItem}>
+                  <Image
+                    source={require("../../assets/vigilada.png")}
+                    style={styles.legendSymbol}
+                  />
+                  <View style={styles.legendTextContainer}>
+                    <Text style={styles.legendZoneName}>
+                      {t(
+                        "graph.legend.controlled.name",
+                        "Zona Controlada (Verde)",
+                      )}
+                    </Text>
+                    <Text style={styles.legendDescription}>
+                      {t(
+                        "graph.legend.controlled.desc",
+                        "Límite práctico zona vigilada (>3.3 µSv/h, radio efectivo a 20 µSv/h). Acceso restringido.",
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Zona Permanencia Limitada (Amarillo) */}
+                <View style={styles.legendItem}>
+                  <Image
+                    source={require("../../assets/limitada.png")}
+                    style={styles.legendSymbol}
+                  />
+                  <View style={styles.legendTextContainer}>
+                    <Text style={styles.legendZoneName}>
+                      {t(
+                        "graph.legend.limitedStay.name",
+                        "Zona Permanencia Limitada (Amarillo)",
+                      )}
+                    </Text>
+                    <Text style={styles.legendDescription}>
+                      {t(
+                        "graph.legend.limitedStay.desc",
+                        "Dentro del límite de 20 µSv/h. Solo operadores.",
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Zona Acceso Prohibido (Rojo) */}
+                <View style={styles.legendItem}>
+                  <Image
+                    source={require("../../assets/prohibida.png")}
+                    style={styles.legendSymbol}
+                  />
+                  <View style={styles.legendTextContainer}>
+                    <Text style={styles.legendZoneName}>
+                      {t(
+                        "graph.legend.prohibited.name",
+                        "Zona Acceso Prohibido (Rojo)",
+                      )}
+                    </Text>
+                    <Text style={styles.legendDescription}>
+                      {t(
+                        "graph.legend.prohibited.desc",
+                        "> 250 µSv/h. Acceso prohibido.",
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Zona Telemando */}
+                <View style={styles.legendItem}>
+                  {/* Puedes usar un icono específico o un placeholder */}
+                  <Ionicons
+                    name="radio-outline"
+                    size={24}
+                    color="blue"
+                    style={styles.legendSymbolPlaceholder}
+                  />
+                  <View style={styles.legendTextContainer}>
+                    <Text style={styles.legendZoneName}>
+                      {t(
+                        "graph.legend.remoteControl.name",
+                        "Zona Posicionamiento Telemando",
+                      )}
+                    </Text>
+                    <Text style={styles.legendDescription}>
+                      {t(
+                        "graph.legend.remoteControl.desc",
+                        "Radio de 10 metros para operación remota.",
+                      )}
+                    </Text>
+                  </View>
+                </View>
+              </ScrollView>
+              <Pressable
+                style={styles.modalCloseButton}
+                onPress={() => setIsLegendModalVisible(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>
+                  {t("common.ok", "OK")}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </View>
     </LinearGradient>
   );
@@ -807,5 +932,99 @@ const styles = StyleSheet.create({
     zIndex: 5,
     flexDirection: "row", // To align icon and text if you use both
     alignItems: "center",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContentContainer: {
+    width: "90%",
+    maxHeight: "80%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+    color: "#333",
+  },
+  modalScrollView: {
+    width: "100%",
+    marginBottom: 15,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center", // Centrar símbolo y texto verticalmente
+    marginBottom: 15,
+    width: "100%",
+  },
+  legendSymbol: {
+    // Estilo para tus IMÁGENES de símbolos
+    width: 24, // Ajusta según el tamaño de tus imágenes
+    height: 24, // Ajusta según el tamaño de tus imágenes
+    marginRight: 10,
+    resizeMode: "contain", // O 'cover', según prefieras
+  },
+  legendSymbolPlaceholder: {
+    // Estilo para los placeholders si no usas imagen (como el de telemando)
+    width: 24,
+    height: 24,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    // backgroundColor y border se pueden poner inline o crear estilos separados
+  },
+  legendTextContainer: {
+    flex: 1,
+  },
+  legendZoneName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 4,
+    color: "#444",
+  },
+  legendDescription: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 18,
+  },
+  modalCloseButton: {
+    backgroundColor: "#006892",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    marginTop: 10,
+    elevation: 2,
+  },
+  modalCloseButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
+  helpButton: {
+    position: "absolute",
+    top: 20, // Distancia desde arriba
+    right: 20, // Distancia desde la derecha
+    backgroundColor: "rgba(255, 255, 255, 0.8)", // Fondo semi-transparente
+    padding: 8, // Espaciado interno
+    borderRadius: 50, // Para hacerlo circular
+    elevation: 5, // Sombra en Android
+    shadowColor: "#000", // Sombra en iOS
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    zIndex: 5, // Asegura que esté sobre el mapa
   },
 });

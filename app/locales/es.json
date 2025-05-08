@@ -578,6 +578,28 @@
     {
       "markMaterial": "Marcar Material",
       "unmarkMaterial": "Desmarcar Material"
+    },
+    "legend": {
+      "title": "Leyenda de Zonas",
+      "controlled": {
+        "name": "Zona Controlada (Verde)",
+        "desc": "Límite práctico zona vigilada (>3.3 µSv/h, radio efectivo a 20 µSv/h). Acceso restringido a personal autorizado."
+      },
+      "limitedStay": {
+        "name": "Zona de Permanencia Limitada (Amarillo)",
+        "desc": "Dentro del límite de 20 µSv/h. Solo operadores."
+      },
+      "prohibited": {
+        "name": "Zona de Acceso Prohibido (Rojo)",
+        "desc": "Tasa de dosis > 250 µSv/h. Acceso prohibido."
+      },
+      "remoteControl": {
+        "name": "Zona Posicionamiento Telemando",
+        "desc": "Radio de 10 metros desde la fuente para operación remota."
+      }
+    },
+    "common": {
+    "ok": "OK"
     }
   },
 
