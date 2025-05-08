@@ -278,6 +278,7 @@
       "noData": "No hay datos de dosis para este período."
     },
     "expanded": {
+      "startTime": "Hora Inicio: ",
       "totalTime": "Tiempo Total: ",
       "totalExposures": "Exposiciones Totales: "
     },
@@ -451,7 +452,7 @@
     },
 
     "doseData": "Datos de Dosis",
-    "addDataManually": "Agregar Datos de Hoy Manualmente",
+    "addDataManually": "Agregar Nueva Inspección",
     "modal": {
       "dose": "Dosis (µSv)",
       "numberOfExposures": "Número de Exposiciones",
@@ -460,7 +461,9 @@
       "save": "Guardar Dosis",
       "enterDose": "Ingrese la dosis",
       "enterNumberOfExposures": "Ingrese el número de exposiciones",
-      "enterExposureTime": "Ingrese el tiempo de exposición"
+      "enterExposureTime": "Ingrese el tiempo de exposición",
+      "startTime": "Hora de Inicio",
+      "selectStartTime": "Seleccionar Hora de Inicio"
     },
     "alerts": {
       "error": {
@@ -553,6 +556,7 @@
       "tableMonthly": {
         "day": "Día",
         "dose": "Dosis",
+        "startTime": "Hora de Inicio",
         "time": "Tiempo",
         "exposures": "Exposiciones"
       },

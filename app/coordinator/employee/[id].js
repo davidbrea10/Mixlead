@@ -3,26 +3,17 @@ import {
   Text,
   TextInput,
   Pressable,
-  Alert,
   ScrollView,
   ActivityIndicator,
   Image,
   Modal,
-  TouchableOpacity,
   Platform,
   StyleSheet,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import { db } from "../../../firebase/config";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  getDocs,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message"; // 1. Import Toast

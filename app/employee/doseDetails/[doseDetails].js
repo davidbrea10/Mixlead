@@ -99,16 +99,37 @@ export default function DoseDetails() {
           doseData.push({
             id: docSnap.id,
             dose: data.dose,
-            day: parseInt(data.day, 10), // Ensure day is number
-            month: parseInt(data.month, 10), // Ensure month is number
-            year: parseInt(data.year, 10), // Ensure year is number
-            totalTime: data.totalTime || 0, // Default to 0 if missing
-            totalExposures: data.totalExposures || 0, // Default to 0 if missing
+            day: parseInt(data.day, 10),
+            month: parseInt(data.month, 10),
+            year: parseInt(data.year, 10),
+            totalTime: data.totalTime || 0,
+            totalExposures: data.totalExposures || 0,
+            startTime: data.startTime || "--:--", // <-- AÑADIR ESTO (con fallback)
           });
         }
       });
 
-      doseData.sort((a, b) => a.day - b.day); // Sort by day
+      doseData.sort((a, b) => {
+        // 1. Criterio Principal: Ordenar por día
+        if (a.day !== b.day) {
+          return a.day - b.day; // Orden ascendente por día
+        }
+
+        // 2. Criterio Secundario: Si el día es el mismo, ordenar por hora de inicio
+        // Comparamos los strings "HH:mm". Si falta startTime, se trata como el inicio del día.
+        const timeA = a.startTime || "00:00";
+        const timeB = b.startTime || "00:00";
+
+        if (timeA < timeB) {
+          return -1; // a viene antes que b
+        }
+        if (timeA > timeB) {
+          return 1; // a viene después que b
+        }
+
+        // Si el día y la hora son iguales, mantener el orden relativo (o devolver 0)
+        return 0;
+      });
       setDailyDoses(doseData);
     } catch (error) {
       console.error("Error loading daily doses:", error);
@@ -282,12 +303,12 @@ export default function DoseDetails() {
           <tr>
             <td class="day">${item.day}</td>
             <td class="dose">${item.dose.toFixed(2)} μSv</td>
+            <td class="time">${item.startTime || "--:--"}</td>
             <td class="time">${formatTime(item.totalTime)}</td>
             <td class="exposures">${item.totalExposures}</td>
           </tr>
         `;
       });
-
       // 4. Calculate Total Monthly Dose (reuse function)
       const monthlyTotal = totalMonthlyDose();
 
@@ -329,12 +350,13 @@ export default function DoseDetails() {
               <tr>
                 <th>${t("employeesAgenda.pdf.tableMonthly.day")}</th>
                 <th>${t("employeesAgenda.pdf.tableMonthly.dose")} (μSv)</th>
+                <th>${t("employeesAgenda.pdf.tableMonthly.startTime", { defaultValue: "Start Time" })}</th>
                 <th>${t("employeesAgenda.pdf.tableMonthly.time")} (HH:MM:SS)</th>
                 <th>${t("employeesAgenda.pdf.tableMonthly.exposures")}</th>
               </tr>
             </thead>
             <tbody>
-              ${tableHtml}
+              ${tableHtml} {/* Contiene la nueva celda <td> */}
             </tbody>
           </table>
           <div class="footer-total">
@@ -421,7 +443,19 @@ export default function DoseDetails() {
             style={{ width: 50, height: 50 }}
           />
         </Pressable>
-        <View style={{ flexDirection: "column", alignItems: "center" }}>
+        <View
+          style={{
+            position: "absolute", // Posición absoluta respecto al padre
+            left: 70, // Espacio desde la izquierda para no solaparse con el icono (ajusta este valor)
+            right: 70, // Espacio desde la derecha para no solaparse con el icono (ajusta este valor)
+            top: Platform.select({ ios: 60, android: 40 }), // Alinear con el padding superior del padre
+            bottom: 16, // Alinear con el padding inferior del padre
+            // --- Centrar el contenido DENTRO de este View ---
+            alignItems: "center", // Centra horizontalmente los <Text>
+            justifyContent: "center", // Centra verticalmente los <Text>
+            // pointerEvents="none" // Descomenta si el View bloquea toques a elementos detrás (mapa?)
+          }}
+        >
           <Text
             style={{
               fontSize: 24,
@@ -451,12 +485,6 @@ export default function DoseDetails() {
             })}
           </Text>
         </View>
-        <Pressable onPress={() => router.replace("/employee/home")}>
-          <Image
-            source={require("../../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
-          />
-        </Pressable>
       </View>
 
       {/* Main Content */}
@@ -506,6 +534,12 @@ export default function DoseDetails() {
               </View>
               {expandedRows[index] && (
                 <View style={[styles.expandedRow]}>
+                  <Text style={[styles.expandedText, { marginBottom: 10 }]}>
+                    {t("doseDetails.expanded.startTime", {
+                      defaultValue: "Start Time: ",
+                    })}
+                    {item.startTime}
+                  </Text>
                   <Text style={[styles.expandedText, { marginBottom: 10 }]}>
                     {t("doseDetails.expanded.totalTime")}
                     {formatTime(item.totalTime)}

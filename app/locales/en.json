@@ -280,6 +280,7 @@
       "noData": "No dose data available for this period."
     },
     "expanded": {
+      "startTime": "Start Time: ",
       "totalTime": "Total Time: ",
       "totalExposures": "Total Exposures: "
     },
@@ -453,7 +454,7 @@
     },
 
     "doseData": "Dose Data",
-    "addDataManually": "Add Today's Data Manually",
+    "addDataManually": "Add New Inspection",
     "modal": {
       "dose": "Dose (µSv)",
       "numberOfExposures": "Number of Exposures",
@@ -462,7 +463,9 @@
       "save": "Save Dose",
       "enterDose": "Enter dose",
       "enterNumberOfExposures": "Enter number of exposures",
-      "enterExposureTime": "Enter exposure time"
+      "enterExposureTime": "Enter exposure time",
+      "startTime": "Start Time",
+      "selectStartTime": "Select Start Time"
     },
     "alerts": {
       "error": {
@@ -555,6 +558,7 @@
       "tableMonthly": {
         "day": "Day",
         "dose": "Dose",
+        "startTime": "Start Time",
         "time": "Time",
         "exposures": "Exposures"
       },

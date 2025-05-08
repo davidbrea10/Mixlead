@@ -126,18 +126,40 @@ export default function DoseDetails() {
           parseInt(data.year, 10) === parsedYear
         ) {
           doseData.push({
-            id: docSnap.id, // Include document ID
+            id: docSnap.id,
             dose: data.dose,
             day: parseInt(data.day, 10),
             month: parseInt(data.month, 10),
             year: parseInt(data.year, 10),
             totalTime: data.totalTime || 0,
             totalExposures: data.totalExposures || 0,
+            startTime: data.startTime || "--:--",
           });
         }
       });
 
-      doseData.sort((a, b) => a.day - b.day); // Sort by day
+      doseData.sort((a, b) => {
+        // 1. Criterio Principal: Ordenar por día
+        if (a.day !== b.day) {
+          return a.day - b.day; // Orden ascendente por día
+        }
+
+        // 2. Criterio Secundario: Si el día es el mismo, ordenar por hora de inicio
+        // Comparamos los strings "HH:mm". Si falta startTime, se trata como el inicio del día.
+        const timeA = a.startTime || "00:00";
+        const timeB = b.startTime || "00:00";
+
+        if (timeA < timeB) {
+          return -1; // a viene antes que b
+        }
+        if (timeA > timeB) {
+          return 1; // a viene después que b
+        }
+
+        // Si el día y la hora son iguales, mantener el orden relativo (o devolver 0)
+        return 0;
+      });
+
       setDailyDoses(doseData);
     } catch (error) {
       console.error("Error loading daily doses for employee:", uid, error);
@@ -213,6 +235,7 @@ export default function DoseDetails() {
           <tr>
             <td class="day">${item.day}</td>
             <td class="dose">${item.dose.toFixed(2)} μSv</td>
+            <td class="time">${item.startTime || "--:--"}</td> {/* <-- NUEVA CELDA startTime */}
             <td class="time">${formatTime(item.totalTime)}</td>
             <td class="exposures">${item.totalExposures}</td>
           </tr>
@@ -259,12 +282,13 @@ export default function DoseDetails() {
               <tr>
                 <th>${t("employeesAgenda.pdf.tableMonthly.day")}</th>
                 <th>${t("employeesAgenda.pdf.tableMonthly.dose")} (μSv)</th>
+                <th>${t("employeesAgenda.pdf.tableMonthly.startTime", { defaultValue: "Start Time" })}</th> {/* <-- NUEVA CABECERA */}
                 <th>${t("employeesAgenda.pdf.tableMonthly.time")} (HH:MM:SS)</th>
                 <th>${t("employeesAgenda.pdf.tableMonthly.exposures")}</th>
               </tr>
             </thead>
             <tbody>
-              ${tableHtml}
+              ${tableHtml} {/* Contiene la nueva celda <td> */}
             </tbody>
           </table>
           <div class="footer-total">
@@ -455,6 +479,13 @@ export default function DoseDetails() {
               </View>
               {expandedRows[index] && (
                 <View style={[styles.expandedRow]}>
+                  <Text style={[styles.expandedText, { marginBottom: 10 }]}>
+                    {t("doseDetails.expanded.startTime", {
+                      defaultValue: "Start Time:",
+                    })}
+                    {item.startTime}
+                  </Text>
+
                   <Text style={[styles.expandedText, { marginBottom: 10 }]}>
                     {t("doseDetails.expanded.totalTime")}
                     {formatTime(item.totalTime)}
