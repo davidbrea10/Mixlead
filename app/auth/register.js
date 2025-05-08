@@ -9,6 +9,8 @@ import {
   Image,
   StyleSheet, // Import StyleSheet
   ActivityIndicator, // Import ActivityIndicator
+  SafeAreaView,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -21,14 +23,7 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
-import {
-  doc,
-  setDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import i18n from "../locales/i18n"; // Importa la configuración de i18next
 import { format } from "date-fns"; // Importamos date-fns para formatear la fecha
@@ -56,11 +51,13 @@ export default function Register() {
     confirmPassword: "",
   });
 
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [birthDate, setBirthDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
+  const [isTermsModalVisible, setIsTermsModalVisible] = useState(false);
 
   const flag =
     i18n.language === "es"
@@ -124,22 +121,7 @@ export default function Register() {
       setErrors((prev) => ({ ...prev, dni: t("errors.invalidDni") }));
       return;
     }
-
-    try {
-      const dniQuery = query(
-        collection(db, "employees"),
-        where("dni", "==", dni),
-      );
-      const dniSnapshot = await getDocs(dniQuery);
-
-      if (!dniSnapshot.empty) {
-        setErrors((prev) => ({ ...prev, dni: t("errors.dniExists") }));
-      } else {
-        setErrors((prev) => ({ ...prev, dni: "" }));
-      }
-    } catch (error) {
-      console.error("Error validating DNI:", error);
-    }
+    setErrors((prev) => ({ ...prev, dni: "" }));
   };
 
   const validatePhone = (phone) => {
@@ -207,6 +189,17 @@ export default function Register() {
     }
   };
 
+  const handleToggleTerms = () => {
+    setTermsAccepted(!termsAccepted);
+  };
+
+  const handleShowTerms = () => {
+    setIsTermsModalVisible(true);
+  };
+  const handleHideTerms = () => {
+    setIsTermsModalVisible(false);
+  };
+
   const handleRegister = async () => {
     const {
       firstName,
@@ -218,6 +211,18 @@ export default function Register() {
       password,
       confirmPassword,
     } = form;
+
+    if (!termsAccepted) {
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", "Error"),
+        text2: t("register.errors.acceptTerms"), // <-- AÑADIR ESTA LLAVE DE TRADUCCIÓN
+        visibilityTime: 3000,
+      });
+      // Si tienes estado de error para los términos, podrías establecerlo aquí
+      // setErrors(prev => ({ ...prev, termsAccepted: t("register.errors.acceptTerms") }));
+      return;
+    }
 
     if (
       !firstName ||
@@ -300,7 +305,7 @@ export default function Register() {
       });
 
       // Redirigir a la pantalla de confirmación de correo
-      router.replace("/emailConfirmation");
+      router.replace("auth/emailConfirmation");
     } catch (error) {
       // Replace alert with error toast, map common errors
       let errorMessage = t(
@@ -628,6 +633,28 @@ export default function Register() {
             ) : null}
           </View>
 
+          {/* Terms and Conditions */}
+          <View style={styles.termsContainer}>
+            <TouchableOpacity
+              onPress={handleToggleTerms} // Al presionar el icono/área, se marca/desmarca
+              style={styles.checkbox}
+            >
+              <Ionicons
+                name={termsAccepted ? "checkbox-outline" : "square-outline"}
+                size={24}
+                color={termsAccepted ? "#006892" : "gray"}
+              />
+            </TouchableOpacity>
+            <Text style={styles.termsText}>
+              {t("register.terms.accept")}
+              <Text style={styles.termsLink} onPress={handleShowTerms}>
+                {t("register.terms.linkText")}
+                {/* Ej: "términos y condiciones" */}
+              </Text>
+            </Text>
+            {/* Si tienes estado de error para los términos, muéstralo aquí */}
+          </View>
+
           {/* Register Button */}
           <Pressable
             onPress={handleRegister}
@@ -673,6 +700,61 @@ export default function Register() {
           }}
         ></View>
       </View>
+      <Modal
+        animationType="slide" // O "fade"
+        transparent={true} // Si quieres que el fondo sea semitransparente
+        visible={isTermsModalVisible} // Controlado por el estado
+        onRequestClose={handleHideTerms} // Para cerrar con el botón atrás de Android
+      >
+        <View style={styles.modalOverlay}>
+          {/* Fondo oscuro semi-transparente */}
+          <View style={styles.termsModalContentContainer}>
+            {/* Contenedor del contenido del modal */}
+            <Text style={styles.modalTitle}>
+              {t("register.terms.linkText")}
+            </Text>
+            {/* Título del modal */}
+            {/* >>> AÑADIR: ScrollView para el texto de los términos <<< */}
+            <ScrollView style={styles.termsScrollView}>
+              {/* >>>>>> REEMPLAZAR ESTO CON TUS TÉRMINOS Y CONDICIONES REALES <<<<<<< */}
+              <Text style={styles.termsModalText}>
+                {/* !!! TEXTO DE TÉRMINOS Y CONDICIONES REALES VA AQUÍ !!! */}
+                {/* !!! DEBES OBTENER ESTE TEXTO DE UN PROFESIONAL LEGAL O SERVICIO ESPECIALIZADO !!! */}
+                {/* !!! ESTE ES SOLO TEXTO DE EJEMPLO Y NO ES LEGALMENTE VÁLIDO !!! */}
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+                eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+                enim ad minim veniam, quis nostrud exercitation ullamco laboris
+                nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor
+                in reprehenderit in voluptate velit esse cillum dolore eu fugiat
+                nulla pariatur. Excepteur sint occaecat cupidatat non proident,
+                sunt in culpa qui officia deserunt mollit anim id est laborum.
+                (Continúa con todo el texto de tus términos y condiciones
+                reales) Section 1. Acceptance of Terms By creating an account,
+                you agree to be bound by these Terms and Conditions. Section 2.
+                Privacy Policy Your use of the service is also governed by our
+                Privacy Policy. Section 3. User Responsibilities You agree to
+                use the service responsibly and not for any illegal or
+                prohibited activities. Section 4. Limitation of Liability The
+                service is provided "as is" without any warranties. The company
+                is not liable for any damages. Section 5. Governing Law These
+                Terms shall be governed by the laws of [Your Jurisdiction].
+                {/* ... Mucho más texto legal aquí ... */}
+              </Text>
+            </ScrollView>
+            {/* >>> FIN ScrollView <<< */}
+            {/* Botón para cerrar el modal */}
+            <Pressable
+              onPress={handleHideTerms}
+              style={styles.modalCloseButton}
+            >
+              <Text style={styles.modalCloseButtonText}>
+                {t("register.terms.closeButton")}
+              </Text>
+              {/* Texto del botón de cerrar */}
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -810,5 +892,82 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 10, // Use a consistent elevation
+  },
+
+  termsContainer: {
+    flexDirection: "row", // Alinea el checkbox y el texto horizontalmente
+    alignItems: "flex-start", // Alinea al inicio si el texto es largo
+    width: "90%", // Ancho similar a los inputs
+    marginBottom: 20, // Espacio debajo del checkbox y antes del botón
+    paddingHorizontal: 5, // Pequeño padding si es necesario
+  },
+  checkbox: {
+    padding: 5, // Área táctil alrededor del icono
+    marginRight: 8, // Espacio entre el checkbox y el texto
+    // Asegúrate de que el tamaño del icono coincida (size={24})
+  },
+  termsText: {
+    flex: 1, // Permite que el texto ocupe el espacio restante y se envuelva
+    fontSize: 15, // Tamaño de fuente
+    color: "#444B59", // Color del texto
+    lineHeight: 20, // Espaciado entre líneas para texto largo
+  },
+  termsLink: {
+    color: "#006892", // Color para el enlace (azul típico)
+    textDecorationLine: "underline", // Subrayado
+    fontWeight: "bold", // Opcional: negrita para el enlace
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)", // Fondo oscuro semi-transparente
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  termsModalContentContainer: {
+    width: "90%", // Ancho del modal
+    height: "80%", // Altura para dejar espacio para el fondo
+    backgroundColor: "#FFFFFF", // Fondo blanco para el contenido del modal
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+    textAlign: "center",
+    color: "#333", // Color del título
+  },
+  termsScrollView: {
+    flex: 1, // Permite que el ScrollView ocupe el espacio disponible
+    width: "100%", // Asegura que el ScrollView use el ancho completo del contenedor padre
+    // paddingHorizontal: 5, // Opcional: padding dentro del ScrollView
+  },
+  termsModalText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#555", // Color del texto de los términos
+    textAlign: "justify", // Opcional: justificar el texto
+  },
+  modalCloseButton: {
+    marginTop: 20, // Espacio encima del botón
+    backgroundColor: "#006892", // Color del botón de cerrar
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    // width: '50%', // O un ancho fijo
+    alignSelf: "center", // Centrar el botón
+    alignItems: "center",
+  },
+  modalCloseButtonText: {
+    color: "#FFFFFF", // Texto blanco en el botón
+    fontSize: 16,
+    fontWeight: "600",
   },
 }); // End StyleSheet.create

@@ -56,7 +56,15 @@
     "confirmPassword": "Confirmar Contraseña",
     "emailVerificationTitle": "Verifica tu Correo",
     "emailVerificationMessage": "Se ha enviado un correo de verificación a tu bandeja de entrada. Por favor, verifica tu correo antes de iniciar sesión.",
-    "okButton": "Aceptar"
+    "okButton": "Aceptar",
+    "terms": { 
+      "accept": "Acepto los",
+      "linkText": " términos y condiciones",
+      "closeButton": "Cerrar"
+    },
+    "errors": {
+      "acceptTerms": "Acepta Términos y Condiciones"
+    }
   },
 
   "emailConfirmation": {
@@ -565,6 +573,11 @@
       "permissionDeniedMessage": "Se requiere permiso de ubicación para mostrar tu posición en el mapa. Por favor, actívalo en los ajustes de tu dispositivo.",
       "errorTitle": "Error de Ubicación",
       "errorMessage": "No se pudo obtener tu ubicación. Por favor, inténtalo de nuevo o revisa los ajustes de tu dispositivo."
+    },
+    "buttons":
+    {
+      "markMaterial": "Marcar Material",
+      "unmarkMaterial": "Desmarcar Material"
     }
   },
 

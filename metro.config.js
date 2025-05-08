@@ -1,9 +1,19 @@
 const { getDefaultConfig } = require("expo/metro-config");
 
-const config = getDefaultConfig(__dirname);
+module.exports = (async () => {
+  const config = await getDefaultConfig(__dirname);
+  console.log(
+    "Default unstable_enablePackageExports:",
+    config.resolver.unstable_enablePackageExports,
+  );
+  console.log(
+    "Default unstable_enableSymlinks:",
+    config.resolver.unstable_enableSymlinks,
+  );
 
-config.resolver.unstable_enablePackageExports = false;
+  // Apply your customizations if needed after checking defaults
+  config.resolver.unstable_enablePackageExports = false;
+  // config.resolver.unstable_enableSymlinks = false;
 
-config.resolver.unstable_enableSymlinks = false;
-
-module.exports = config;
+  return config;
+})();

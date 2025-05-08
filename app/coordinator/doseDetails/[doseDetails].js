@@ -381,7 +381,7 @@ export default function DoseDetails() {
             })}
           </Text>
         </View>
-        <Pressable onPress={() => router.replace("/employee/home")}>
+        <Pressable onPress={() => router.replace("/coordinator/home")}>
           <Image
             source={require("../../../assets/icon.png")}
             style={{ width: 50, height: 50 }}

@@ -57,7 +57,15 @@
     "confirmPassword": "Confirm Password",
     "emailVerificationTitle": "Verify Your Email",
     "emailVerificationMessage": "A verification email has been sent to your inbox. Please verify your email before logging in.",
-    "okButton": "OK"
+    "okButton": "OK",
+    "terms": { 
+      "accept": "I accept the",
+      "linkText": " terms and conditions",
+      "closeButton": "Close"      
+    },
+    "errors": {
+      "acceptTerms": "Accept Terms and Conditions"
+    }
   },
 
   "emailConfirmation": {
@@ -567,6 +575,10 @@
       "permissionDeniedMessage": "Location permission is required to show your position on the map. Please enable it in your device settings.",
       "errorTitle": "Location Error",
       "errorMessage": "Could not retrieve your location. Please try again or check your device settings."
+    },
+    "buttons": {
+      "markMaterial": "Mark Material",
+      "unmarkMaterial": "Unmark Material"
     }
   },
 

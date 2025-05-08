@@ -53,7 +53,7 @@ export default function Home() {
 
   const handleHome = () => {
     // Adjust path if needed based on actual employee home screen path
-    router.replace("/employee/home");
+    router.replace("/coordinator/home");
   };
 
   const handleViewDetails = (month, year) => {

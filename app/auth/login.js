@@ -129,11 +129,11 @@ export default function Login() {
   };
 
   const handleRegister = () => {
-    router.push("/register");
+    router.push("auth/register");
   };
 
   const handleRecoverPassword = () => {
-    router.push("/passwordReset");
+    router.push("auth/passwordReset");
   };
 
   const handleLanguageChange = () => {
