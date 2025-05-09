@@ -418,6 +418,7 @@ export default function Register() {
             <View style={{ position: "relative" }}>
               <TextInput
                 placeholder={t("register.firstName")}
+                placeholderTextColor={"gray"}
                 value={form.firstName}
                 onChangeText={(text) => handleInputChange("firstName", text)}
                 style={styles.input}
@@ -439,6 +440,7 @@ export default function Register() {
             <View style={{ position: "relative" }}>
               <TextInput
                 placeholder={t("register.lastName")}
+                placeholderTextColor={"gray"}
                 value={form.lastName}
                 onChangeText={(text) => handleInputChange("lastName", text)}
                 style={styles.input}
@@ -460,6 +462,7 @@ export default function Register() {
             <View style={{ position: "relative" }}>
               <TextInput
                 placeholder={t("register.dni")}
+                placeholderTextColor={"gray"}
                 value={form.dni}
                 onChangeText={(text) => handleInputChange("dni", text)}
                 onBlur={() => validateDni(form.dni)} // <-- Solo se ejecuta al salir del campo
@@ -486,6 +489,7 @@ export default function Register() {
             <View style={{ position: "relative" }}>
               <TextInput
                 placeholder={t("register.phone")}
+                placeholderTextColor={"gray"}
                 keyboardType="phone-pad"
                 value={form.phone}
                 onChangeText={(text) => handleInputChange("phone", text)}
@@ -552,6 +556,7 @@ export default function Register() {
             <View style={{ position: "relative" }}>
               <TextInput
                 placeholder={t("register.email")}
+                placeholderTextColor={"gray"}
                 keyboardType="email-address"
                 value={form.email}
                 onChangeText={(text) => handleInputChange("email", text)}
@@ -580,6 +585,7 @@ export default function Register() {
             <View style={{ position: "relative" }}>
               <TextInput
                 placeholder={t("register.password")}
+                placeholderTextColor={"gray"}
                 secureTextEntry={!showPassword}
                 value={form.password}
                 onChangeText={(text) => {
@@ -610,6 +616,7 @@ export default function Register() {
             <View style={{ position: "relative" }}>
               <TextInput
                 placeholder={t("register.confirmPassword")}
+                placeholderTextColor={"gray"}
                 secureTextEntry={!showConfirmPassword}
                 value={form.confirmPassword}
                 onChangeText={(text) =>
@@ -799,6 +806,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     // Removed justifyContent as it's not needed for TextInput itself
     paddingRight: 50, // Space for clear/eye icon
+    color: "black",
   },
   clearIcon: {
     position: "absolute",

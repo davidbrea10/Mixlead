@@ -125,6 +125,7 @@ export default function PasswordResetScreen() {
             <TextInput
               style={styles.input}
               placeholder={t("passwordReset.emailPlaceholder")}
+              placeholderTextColor={"gray"}
               keyboardType="email-address"
               value={email}
               onChangeText={setEmail}

@@ -356,7 +356,7 @@ export default function DoseDetails() {
               </tr>
             </thead>
             <tbody>
-              ${tableHtml} {/* Contiene la nueva celda <td> */}
+              ${tableHtml}
             </tbody>
           </table>
           <div class="footer-total">
@@ -417,43 +417,32 @@ export default function DoseDetails() {
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
       style={{ flex: 1 }}
     >
-      <View
+      <View // Contenedor Principal de la Cabecera
         style={{
           backgroundColor: "#FF9300",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: 16,
-          borderBottomStartRadius: 40,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.3,
-          shadowRadius: 10,
-          elevation: 10,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          flexDirection: "row", // Elementos en fila
+          alignItems: "center", // Centrar verticalmente
+          paddingHorizontal: 16, // Padding horizontal general
+          paddingBottom: 16,
+          paddingTop: Platform.select({ ios: 60, android: 40 }),
         }}
       >
-        <Pressable onPress={() => router.back()}>
-          <Image
-            source={require("../../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
-          />
-        </Pressable>
+        {/* Contenedor Izquierdo (Ancho Fijo) */}
+        <View style={{ width: 50, alignItems: "center" }}>
+          <Pressable onPress={() => router.back()}>
+            <Image
+              source={require("../../../assets/go-back.png")}
+              style={{ width: 50, height: 50 }} // Tamaño del icono
+            />
+          </Pressable>
+        </View>
+
+        {/* ✨ Contenedor Central del Texto (Flexible) ✨ */}
         <View
           style={{
-            position: "absolute", // Posición absoluta respecto al padre
-            left: 70, // Espacio desde la izquierda para no solaparse con el icono (ajusta este valor)
-            right: 70, // Espacio desde la derecha para no solaparse con el icono (ajusta este valor)
-            top: Platform.select({ ios: 60, android: 40 }), // Alinear con el padding superior del padre
-            bottom: 16, // Alinear con el padding inferior del padre
-            // --- Centrar el contenido DENTRO de este View ---
-            alignItems: "center", // Centra horizontalmente los <Text>
-            justifyContent: "center", // Centra verticalmente los <Text>
-            // pointerEvents="none" // Descomenta si el View bloquea toques a elementos detrás (mapa?)
+            flex: 1, // Ocupa el espacio sobrante entre los lados
+            alignItems: "center", // Centra los Text hijos horizontalmente
+            justifyContent: "center", // Centra los Text hijos verticalmente
           }}
         >
           <Text
@@ -461,10 +450,11 @@ export default function DoseDetails() {
               fontSize: 24,
               fontWeight: "bold",
               color: "white",
-              letterSpacing: 2,
+              textAlign: "center", // Importante para centrar texto multi-línea
               textShadowColor: "black",
               textShadowOffset: { width: 1, height: 1 },
               textShadowRadius: 1,
+              // Quita numberOfLines y ellipsizeMode para permitir wrapping
             }}
           >
             {t("doseDetails.title")}
@@ -485,6 +475,10 @@ export default function DoseDetails() {
             })}
           </Text>
         </View>
+        {/* FIN Contenedor Central */}
+
+        {/* Contenedor Derecho (Ancho Fijo IGUAL al izquierdo) */}
+        <View style={{ width: 50 }} />
       </View>
 
       {/* Main Content */}

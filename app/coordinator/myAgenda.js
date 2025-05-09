@@ -268,6 +268,7 @@ export default function Home() {
                   onChangeText={setDose}
                   keyboardType="numeric"
                   placeholder={t("home.modal.enterDose")}
+                  placeholderTextColor={"gray"}
                 />
 
                 <Text style={styles.label}>
@@ -279,6 +280,7 @@ export default function Home() {
                   onChangeText={setModalTotalExposures} // Use modal state
                   keyboardType="number-pad" // Better for integers
                   placeholder={t("home.modal.enterNumberOfExposures")}
+                  placeholderTextColor={"gray"}
                 />
 
                 <Text style={styles.modalLabel}>

@@ -30,7 +30,6 @@ export default function CalculationSummary() {
   const [modalVisible, setModalVisible] = useState(false);
   const [dose, setDose] = useState(""); // Dose value from modal input
   const [modalTotalExposures, setModalTotalExposures] = useState(""); // Exposures from modal input
-  const [modalTotalTime, setModalTotalTime] = useState(""); // Time from modal input
 
   const [durationHours, setDurationHours] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("");
@@ -50,12 +49,13 @@ export default function CalculationSummary() {
 
   const handleGraph = () => {
     // Pasar el resultado y también indicar la unidad (metros)
+    console.log("params", params);
     router.push({
       pathname: "/coordinator/graph", // O la ruta correcta a tu pantalla Graph
       params: {
         latitude: null, // Aún no tenemos lat/lon aquí, se marcarán en Graph
         longitude: null,
-        radius: params.result, // El resultado del cálculo (asumimos que está en metros)
+        radius: params.distanceValueForSummary, // El resultado del cálculo (asumimos que está en metros)
         radiusUnit: "m", // Especificar la unidad
       },
     });
@@ -402,6 +402,7 @@ export default function CalculationSummary() {
                 onChangeText={setDose}
                 keyboardType="numeric"
                 placeholder={t("home.modal.enterDose")}
+                placeholderTextColor={"gray"}
               />
 
               <Text style={styles.modalLabel}>
@@ -413,6 +414,7 @@ export default function CalculationSummary() {
                 onChangeText={setModalTotalExposures} // Use modal state
                 keyboardType="number-pad" // Better for integers
                 placeholder={t("home.modal.enterNumberOfExposures")}
+                placeholderTextColor={"gray"}
               />
 
               <Text style={styles.modalLabel}>
@@ -442,7 +444,7 @@ export default function CalculationSummary() {
                   keyboardType="number-pad"
                   placeholder="MM"
                   maxLength={2}
-                  placeholderTextColor="gray"
+                  placeholderTextColor={"gray"}
                 />
                 <Text style={styles.durationSeparator}>:</Text>
                 {/* Segundos */}

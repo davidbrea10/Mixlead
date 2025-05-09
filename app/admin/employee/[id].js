@@ -276,7 +276,7 @@ export default function EmployeeDetail() {
                     ? t("employee_details.not_editable", "Not Editable")
                     : ""
                 } // Placeholder for non-editable
-                placeholderTextColor="#999"
+                placeholderTextColor={"gray"}
               />
             </View>
           ))}

@@ -271,7 +271,7 @@
   "doseDetails": {
     "deleteSuccessTitle": "Success",
     "deleteSuccessMessage": "Dose deleted successfully.",
-    "title": "Dose Details",
+    "title": "Inspections Details",
     "monthLabel": "{{month}} {{year}}",
     "table": {
       "dose": "Dose",
@@ -388,6 +388,7 @@
         "No": "No"
       },
       "materials": {
+        "withoutMaterial": "Without Material",
         "Mixlead": "Mixlead",
         "Steel": "Steel",
         "Concrete": "Concrete",
@@ -425,7 +426,7 @@
     "yearPlaceholder": "Select Year",
     "header": {
       "title": "My Agenda",
-      "subtitle": "Annual Dose Data"
+      "subtitle": "Annual Inspections"
     },
     "selectYear": "Select Year",
     "table": {

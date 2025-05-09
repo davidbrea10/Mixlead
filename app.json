@@ -30,7 +30,7 @@
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.davidbrea_10.mixlead",
-      "softwareKeyboardLayoutMode": "pan" 
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -43,7 +43,8 @@
           "locationWhenInUsePermission": "Necesitamos tu ubicación para mostrarla en el mapa."
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-asset"
     ],
     "extra": {
       "router": {

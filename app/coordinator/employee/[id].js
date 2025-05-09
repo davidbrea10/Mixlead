@@ -291,7 +291,7 @@ export default function EmployeeDetailCoordinatorView() {
                     ? t("employee_detail.not_editable", "Not Editable")
                     : ""
                 }
-                placeholderTextColor="#999"
+                placeholderTextColor={"gray"}
               />
             </View>
           ))}

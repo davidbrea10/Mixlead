@@ -179,6 +179,7 @@ export default function EmployeesScreen() {
         }}
         setItems={setCompanyOptions}
         placeholder={t("employees.selectCompany")}
+        placeholderTextColor={"gray"}
         containerStyle={{ marginTop: 10, marginHorizontal: 20, width: "90%" }}
       />
 
@@ -202,6 +203,7 @@ export default function EmployeesScreen() {
         />
         <TextInput
           placeholder={t("employees.searchPlaceholder")}
+          placeholderTextColor={"gray"}
           value={searchText}
           onChangeText={handleSearch}
           style={{ flex: 1, fontSize: 16 }}

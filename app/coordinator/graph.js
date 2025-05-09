@@ -299,6 +299,7 @@ export default function Graph() {
       const centerCoords = await new Promise((resolve, reject) => {
         mapCenterPromiseResolveRef.current = resolve; // Guarda la función resolve de la promesa
         // Opcional: Timeout para evitar espera infinita
+        // eslint-disable-next-line no-undef
         setTimeout(() => {
           if (mapCenterPromiseResolveRef.current) {
             // Si no se ha resuelto aún

@@ -50,12 +50,13 @@ export default function CalculationSummary() {
 
   const handleGraph = () => {
     // Pasar el resultado y también indicar la unidad (metros)
+    console.log("params", params);
     router.push({
       pathname: "/employee/graph", // O la ruta correcta a tu pantalla Graph
       params: {
         latitude: null, // Aún no tenemos lat/lon aquí, se marcarán en Graph
         longitude: null,
-        radius: params.result, // El resultado del cálculo (asumimos que está en metros)
+        radius: params.distanceValueForSummary, // El resultado del cálculo (asumimos que está en metros)
         radiusUnit: "m", // Especificar la unidad
       },
     });
@@ -402,6 +403,7 @@ export default function CalculationSummary() {
                 onChangeText={setDose}
                 keyboardType="numeric"
                 placeholder={t("home.modal.enterDose")}
+                placeholderTextColor={"gray"}
               />
 
               <Text style={styles.modalLabel}>
@@ -413,6 +415,7 @@ export default function CalculationSummary() {
                 onChangeText={setModalTotalExposures} // Use modal state
                 keyboardType="number-pad" // Better for integers
                 placeholder={t("home.modal.enterNumberOfExposures")}
+                placeholderTextColor={"gray"}
               />
 
               <Text style={styles.modalLabel}>

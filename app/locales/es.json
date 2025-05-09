@@ -269,7 +269,7 @@
   "doseDetails": {
     "deleteSuccessTitle": "Éxito",
     "deleteSuccessMessage": "Dosis eliminada correctamente.",
-    "title": "Detalles de Dosis",
+    "title": "Detalles de Inspecciones",
     "monthLabel": "{{month}} {{year}}",
     "table": {
       "dose": "Dosis",
@@ -386,6 +386,7 @@
         "No": "No"
       },
       "materials": {
+        "withoutMaterial": "Sin material",
         "Mixlead": "Mixlead",
         "Steel": "Acero",
         "Concrete": "Hormigón",
@@ -423,7 +424,7 @@
     "yearPlaceholder": "Seleccionar Año",
     "header": {
       "title": "Mi Agenda",
-      "subtitle": "Datos de Dosis Anual"
+      "subtitle": "Inspecciones Anuales"
     },
     "selectYear": "Seleccionar Año",
     "table": {

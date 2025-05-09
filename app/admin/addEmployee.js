@@ -315,6 +315,7 @@ export default function AddEmployee() {
                         `add_employee.placeholder_${key}`,
                         t(`add_employee.${key}`),
                       )} // Placeholder translation
+                      placeholderTextColor={"gray"}
                       value={value}
                       onChangeText={(text) => handleInputChange(key, text)}
                       style={styles.input}

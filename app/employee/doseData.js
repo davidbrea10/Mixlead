@@ -494,6 +494,7 @@ export default function Home() {
                   label: t("home.yearPlaceholder", "Selecciona año..."), // Add translation key
                   value: null,
                 }}
+                placeholderTextColor={"gray"}
                 style={pickerSelectStyles} // Use defined styles
                 useNativeAndroidPickerStyle={false}
                 Icon={() => (

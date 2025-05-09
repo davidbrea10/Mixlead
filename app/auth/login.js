@@ -180,6 +180,7 @@ export default function Login() {
             <View style={styles.inputWrapper}>
               <TextInput
                 placeholder={t("enter_email")}
+                placeholderTextColor={"gray"}
                 value={email}
                 onChangeText={setEmail}
                 style={styles.input}
@@ -203,6 +204,7 @@ export default function Login() {
             <View style={styles.inputWrapper}>
               <TextInput
                 placeholder={t("password")}
+                placeholderTextColor={"gray"}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
@@ -318,7 +320,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 18,
     backgroundColor: "white",
-    paddingRight: 50,
+    paddingRight: 50, // Espacio para el icono de ojo/limpiar
+    color: "black",
   },
   clearButton: {
     position: "absolute",

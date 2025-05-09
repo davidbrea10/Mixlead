@@ -272,6 +272,7 @@ export default function Profile() {
                   fadeAnim.setValue(1); // Reinicia la opacidad al escribir
                 }}
                 placeholder={t("profile.modal.companyCodePlaceholder")}
+                placeholderTextColor={"gray"}
                 style={{
                   flex: 1,
                   borderWidth: 1,

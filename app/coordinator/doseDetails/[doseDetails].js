@@ -235,7 +235,7 @@ export default function DoseDetails() {
           <tr>
             <td class="day">${item.day}</td>
             <td class="dose">${item.dose.toFixed(2)} μSv</td>
-            <td class="time">${item.startTime || "--:--"}</td> {/* <-- NUEVA CELDA startTime */}
+            <td class="time">${item.startTime || "--:--"}</td>
             <td class="time">${formatTime(item.totalTime)}</td>
             <td class="exposures">${item.totalExposures}</td>
           </tr>
@@ -282,13 +282,13 @@ export default function DoseDetails() {
               <tr>
                 <th>${t("employeesAgenda.pdf.tableMonthly.day")}</th>
                 <th>${t("employeesAgenda.pdf.tableMonthly.dose")} (μSv)</th>
-                <th>${t("employeesAgenda.pdf.tableMonthly.startTime", { defaultValue: "Start Time" })}</th> {/* <-- NUEVA CABECERA */}
+                <th>${t("employeesAgenda.pdf.tableMonthly.startTime")}</th>
                 <th>${t("employeesAgenda.pdf.tableMonthly.time")} (HH:MM:SS)</th>
                 <th>${t("employeesAgenda.pdf.tableMonthly.exposures")}</th>
               </tr>
             </thead>
             <tbody>
-              ${tableHtml} {/* Contiene la nueva celda <td> */}
+              ${tableHtml}
             </tbody>
           </table>
           <div class="footer-total">

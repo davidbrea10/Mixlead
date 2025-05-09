@@ -917,6 +917,7 @@ export default function Home() {
                 label: t("employeesAgenda.employee.placeholder"),
                 value: null,
               }}
+              placeholderTextColor={"gray"}
               style={pickerSelectStyles} // Usa un objeto de estilos específico para RNPickerSelect
               useNativeAndroidPickerStyle={false} // Para poder estilizar en Android también
               Icon={() => {
@@ -950,6 +951,7 @@ export default function Home() {
                   label: t("employeesAgenda.employee.placeholder"),
                   value: null,
                 }}
+                placeholderTextColor={"gray"}
                 style={pickerSelectStyles}
                 disabled={isLoadingEmployees || filteredEmployees.length === 0}
                 useNativeAndroidPickerStyle={false}

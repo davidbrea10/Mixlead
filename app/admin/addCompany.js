@@ -174,6 +174,7 @@ export default function AddCompany() {
               <View style={styles.inputContainer}>
                 <TextInput
                   placeholder={placeholder}
+                  placeholderTextColor={"gray"}
                   value={form[key]}
                   onChangeText={(text) => handleInputChange(key, text)}
                   style={styles.input}

@@ -39,6 +39,10 @@ export default function Calculation() {
   };
 
   const materialMap = {
+    None: t(
+      "radiographyCalculator.options.materials.withoutMaterial",
+      "Sin Material",
+    ),
     Mixlead: t("radiographyCalculator.options.materials.Mixlead"),
     Steel: t("radiographyCalculator.options.materials.Steel"),
     Concrete: t("radiographyCalculator.options.materials.Concrete"),
@@ -170,19 +174,25 @@ export default function Calculation() {
 
     // Calculation logic (remains the same)
     let result;
-    if (
+    const calculationTypeForNav = // Renombrado para evitar confusión con params.calculationType
       form.thicknessOrDistance ===
       t("radiographyCalculator.thicknessOrDistance")
-    ) {
+        ? "distance" // Usuario seleccionó "Calcular Distancia", así que inputValue es ESPESOR
+        : "thickness"; // Usuario seleccionó "Calcular Espesor", así que inputValue es DISTANCIA
+
+    // TU FÓRMULA ACTUAL (ver nota importante al final)
+    if (calculationTypeForNav === "distance") {
+      // Se calcula la distancia
       result =
         Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
         (Math.log(2) / µ) *
-        (1 / inputValue); // Needs review
+        (1 / inputValue); // inputValue aquí es el espesor
     } else {
+      // calculationTypeForNav === "thickness" (Se calcula el espesor)
       result =
         Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
         (Math.log(2) / µ) *
-        (1 / inputValue); // Needs review
+        (1 / inputValue); // inputValue aquí es la distancia
     }
 
     // Final NaN check for result
@@ -197,23 +207,28 @@ export default function Calculation() {
       return;
     }
 
+    let distanceValueForSummary;
+    if (calculationTypeForNav === "distance") {
+      distanceValueForSummary = result.toFixed(3);
+    } else {
+      distanceValueForSummary = form.value;
+    }
+
     // Navigation (remains the same)
     router.push({
+      // Asumo que la ruta es 'coordinator/calculationSummary' basado en tu estructura anterior
       pathname: "coordinator/calculationSummary",
       params: {
         isotope: form.isotope,
         collimator: form.collimator,
-        value: form.value,
+        value: form.value, // El valor original del input (espesor o distancia)
         activity: form.activity,
         material: form.material,
         attenuation: form.attenuation,
         limit: form.limit,
-        calculationType:
-          form.thicknessOrDistance ===
-          t("radiographyCalculator.thicknessOrDistance")
-            ? "distance"
-            : "thickness",
-        result: result.toFixed(3),
+        calculationType: calculationTypeForNav, // "distance" o "thickness"
+        result: result.toFixed(3), // El resultado del cálculo
+        distanceValueForSummary: distanceValueForSummary,
       },
     });
   };
@@ -316,6 +331,7 @@ export default function Calculation() {
             <TextInput
               style={[styles.inputContainer, styles.input]}
               placeholder={t("radiographyCalculator.valueCi")}
+              placeholderTextColor={"gray"}
               keyboardType="numeric"
               value={form.activity}
               onChangeText={(text) => setForm({ ...form, activity: text })}
@@ -369,6 +385,7 @@ export default function Calculation() {
                   { flex: 0.4, marginLeft: 10 },
                 ]}
                 placeholder={t("radiographyCalculator.modal.attenuation")}
+                placeholderTextColor={"gray"}
                 keyboardType="numeric"
                 value={form.attenuation}
                 onChangeText={(text) => setForm({ ...form, attenuation: text })}
@@ -408,6 +425,7 @@ export default function Calculation() {
                     ? "mm"
                     : "m",
               })}
+              placeholderTextColor={"gray"}
               keyboardType="numeric"
               value={form.value}
               onChangeText={(text) => setForm({ ...form, value: text })}
@@ -496,7 +514,6 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 10,
-    marginTop: 20,
 
     // Sombra para iOS
     shadowColor: "#000",

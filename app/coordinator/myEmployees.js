@@ -160,6 +160,7 @@ export default function EmployeesScreen() {
         />
         <TextInput
           placeholder={t("myEmployees.searchPlaceholder")}
+          placeholderTextColor={"gray"}
           value={searchText}
           onChangeText={handleSearch}
           style={{ flex: 1, fontSize: 16 }}
