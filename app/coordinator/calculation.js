@@ -28,6 +28,7 @@ const ATTENUATION_COEFFICIENT = {
 };
 
 const WITHOUT_MATERIAL_KEY = "None";
+const OTHER_MATERIAL_KEY = "Other";
 
 export default function Calculation() {
   const { t } = useTranslation(); // Initialize translation hook
@@ -54,7 +55,7 @@ export default function Calculation() {
       Aluminum: t("radiographyCalculator.options.materials.Aluminum"),
       Lead: t("radiographyCalculator.options.materials.Lead"),
       Tungsten: t("radiographyCalculator.options.materials.Tungsten"),
-      Other: t("radiographyCalculator.options.materials.Other"),
+      [OTHER_MATERIAL_KEY]: t("radiographyCalculator.options.materials.Other"),
     }),
     [t],
   );
@@ -76,7 +77,10 @@ export default function Calculation() {
     value: "",
     activity: "",
     material: t("radiographyCalculator.modal.material"),
-    attenuation: "",
+    // NUEVOS CAMPOS PARA MATERIAL "OTRO"
+    otherMaterialName: "",
+    attenuationIr: "", // Coeficiente para 192Ir
+    attenuationSe: "", // Coeficiente para 75Se
     limit: t("radiographyCalculator.modal.limit"),
   });
 
@@ -97,43 +101,39 @@ export default function Calculation() {
       isCalculatingDistance
     ) {
       setIsValueEditable(false);
-      // setForm(prevForm => ({ ...prevForm, value: "" })); // Opcional: limpiar valor aquí también
+      // Si se cambia a "Sin Material" Y se calcula distancia, limpiar valor.
+      // Esto también se maneja en handleSelect y al cambiar thicknessOrDistance
+      if (form.value !== "") {
+        setForm((prev) => ({ ...prev, value: "" }));
+      }
     } else {
       setIsValueEditable(true);
     }
-  }, [form.material, form.thicknessOrDistance, t, materialMap]);
+  }, [form.material, form.thicknessOrDistance, t, materialMap, form.value]);
 
   const calculateAndNavigate = () => {
-    // MODIFICADO: Obtener materialInternalValue y calculationTypeForNav al inicio
     const materialInternalValue = Object.keys(materialMap).find(
       (key) => materialMap[key] === form.material,
     );
     const calculationTypeForNav =
       form.thicknessOrDistance ===
       t("radiographyCalculator.thicknessOrDistance")
-        ? "distance" // Usuario seleccionó "Calcular Distancia"
-        : "thickness"; // Usuario seleccionó "Calcular Espesor"
+        ? "distance"
+        : "thickness";
 
-    // --- NUEVA LÓGICA: Comprobación para "Sin Material" ---
-    if (materialInternalValue === WITHOUT_MATERIAL_KEY) {
-      if (calculationTypeForNav === "thickness") {
-        Toast.show({
-          type: "error",
-          text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
-          text2: t(
-            "radiographyCalculator.alerts.materialNeededForThickness",
-            "Debe existir un material al que calcularle el espesor",
-          ),
-          position: "bottom",
-        });
-        return; // No continuar
-      }
-      // Si es "distance" y "Sin Material", form.value no se usa, la fórmula cambiará más adelante.
-      // El campo form.value ya debería estar vacío o deshabilitado por la lógica en handleSelect/useEffect.
+    if (
+      materialInternalValue === WITHOUT_MATERIAL_KEY &&
+      calculationTypeForNav === "thickness"
+    ) {
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
+        text2: t("radiographyCalculator.alerts.materialNeededForThickness"),
+        position: "bottom",
+      });
+      return;
     }
-    // --- FIN NUEVA LÓGICA ---
 
-    // Validaciones iniciales
     if (
       !form.isotope ||
       form.isotope === t("radiographyCalculator.modal.isotope") ||
@@ -144,42 +144,59 @@ export default function Calculation() {
       form.material === t("radiographyCalculator.modal.material")
     ) {
       Toast.show({
-        type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
-        text2: t("radiographyCalculator.errorMessage"),
-        position: "bottom",
+        /* Error campos incompletos */
       });
       return;
     }
 
-    // Validación de atenuación si el material es "Other"
-    if (materialInternalValue === "Other" && !form.attenuation) {
+    // NUEVA VALIDACIÓN: Nombre del material si es "Other"
+    if (
+      materialInternalValue === OTHER_MATERIAL_KEY &&
+      !form.otherMaterialName.trim()
+    ) {
       Toast.show({
         type: "error",
         text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
-        text2: t("radiographyCalculator.errorMessage"), // Podría ser un mensaje más específico
+        text2: t(
+          "radiographyCalculator.alerts.otherMaterialNameRequired",
+          "Ingrese el nombre del material.",
+        ),
         position: "bottom",
       });
       return;
     }
 
-    // Validación del campo 'value' (espesor/distancia)
-    // Solo es requerido si hay material o si se calcula el espesor (aunque este último caso ya se filtró si no hay material)
-    if (materialInternalValue !== WITHOUT_MATERIAL_KEY && !form.value) {
+    if (
+      materialInternalValue !== WITHOUT_MATERIAL_KEY &&
+      calculationTypeForNav === "distance" &&
+      !form.value &&
+      materialInternalValue !== OTHER_MATERIAL_KEY
+    ) {
       Toast.show({
-        type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
-        text2: t("radiographyCalculator.errorMessage"), // "Por favor, ingrese todos los campos requeridos."
-        position: "bottom",
+        /* Error valor requerido */
+      });
+      return;
+    }
+    if (
+      materialInternalValue !== WITHOUT_MATERIAL_KEY &&
+      calculationTypeForNav === "thickness" &&
+      !form.value
+    ) {
+      Toast.show({
+        /* Error valor requerido */
+      });
+      return;
+    }
+    if (materialInternalValue === OTHER_MATERIAL_KEY && !form.value) {
+      Toast.show({
+        /* Error valor requerido */
       });
       return;
     }
 
-    // Conversión de comas a puntos y parseo
     const activityString = form.activity.replace(/,/g, ".");
     const A = parseFloat(activityString) * 37;
     const Γ = GAMMA_FACTOR[form.isotope];
-
     const collimatorKey = Object.keys(collimatorMap).find(
       (key) => collimatorMap[key] === form.collimator,
     );
@@ -187,57 +204,84 @@ export default function Calculation() {
       collimatorKey === "Yes"
         ? COLLIMATOR_EFFECT.Yes[form.isotope]
         : COLLIMATOR_EFFECT.No;
-
     const T = form.limit === "11µSv/h" ? 0.011 : 0.0005;
 
-    // Validar valores parseados básicos
     if (isNaN(A) || Γ === undefined || Y === undefined || T === undefined) {
       Toast.show({
-        type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
-        text2: t("radiographyCalculator.invalidInputMessage"),
-        position: "bottom",
+        /* Error input inválido */
       });
       return;
     }
 
     let result;
     let µ;
-    let inputValue; // Este es el valor del campo `form.value`
+    let inputValue = 0; // Inicializar por si no se usa (ej. Sin Material y distancia)
+
+    if (
+      materialInternalValue !== WITHOUT_MATERIAL_KEY ||
+      (materialInternalValue === OTHER_MATERIAL_KEY && form.value)
+    ) {
+      if (form.value) {
+        // Solo parsear si hay valor, especialmente para "Other"
+        const valueString = form.value.replace(/,/g, ".");
+        inputValue = parseFloat(valueString);
+        if (isNaN(inputValue)) {
+          Toast.show({
+            type: "error",
+            text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
+            text2: t(
+              "radiographyCalculator.invalidInputMessage",
+              "Valor de espesor/distancia inválido.",
+            ),
+            position: "bottom",
+          });
+          return;
+        }
+      }
+    }
 
     if (materialInternalValue === WITHOUT_MATERIAL_KEY) {
-      // --- NUEVA LÓGICA: Calcular DISTANCIA sin material ---
-      if (calculationTypeForNav === "distance") {
-        // El campo form.value (espesor) no se usa y debería estar vacío/deshabilitado.
-        // Aquí, Y es el efecto del colimador que SÍ aplica.
-        result = Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) * 1;
-      }
-      // El caso de calcular ESPESOR sin material ya fue manejado arriba con un Toast.
-    } else {
-      // --- LÓGICA EXISTENTE: Cálculos CON material ---
-      const valueString = form.value.replace(/,/g, ".");
-      inputValue = parseFloat(valueString);
-
-      µ =
-        materialInternalValue === "Other"
-          ? parseFloat(form.attenuation.replace(/,/g, "."))
-          : ATTENUATION_COEFFICIENT[materialInternalValue]?.[form.isotope];
-
-      if (isNaN(inputValue) || µ === undefined || isNaN(µ)) {
+      result = Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) * 1;
+    } else if (materialInternalValue === OTHER_MATERIAL_KEY) {
+      if (form.isotope === "192Ir") {
+        µ = parseFloat(form.attenuationIr.replace(/,/g, ".")) || 0;
+      } else if (form.isotope === "75Se") {
+        µ = parseFloat(form.attenuationSe.replace(/,/g, ".")) || 0;
+      } else {
+        // Isótopo no seleccionado o no válido
         Toast.show({
           type: "error",
-          text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
-          text2: t("radiographyCalculator.invalidInputMessage"),
-          position: "bottom",
+          text1: "Error",
+          text2: "Seleccione un isótopo válido.",
         });
         return;
       }
 
-      // TU FÓRMULA ORIGINAL (cuando hay material)
-      // Asumo que esta fórmula es la que quieres mantener cuando SÍ hay material.
-      // La fórmula que tenías era la misma para ambos casos, lo que cambiaba era la interpretación de `inputValue`.
-      // Si `calculationTypeForNav` es "distance", `inputValue` es espesor.
-      // Si `calculationTypeForNav` es "thickness", `inputValue` es distancia.
+      if (isNaN(µ)) µ = 0; // Seguridad adicional
+
+      if (µ === 0) {
+        // Si el coeficiente es 0, tratar como sin atenuación efectiva
+        result = Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) * 1;
+      } else {
+        result =
+          Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
+          (Math.log(2) / µ) *
+          (1 / inputValue);
+      }
+    } else {
+      // Material predefinido
+      µ = ATTENUATION_COEFFICIENT[materialInternalValue]?.[form.isotope];
+      if (µ === undefined || isNaN(µ) || µ === 0) {
+        // Si µ es 0 para predefinido, también usar fórmula sin atenuación
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: `Coeficiente de atenuación no encontrado para ${form.material} con ${form.isotope}.`,
+        });
+        // Opcionalmente, calcular como si no hubiera material si µ es 0 o no definido.
+        // result = Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) * 1;
+        return; // Es mejor detenerse si falta un coeficiente predefinido.
+      }
       result =
         Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
         (Math.log(2) / µ) *
@@ -246,22 +290,19 @@ export default function Calculation() {
 
     if (isNaN(result) || !isFinite(result) || result < 0) {
       Toast.show({
-        type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
-        text2: t("radiographyCalculator.calculationError"),
-        position: "bottom",
+        /* Error de cálculo */
       });
       return;
     }
 
-    let distanceValueForSummary;
-    if (calculationTypeForNav === "distance") {
-      distanceValueForSummary = result.toFixed(3);
-    } else {
-      // Si se calculó el espesor, `form.value` era la distancia original.
-      // Si no hubo material, este path no se debería alcanzar para "thickness".
-      distanceValueForSummary =
-        materialInternalValue === WITHOUT_MATERIAL_KEY ? "N/A" : form.value;
+    let distanceValueForSummary =
+      calculationTypeForNav === "distance" ? result.toFixed(3) : form.value;
+    if (
+      materialInternalValue === WITHOUT_MATERIAL_KEY &&
+      calculationTypeForNav === "thickness"
+    ) {
+      // Este caso no debería ocurrir debido al check inicial, pero por si acaso
+      distanceValueForSummary = "N/A";
     }
 
     router.push({
@@ -275,8 +316,18 @@ export default function Calculation() {
             ? t("radiographyCalculator.notApplicable", "N/A")
             : form.value,
         activity: form.activity,
-        material: form.material,
-        attenuation: form.attenuation,
+        // Enviar el nombre correcto del material
+        material:
+          materialInternalValue === OTHER_MATERIAL_KEY
+            ? form.otherMaterialName
+            : form.material,
+        // Enviar el coeficiente de atenuación usado si es "Otro"
+        attenuationCoefficientUsed:
+          materialInternalValue === OTHER_MATERIAL_KEY
+            ? form.isotope === "192Ir"
+              ? form.attenuationIr || "0"
+              : form.attenuationSe || "0"
+            : "N/A", // O el µ obtenido de ATTENUATION_COEFFICIENT
         limit: form.limit,
         calculationType: calculationTypeForNav,
         result: result.toFixed(3),
@@ -292,20 +343,34 @@ export default function Calculation() {
   const closeModal = () => setModal({ ...modal, open: false });
 
   const handleSelect = (field, value) => {
-    const newFormValues = { ...form, [field]: value };
-
-    if (field === "material") {
-      const selectedMaterialKey = Object.keys(materialMap).find(
-        (key) => materialMap[key] === value,
-      );
-      if (selectedMaterialKey === WITHOUT_MATERIAL_KEY) {
-        newFormValues.value = ""; // Limpiar el campo de espesor/distancia
-        newFormValues.attenuation = ""; // También limpiar atenuación por si acaso
+    setForm((prevForm) => {
+      const newFormValues = { ...prevForm, [field]: value };
+      if (field === "material") {
+        const selectedMaterialKey = Object.keys(materialMap).find(
+          (key) => materialMap[key] === value,
+        );
+        if (selectedMaterialKey !== OTHER_MATERIAL_KEY) {
+          // Si NO es "Other"
+          newFormValues.otherMaterialName = "";
+          newFormValues.attenuationIr = "";
+          newFormValues.attenuationSe = "";
+        }
+        if (selectedMaterialKey === WITHOUT_MATERIAL_KEY) {
+          newFormValues.value = ""; // Limpiar el campo de espesor/distancia
+        }
       }
-    }
-    setForm(newFormValues);
+      return newFormValues;
+    });
     closeModal();
   };
+
+  const showOtherMaterialFields = useMemo(() => {
+    return (
+      Object.keys(materialMap).find(
+        (key) => materialMap[key] === form.material,
+      ) === OTHER_MATERIAL_KEY
+    );
+  }, [form.material, materialMap]);
 
   const handleBack = () => {
     router.back();
@@ -386,7 +451,6 @@ export default function Calculation() {
               <Text style={styles.input}>{form.isotope}</Text>
             </Pressable>
           </View>
-
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             <Text style={styles.label}>
               {t("radiographyCalculator.activity")}
@@ -400,7 +464,6 @@ export default function Calculation() {
               onChangeText={(text) => setForm({ ...form, activity: text })}
             />
           </View>
-
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             <Text style={styles.label}>
               {t("radiographyCalculator.collimator")}
@@ -412,7 +475,6 @@ export default function Calculation() {
               <Text style={styles.input}>{form.collimator}</Text>
             </Pressable>
           </View>
-
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             <Text style={styles.label}>
               {t("radiographyCalculator.tLimitFor")}
@@ -424,7 +486,7 @@ export default function Calculation() {
               <Text style={styles.input}>{form.limit}</Text>
             </Pressable>
           </View>
-
+          {/* Material Selection */}
           <View
             style={{ flexDirection: "row", alignItems: "center", width: "93%" }}
           >
@@ -435,29 +497,118 @@ export default function Calculation() {
               onPress={() => openModal("material", OPTIONS.materials)}
               style={[
                 styles.inputContainer,
-                { flex: form.material === "Other" ? 0.6 : 1 },
+                { flex: 1 /* Ajustar si es necesario */ },
               ]}
             >
               <Text style={styles.input}>{form.material}</Text>
             </Pressable>
-            {Object.keys(materialMap).find(
-              (key) => materialMap[key] === form.material,
-            ) === "Other" && (
-              <TextInput
-                style={[
-                  styles.inputContainer,
-                  styles.input,
-                  { flex: 0.4, marginLeft: 10 },
-                ]}
-                placeholder={t("radiographyCalculator.modal.attenuation")}
-                placeholderTextColor={"gray"}
-                keyboardType="numeric"
-                value={form.attenuation}
-                onChangeText={(text) => setForm({ ...form, attenuation: text })}
-              />
-            )}
           </View>
-
+          {/* NUEVOS CAMPOS PARA MATERIAL "OTRO" */}
+          {showOtherMaterialFields && (
+            <>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  width: "93%",
+                  marginTop: 5,
+                }}
+              >
+                <Text style={styles.label}>
+                  {t(
+                    "radiographyCalculator.labels.otherMaterialName",
+                    "Nombre Material",
+                  )}
+                </Text>
+                <TextInput
+                  style={[
+                    styles.inputContainer,
+                    styles.input,
+                    {
+                      flex: 1,
+                      marginBottom: 15 /* Reducir marginBottom si es mucho */,
+                    },
+                  ]}
+                  placeholder={t(
+                    "radiographyCalculator.placeholders.otherMaterialName",
+                    "Ej: Plomo Especial",
+                  )}
+                  placeholderTextColor="gray"
+                  value={form.otherMaterialName}
+                  onChangeText={(text) =>
+                    setForm({ ...form, otherMaterialName: text })
+                  }
+                />
+              </View>
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    width: "93%",
+                    textAlign: "left",
+                    marginLeft: 15,
+                    marginBottom: 10,
+                  },
+                ]}
+              >
+                {t(
+                  "radiographyCalculator.labels.attenuationFor",
+                  "Coeficiente de atenuación para:",
+                )}
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  width: "93%",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <View style={{ flex: 1, marginRight: 5, alignItems: "center" }}>
+                  <Text
+                    style={[styles.label, { marginBottom: 2, fontSize: 16 }]}
+                  >
+                    192Ir
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.inputContainer,
+                      styles.input,
+                      { flex: undefined, width: "100%", marginBottom: 20 },
+                    ]} // Ajustar flex y width
+                    placeholder="μ (Ir)"
+                    placeholderTextColor="gray"
+                    keyboardType="numeric"
+                    value={form.attenuationIr}
+                    onChangeText={(text) =>
+                      setForm({ ...form, attenuationIr: text })
+                    }
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: 5, alignItems: "center" }}>
+                  <Text
+                    style={[styles.label, { marginBottom: 2, fontSize: 16 }]}
+                  >
+                    75Se
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.inputContainer,
+                      styles.input,
+                      { flex: undefined, width: "100%", marginBottom: 20 },
+                    ]} // Ajustar flex y width
+                    placeholder="μ (Se)"
+                    placeholderTextColor="gray"
+                    keyboardType="numeric"
+                    value={form.attenuationSe}
+                    onChangeText={(text) =>
+                      setForm({ ...form, attenuationSe: text })
+                    }
+                  />
+                </View>
+              </View>
+            </>
+          )}
           {/* Descriptive text for Thickness/Distance input */}
           <View style={styles.descriptionContainer}>
             <Text style={styles.descriptionText}>
@@ -467,7 +618,6 @@ export default function Calculation() {
                 : t("radiographyCalculator.descriptionForDistanceInput")}
             </Text>
           </View>
-
           <View
             style={{
               width: "93%",
@@ -477,20 +627,28 @@ export default function Calculation() {
           >
             <Pressable
               onPress={() =>
-                setForm({
-                  ...form,
-                  // MODIFICADO: Limpiar 'value' si se cambia a calcular distancia y no hay material
-                  value:
-                    form.material === materialMap[WITHOUT_MATERIAL_KEY] &&
-                    form.thicknessOrDistance !==
-                      t("radiographyCalculator.thicknessOrDistance") // si ANTES NO era "Calcular Distancia"
-                      ? ""
-                      : form.value,
-                  thicknessOrDistance:
-                    form.thicknessOrDistance ===
-                    t("radiographyCalculator.thicknessOrDistance")
-                      ? t("radiographyCalculator.distance")
-                      : t("radiographyCalculator.thicknessOrDistance"),
+                setForm((prevForm) => {
+                  const currentModeIsCalcDistance =
+                    prevForm.thicknessOrDistance ===
+                    t("radiographyCalculator.thicknessOrDistance");
+                  const newModeWillBeCalcDistance = !currentModeIsCalcDistance; // Si NO es calcDistance, el nuevo SÍ lo será
+
+                  let newValue = prevForm.value;
+                  const materialIsNone =
+                    Object.keys(materialMap).find(
+                      (key) => materialMap[key] === prevForm.material,
+                    ) === WITHOUT_MATERIAL_KEY;
+
+                  if (newModeWillBeCalcDistance && materialIsNone) {
+                    newValue = "";
+                  }
+                  return {
+                    ...prevForm,
+                    value: newValue,
+                    thicknessOrDistance: newModeWillBeCalcDistance
+                      ? t("radiographyCalculator.thicknessOrDistance")
+                      : t("radiographyCalculator.distance"),
+                  };
                 })
               }
               style={styles.switchButton}
@@ -518,7 +676,6 @@ export default function Calculation() {
               editable={isValueEditable} // MODIFICADO
             />
           </View>
-
           <Pressable style={styles.button} onPress={calculateAndNavigate}>
             <Text style={{ color: "#FFF", fontSize: 18 }}>
               {form.thicknessOrDistance ===
@@ -527,7 +684,6 @@ export default function Calculation() {
                 : t("radiographyCalculator.calculateThickness")}
             </Text>
           </Pressable>
-
           <Modal visible={modal.open} transparent animationType="slide">
             <View style={styles.modalContainer}>
               <View style={styles.modalContent}>

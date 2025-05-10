@@ -370,7 +370,8 @@
     "descriptionForThicknessInput": "The input field is for Material Thickness (mm). The 'Thickness' button switches to 'Calculate Thickness' mode.",
     "descriptionForDistanceInput": "The input field is for Distance to Source (m). The 'Distance' button switches to 'Calculate Distance' mode.",
     "alerts": {
-      "errorTitle": "Error"
+      "errorTitle": "Error",
+      "materialNeededForThickness": "Material is required for thickness calculation."
     },
     "modal": {
       "isotope": "Select Isotope",

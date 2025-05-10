@@ -368,7 +368,8 @@
     "descriptionForThicknessInput": "El campo de entrada es para Espesor del Material (mm). El botón 'Espesor' cambia al modo 'Calcular Espesor'.",
     "descriptionForDistanceInput": "El campo de entrada es para Distancia a la Fuente (m). El botón 'Distancia' cambia al modo 'Calcular Distancia'.",
     "alerts": {
-      "errorTitle": "Error"
+      "errorTitle": "Error",
+      "materialNeededForThickness": "Material necesario para calcular el espesor."
     },
     "modal": {
       "isotope": "Seleccionar Isótopo",
