@@ -537,7 +537,10 @@ export default function Graph() {
               }
             }}
             onError={(syntheticEvent) => {
-              /* ... (sin cambios) ... */
+              const { nativeEvent } = syntheticEvent;
+              console.warn("WebView error: ", nativeEvent);
+              setIsWebViewReady(false); // Mark as not ready on error
+              Alert.alert(t("errors.error"), t("errors.mapLoadFailed"));
             }}
             scrollEnabled={true} // Permitir que el usuario mueva el mapa
             allowsInlineMediaPlayback={true}

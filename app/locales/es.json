@@ -367,9 +367,54 @@
     "calculationError": "El cálculo resultó en NaN. Por favor, revise los datos de entrada.",
     "descriptionForThicknessInput": "El campo de entrada es para Espesor del Material (mm). El botón 'Espesor' cambia al modo 'Calcular Espesor'.",
     "descriptionForDistanceInput": "El campo de entrada es para Distancia a la Fuente (m). El botón 'Distancia' cambia al modo 'Calcular Distancia'.",
+    "notAplicable": "No Aplicable",
     "alerts": {
       "errorTitle": "Error",
-      "materialNeededForThickness": "Material necesario para calcular el espesor."
+      "successTitle": "Éxito",
+      "materialNeededForThickness": "Se requiere un material para calcular el espesor.",
+      "otherMaterialNameRequired": "Ingrese el nombre del material personalizado.",
+      "valueRequiredForMaterial": "Se requiere un valor de {{fieldName}} para este material.",
+      "invalidInputBase": "Entrada base inválida. Verifique Actividad, Isótopo, etc.",
+      "invalidInputMessage": "Valor de espesor/distancia inválido.",
+      "calculationError": "Error en el cálculo. Verifique los valores.",
+      "coefficientMissingForOther": "Faltan coeficientes para el material 'Otro'.",
+      "coefficientsCannotBeNegative": "Los coeficientes de atenuación no pueden ser negativos.",
+      "coefficientNotFound": "Coeficiente de atenuación no encontrado para {{material}} con {{isotope}}.",
+      "cannotCalculateThicknessWithoutAttenuation": "No se puede calcular el espesor sin un coeficiente de atenuación > 0.",
+      "distanceNeededForThickness": "Se necesita una distancia para calcular el espesor.",
+      "calculationErrorThickness": "Error al calcular el espesor. Verifique la distancia y otros parámetros.",
+      "allFieldsRequired": "Todos los campos marcados son obligatorios.",
+      "userNotLoggedIn": "Usuario no autenticado. Inicie sesión para guardar materiales.",
+      "materialNameRequired": "El nombre del material es obligatorio.",
+      "validCoefficientsRequired": "Se requieren coeficientes de atenuación válidos (numéricos).",
+      "materialUpdated": "Material '{{materialName}}' actualizado correctamente.",
+      "materialAdded": "Material '{{materialName}}' añadido correctamente.",
+      "errorSavingMaterial": "Error al guardar el material personalizado.",
+      "errorFetchingCustomMaterials": "Error al cargar materiales personalizados."
+    },
+    "placeholder": {
+      "otherMaterialName": "Ej: Acero Inoxidable Especial"
+    },
+    "modals": {
+      "replaceMaterial": {
+        "title": "Reemplazar Material",
+        "message": "¿El material '{{materialName}}' ya existe. ¿Desea reemplazar sus valores?"
+      },
+      "addMaterial": {
+        "title": "Añadir Nuevo Material",
+        "message": "¿Desea añadir '{{materialName}}' a sus materiales frecuentes?"
+      }
+    },
+    "buttons": {
+      "close": "Cerrar",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar"
+    },
+    "labels": {
+      "otherMaterialName": "Nombre del Material",
+      "attenuationFor": "Coeficiente de atenuación para:",
+      "thickness": "Espesor",
+      "distance": "Distancia"
     },
     "modal": {
       "isotope": "Seleccionar Isótopo",

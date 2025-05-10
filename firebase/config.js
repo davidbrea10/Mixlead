@@ -61,4 +61,6 @@ if (Platform.OS === "web") {
 // Inicializa Firestore (sin cambios)
 const db = getFirestore(app);
 
+console.log("Firebase.js: Exporting auth object:", auth);
+
 export { app, db, auth };

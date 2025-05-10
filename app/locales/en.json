@@ -369,9 +369,54 @@
     "calculationError": "Calculation resulted in NaN. Please check inputs.",
     "descriptionForThicknessInput": "The input field is for Material Thickness (mm). The 'Thickness' button switches to 'Calculate Thickness' mode.",
     "descriptionForDistanceInput": "The input field is for Distance to Source (m). The 'Distance' button switches to 'Calculate Distance' mode.",
+    "notAplicable": "Not Applicable",
     "alerts": {
       "errorTitle": "Error",
-      "materialNeededForThickness": "Material is required for thickness calculation."
+      "successTitle": "Success",
+      "materialNeededForThickness": "A material is required to calculate thickness.",
+      "otherMaterialNameRequired": "Custom material name is required.",
+      "valueRequiredForMaterial": "A value for {{fieldName}} is required for this material.",
+      "invalidInputBase": "Invalid base input. Check Activity, Isotope, etc.",
+      "invalidInputMessage": "Invalid thickness/distance value.",
+      "calculationError": "Calculation error. Check the values.",
+      "coefficientMissingForOther": "Coefficients are missing for the 'Other' material.",
+      "coefficientsCannotBeNegative": "Attenuation coefficients cannot be negative.",
+      "coefficientNotFound": "Attenuation coefficient not found for {{material}} with {{isotope}}.",
+      "cannotCalculateThicknessWithoutAttenuation": "Cannot calculate thickness without an attenuation coefficient > 0.",
+      "distanceNeededForThickness": "A distance is needed to calculate thickness.",
+      "calculationErrorThickness": "Error calculating thickness. Check the distance and other parameters.",
+      "allFieldsRequired": "All fields are required.",
+      "userNotLoggedIn": "User not authenticated. Log in to save materials.",
+      "materialNameRequired": "Material name is required.",
+      "validCoefficientsRequired": "Valid (numeric) attenuation coefficients are required.",
+      "materialUpdated": "Material '{{materialName}}' updated successfully.",
+      "materialAdded": "Material '{{materialName}}' added successfully.",
+      "errorSavingMaterial": "Error saving custom material.",
+      "errorFetchingCustomMaterials": "Error fetching custom materials."
+    },
+    "modals": {
+      "replaceMaterial": {
+        "title": "Replace Material",
+        "message": "Material '{{materialName}}' already exists. Do you want to replace its values?"
+      },
+      "addMaterial": {
+        "title": "Add New Material",
+        "message": "Do you want to add '{{materialName}}' to your frequent materials?"
+      }
+    },
+    "buttons": {
+      "close": "Close",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    },
+    "placeholder": {
+      "otherMaterialName": "Ex: Stainless steel"
+    },
+    "labels": {
+      "otherMaterialName": "Other Material Name",
+      "attenuationFor": "Attenuation for:",
+      "thickness": "Thickness",
+      "distance": "Distance"
     },
     "modal": {
       "isotope": "Select Isotope",

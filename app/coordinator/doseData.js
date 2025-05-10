@@ -17,10 +17,10 @@ import { db, auth } from "../../firebase/config";
 import {
   collection,
   getDocs,
-  doc, // <-- Import doc
-  getDoc, // <-- Import getDoc
-  query, // <-- Import query
-  where, // <-- Import where
+  doc,
+  getDoc,
+  query,
+  where,
 } from "firebase/firestore"; // <-- Ensure all needed functions are imported
 import { Ionicons } from "@expo/vector-icons";
 // Remove unused Picker import if you're only using RNPickerSelect
