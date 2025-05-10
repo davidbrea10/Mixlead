@@ -8,12 +8,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next"; // Import i18n hook
 import Toast from "react-native-toast-message";
 
@@ -28,36 +27,47 @@ const ATTENUATION_COEFFICIENT = {
   Tungsten: { "192Ir": 2.657, "75Se": 6.237 },
 };
 
+const WITHOUT_MATERIAL_KEY = "None";
+
 export default function Calculation() {
   const { t } = useTranslation(); // Initialize translation hook
   const router = useRouter();
 
   // Maps for internal values and translations
-  const collimatorMap = {
-    Yes: t("radiographyCalculator.options.collimator.Yes"),
-    No: t("radiographyCalculator.options.collimator.No"),
-  };
+  const collimatorMap = useMemo(
+    () => ({
+      Yes: t("radiographyCalculator.options.collimator.Yes"),
+      No: t("radiographyCalculator.options.collimator.No"),
+    }),
+    [t],
+  );
 
-  const materialMap = {
-    None: t(
-      "radiographyCalculator.options.materials.withoutMaterial",
-      "Sin Material",
-    ),
-    Mixlead: t("radiographyCalculator.options.materials.Mixlead"),
-    Steel: t("radiographyCalculator.options.materials.Steel"),
-    Concrete: t("radiographyCalculator.options.materials.Concrete"),
-    Aluminum: t("radiographyCalculator.options.materials.Aluminum"),
-    Lead: t("radiographyCalculator.options.materials.Lead"),
-    Tungsten: t("radiographyCalculator.options.materials.Tungsten"),
-    Other: t("radiographyCalculator.options.materials.Other"),
-  };
+  const materialMap = useMemo(
+    () => ({
+      [WITHOUT_MATERIAL_KEY]: t(
+        "radiographyCalculator.options.materials.withoutMaterial",
+        "Sin Material",
+      ),
+      Mixlead: t("radiographyCalculator.options.materials.Mixlead"),
+      Steel: t("radiographyCalculator.options.materials.Steel"),
+      Concrete: t("radiographyCalculator.options.materials.Concrete"),
+      Aluminum: t("radiographyCalculator.options.materials.Aluminum"),
+      Lead: t("radiographyCalculator.options.materials.Lead"),
+      Tungsten: t("radiographyCalculator.options.materials.Tungsten"),
+      Other: t("radiographyCalculator.options.materials.Other"),
+    }),
+    [t],
+  );
 
-  const OPTIONS = {
-    isotopes: ["192Ir", "75Se"],
-    collimator: Object.values(collimatorMap),
-    materials: Object.values(materialMap),
-    limits: ["11µSv/h", "0.5µSv/h"],
-  };
+  const OPTIONS = useMemo(
+    () => ({
+      isotopes: ["192Ir", "75Se"],
+      collimator: Object.values(collimatorMap), // collimatorMap ya está memorizado
+      materials: Object.values(materialMap), // materialMap ya está memorizado
+      limits: ["11µSv/h", "0.5µSv/h"],
+    }),
+    [collimatorMap, materialMap],
+  ); // Depende de los maps que a su vez dependen de 't'
 
   const [form, setForm] = useState({
     isotope: t("radiographyCalculator.modal.isotope"),
@@ -70,67 +80,118 @@ export default function Calculation() {
     limit: t("radiographyCalculator.modal.limit"),
   });
 
+  // NUEVA LÓGICA: Estado para saber si el input de valor debe estar editable
+  const [isValueEditable, setIsValueEditable] = useState(true);
+
+  // MODIFICADO: useEffect para actualizar la editabilidad del campo 'value'
+  useEffect(() => {
+    const materialInternalValue = Object.keys(materialMap).find(
+      (key) => materialMap[key] === form.material,
+    );
+    const isCalculatingDistance =
+      form.thicknessOrDistance ===
+      t("radiographyCalculator.thicknessOrDistance");
+
+    if (
+      materialInternalValue === WITHOUT_MATERIAL_KEY &&
+      isCalculatingDistance
+    ) {
+      setIsValueEditable(false);
+      // setForm(prevForm => ({ ...prevForm, value: "" })); // Opcional: limpiar valor aquí también
+    } else {
+      setIsValueEditable(true);
+    }
+  }, [form.material, form.thicknessOrDistance, t, materialMap]);
+
   const calculateAndNavigate = () => {
-    // Initial checks
+    // MODIFICADO: Obtener materialInternalValue y calculationTypeForNav al inicio
+    const materialInternalValue = Object.keys(materialMap).find(
+      (key) => materialMap[key] === form.material,
+    );
+    const calculationTypeForNav =
+      form.thicknessOrDistance ===
+      t("radiographyCalculator.thicknessOrDistance")
+        ? "distance" // Usuario seleccionó "Calcular Distancia"
+        : "thickness"; // Usuario seleccionó "Calcular Espesor"
+
+    // --- NUEVA LÓGICA: Comprobación para "Sin Material" ---
+    if (materialInternalValue === WITHOUT_MATERIAL_KEY) {
+      if (calculationTypeForNav === "thickness") {
+        Toast.show({
+          type: "error",
+          text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
+          text2: t(
+            "radiographyCalculator.alerts.materialNeededForThickness",
+            "Debe existir un material al que calcularle el espesor",
+          ),
+          position: "bottom",
+        });
+        return; // No continuar
+      }
+      // Si es "distance" y "Sin Material", form.value no se usa, la fórmula cambiará más adelante.
+      // El campo form.value ya debería estar vacío o deshabilitado por la lógica en handleSelect/useEffect.
+    }
+    // --- FIN NUEVA LÓGICA ---
+
+    // Validaciones iniciales
     if (
       !form.isotope ||
-      form.isotope === t("radiographyCalculator.modal.isotope") || // Also check placeholder
+      form.isotope === t("radiographyCalculator.modal.isotope") ||
       !form.activity ||
+      !form.limit ||
+      form.limit === t("radiographyCalculator.modal.limit") ||
       !form.material ||
-      form.material === t("radiographyCalculator.modal.material") || // Also check placeholder
-      !form.value ||
-      (form.material === materialMap.Other && !form.attenuation) // Check attenuation if 'Other'
+      form.material === t("radiographyCalculator.modal.material")
     ) {
-      // Replace Alert with Toast
       Toast.show({
         type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle", "Error"), // Use a generic title or specific key
+        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
         text2: t("radiographyCalculator.errorMessage"),
-        position: "bottom", // Or 'top'
+        position: "bottom",
       });
       return;
     }
 
-    // Retrieve internal values (remains the same)
-    const collimatorInternalValue = Object.keys(collimatorMap).find(
-      (key) => collimatorMap[key] === form.collimator,
-    );
-    const materialInternalValue = Object.keys(materialMap).find(
-      (key) => materialMap[key] === form.material,
-    );
+    // Validación de atenuación si el material es "Other"
+    if (materialInternalValue === "Other" && !form.attenuation) {
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
+        text2: t("radiographyCalculator.errorMessage"), // Podría ser un mensaje más específico
+        position: "bottom",
+      });
+      return;
+    }
 
-    // Comma to Period Conversion and Parsing (remains the same)
+    // Validación del campo 'value' (espesor/distancia)
+    // Solo es requerido si hay material o si se calcula el espesor (aunque este último caso ya se filtró si no hay material)
+    if (materialInternalValue !== WITHOUT_MATERIAL_KEY && !form.value) {
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
+        text2: t("radiographyCalculator.errorMessage"), // "Por favor, ingrese todos los campos requeridos."
+        position: "bottom",
+      });
+      return;
+    }
+
+    // Conversión de comas a puntos y parseo
     const activityString = form.activity.replace(/,/g, ".");
-    const valueString = form.value.replace(/,/g, ".");
-    const attenuationString =
-      materialInternalValue === "Other" && form.attenuation
-        ? form.attenuation.replace(/,/g, ".")
-        : null;
-
     const A = parseFloat(activityString) * 37;
     const Γ = GAMMA_FACTOR[form.isotope];
+
+    const collimatorKey = Object.keys(collimatorMap).find(
+      (key) => collimatorMap[key] === form.collimator,
+    );
     const Y =
-      collimatorInternalValue === "Yes"
+      collimatorKey === "Yes"
         ? COLLIMATOR_EFFECT.Yes[form.isotope]
         : COLLIMATOR_EFFECT.No;
-    const T = form.limit === "11µSv/h" ? 0.011 : 0.0005;
-    const µ =
-      materialInternalValue === "Other"
-        ? parseFloat(attenuationString)
-        : ATTENUATION_COEFFICIENT[materialInternalValue]?.[form.isotope];
-    const inputValue = parseFloat(valueString);
 
-    // NaN checks
-    if (
-      isNaN(A) ||
-      isNaN(Γ) ||
-      isNaN(Y) ||
-      isNaN(T) ||
-      isNaN(µ) ||
-      isNaN(inputValue)
-    ) {
-      console.error("NaN check failed. Values:", { A, Γ, Y, T, µ, inputValue });
-      // Replace Alert with Toast
+    const T = form.limit === "11µSv/h" ? 0.011 : 0.0005;
+
+    // Validar valores parseados básicos
+    if (isNaN(A) || Γ === undefined || Y === undefined || T === undefined) {
       Toast.show({
         type: "error",
         text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
@@ -140,64 +201,50 @@ export default function Calculation() {
       return;
     }
 
-    // Extra check specifically for µ's validity (remains the same logic)
-    if (materialInternalValue === "Other" && isNaN(µ)) {
-      console.error(
-        "Attenuation (µ) is NaN for 'Other' material. Input was:",
-        form.attenuation,
-      );
-      // Replace Alert with Toast
-      Toast.show({
-        type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
-        text2: t("radiographyCalculator.invalidInputMessage"), // Could be more specific if needed
-        position: "bottom",
-      });
-      return;
-    }
-    if (materialInternalValue !== "Other" && (µ === undefined || isNaN(µ))) {
-      console.error(
-        "Attenuation coefficient lookup failed. Material:",
-        materialInternalValue,
-        "Isotope:",
-        form.isotope,
-      );
-      // Replace Alert with Toast
-      Toast.show({
-        type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
-        text2: t("radiographyCalculator.invalidInputMessage"), // Could be more specific if needed
-        position: "bottom",
-      });
-      return;
-    }
-
-    // Calculation logic (remains the same)
     let result;
-    const calculationTypeForNav = // Renombrado para evitar confusión con params.calculationType
-      form.thicknessOrDistance ===
-      t("radiographyCalculator.thicknessOrDistance")
-        ? "distance" // Usuario seleccionó "Calcular Distancia", así que inputValue es ESPESOR
-        : "thickness"; // Usuario seleccionó "Calcular Espesor", así que inputValue es DISTANCIA
+    let µ;
+    let inputValue; // Este es el valor del campo `form.value`
 
-    // TU FÓRMULA ACTUAL (ver nota importante al final)
-    if (calculationTypeForNav === "distance") {
-      // Se calcula la distancia
-      result =
-        Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
-        (Math.log(2) / µ) *
-        (1 / inputValue); // inputValue aquí es el espesor
+    if (materialInternalValue === WITHOUT_MATERIAL_KEY) {
+      // --- NUEVA LÓGICA: Calcular DISTANCIA sin material ---
+      if (calculationTypeForNav === "distance") {
+        // El campo form.value (espesor) no se usa y debería estar vacío/deshabilitado.
+        // Aquí, Y es el efecto del colimador que SÍ aplica.
+        result = Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) * 1;
+      }
+      // El caso de calcular ESPESOR sin material ya fue manejado arriba con un Toast.
     } else {
-      // calculationTypeForNav === "thickness" (Se calcula el espesor)
+      // --- LÓGICA EXISTENTE: Cálculos CON material ---
+      const valueString = form.value.replace(/,/g, ".");
+      inputValue = parseFloat(valueString);
+
+      µ =
+        materialInternalValue === "Other"
+          ? parseFloat(form.attenuation.replace(/,/g, "."))
+          : ATTENUATION_COEFFICIENT[materialInternalValue]?.[form.isotope];
+
+      if (isNaN(inputValue) || µ === undefined || isNaN(µ)) {
+        Toast.show({
+          type: "error",
+          text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
+          text2: t("radiographyCalculator.invalidInputMessage"),
+          position: "bottom",
+        });
+        return;
+      }
+
+      // TU FÓRMULA ORIGINAL (cuando hay material)
+      // Asumo que esta fórmula es la que quieres mantener cuando SÍ hay material.
+      // La fórmula que tenías era la misma para ambos casos, lo que cambiaba era la interpretación de `inputValue`.
+      // Si `calculationTypeForNav` es "distance", `inputValue` es espesor.
+      // Si `calculationTypeForNav` es "thickness", `inputValue` es distancia.
       result =
         Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)) *
         (Math.log(2) / µ) *
-        (1 / inputValue); // inputValue aquí es la distancia
+        (1 / inputValue);
     }
 
-    // Final NaN check for result
-    if (isNaN(result)) {
-      // Replace Alert with Toast
+    if (isNaN(result) || !isFinite(result) || result < 0) {
       Toast.show({
         type: "error",
         text1: t("radiographyCalculator.alerts.errorTitle", "Error"),
@@ -211,23 +258,28 @@ export default function Calculation() {
     if (calculationTypeForNav === "distance") {
       distanceValueForSummary = result.toFixed(3);
     } else {
-      distanceValueForSummary = form.value;
+      // Si se calculó el espesor, `form.value` era la distancia original.
+      // Si no hubo material, este path no se debería alcanzar para "thickness".
+      distanceValueForSummary =
+        materialInternalValue === WITHOUT_MATERIAL_KEY ? "N/A" : form.value;
     }
 
-    // Navigation (remains the same)
     router.push({
-      // Asumo que la ruta es 'coordinator/calculationSummary' basado en tu estructura anterior
       pathname: "coordinator/calculationSummary",
       params: {
         isotope: form.isotope,
         collimator: form.collimator,
-        value: form.value, // El valor original del input (espesor o distancia)
+        value:
+          materialInternalValue === WITHOUT_MATERIAL_KEY &&
+          calculationTypeForNav === "distance"
+            ? t("radiographyCalculator.notApplicable", "N/A")
+            : form.value,
         activity: form.activity,
         material: form.material,
         attenuation: form.attenuation,
         limit: form.limit,
-        calculationType: calculationTypeForNav, // "distance" o "thickness"
-        result: result.toFixed(3), // El resultado del cálculo
+        calculationType: calculationTypeForNav,
+        result: result.toFixed(3),
         distanceValueForSummary: distanceValueForSummary,
       },
     });
@@ -240,7 +292,18 @@ export default function Calculation() {
   const closeModal = () => setModal({ ...modal, open: false });
 
   const handleSelect = (field, value) => {
-    setForm({ ...form, [field]: value });
+    const newFormValues = { ...form, [field]: value };
+
+    if (field === "material") {
+      const selectedMaterialKey = Object.keys(materialMap).find(
+        (key) => materialMap[key] === value,
+      );
+      if (selectedMaterialKey === WITHOUT_MATERIAL_KEY) {
+        newFormValues.value = ""; // Limpiar el campo de espesor/distancia
+        newFormValues.attenuation = ""; // También limpiar atenuación por si acaso
+      }
+    }
+    setForm(newFormValues);
     closeModal();
   };
 
@@ -377,7 +440,9 @@ export default function Calculation() {
             >
               <Text style={styles.input}>{form.material}</Text>
             </Pressable>
-            {form.material === "Other" && (
+            {Object.keys(materialMap).find(
+              (key) => materialMap[key] === form.material,
+            ) === "Other" && (
               <TextInput
                 style={[
                   styles.inputContainer,
@@ -393,6 +458,16 @@ export default function Calculation() {
             )}
           </View>
 
+          {/* Descriptive text for Thickness/Distance input */}
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.descriptionText}>
+              {form.thicknessOrDistance ===
+              t("radiographyCalculator.thicknessOrDistance")
+                ? t("radiographyCalculator.descriptionForThicknessInput")
+                : t("radiographyCalculator.descriptionForDistanceInput")}
+            </Text>
+          </View>
+
           <View
             style={{
               width: "93%",
@@ -404,6 +479,13 @@ export default function Calculation() {
               onPress={() =>
                 setForm({
                   ...form,
+                  // MODIFICADO: Limpiar 'value' si se cambia a calcular distancia y no hay material
+                  value:
+                    form.material === materialMap[WITHOUT_MATERIAL_KEY] &&
+                    form.thicknessOrDistance !==
+                      t("radiographyCalculator.thicknessOrDistance") // si ANTES NO era "Calcular Distancia"
+                      ? ""
+                      : form.value,
                   thicknessOrDistance:
                     form.thicknessOrDistance ===
                     t("radiographyCalculator.thicknessOrDistance")
@@ -417,7 +499,11 @@ export default function Calculation() {
             </Pressable>
 
             <TextInput
-              style={[styles.inputContainer, styles.input]}
+              style={[
+                styles.inputContainer,
+                styles.input,
+                !isValueEditable && styles.inputDisabled, // NUEVO ESTILO
+              ]}
               placeholder={t("radiographyCalculator.value", {
                 unit:
                   form.thicknessOrDistance ===
@@ -429,6 +515,7 @@ export default function Calculation() {
               keyboardType="numeric"
               value={form.value}
               onChangeText={(text) => setForm({ ...form, value: text })}
+              editable={isValueEditable} // MODIFICADO
             />
           </View>
 
@@ -550,7 +637,7 @@ const styles = {
     flexDirection: "row",
     alignItems: "center",
     height: 55,
-    flex: 0.4,
+    flex: 0.5,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 10,
@@ -564,5 +651,17 @@ const styles = {
     borderRadius: 5,
     marginTop: 10,
     alignItems: "center",
+  },
+  descriptionContainer: {
+    width: "93%",
+    alignItems: "flex-start", // Align text to the start of the container
+    marginBottom: 8,
+    marginTop: 5, // Added a little top margin
+  },
+  descriptionText: {
+    fontSize: 13.5,
+    color: "#424242", // Slightly darker gray
+    fontStyle: "italic",
+    lineHeight: 18, // Improved readability
   },
 };

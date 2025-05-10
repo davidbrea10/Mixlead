@@ -30,7 +30,6 @@ export default function CalculationSummary() {
   const [modalVisible, setModalVisible] = useState(false);
   const [dose, setDose] = useState(""); // Dose value from modal input
   const [modalTotalExposures, setModalTotalExposures] = useState(""); // Exposures from modal input
-  const [modalTotalTime, setModalTotalTime] = useState(""); // Time from modal input
 
   const [durationHours, setDurationHours] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("");
@@ -102,8 +101,7 @@ export default function CalculationSummary() {
       isNaN(parseInt(modalTotalExposures, 10)) ||
       parseInt(modalTotalExposures, 10) <= 0 ||
       // Ya no validamos el input original de totalTime
-      totalSecondsFromHHMMSS <= 0 || // Validar que la duración calculada sea > 0
-      !formattedStartTime // Validar hora de inicio
+      totalSecondsFromHHMMSS <= 0
     ) {
       Toast.show({
         type: "error",
@@ -147,7 +145,7 @@ export default function CalculationSummary() {
         day,
         month,
         year,
-        startTime: formattedStartTime, // Guardar hora de inicio HH:mm
+        startTime: formattedStartTime || null, // Guardar hora de inicio HH:mm
         timestamp: serverTimestamp(),
         entryMethod: "manual",
       });
@@ -464,6 +462,7 @@ export default function CalculationSummary() {
 
               <Text style={styles.modalLabel}>
                 {t("home.modal.startTime", "Hora Inicio")}
+                {t("home.modal.optional", "Opcional")}
               </Text>
               <Pressable
                 onPress={() => setShowTimePicker(true)}

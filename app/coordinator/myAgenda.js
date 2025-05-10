@@ -28,7 +28,6 @@ export default function Home() {
   const [modalVisible, setModalVisible] = useState(false);
   const [dose, setDose] = useState(""); // Dose value from modal input
   const [modalTotalExposures, setModalTotalExposures] = useState(""); // Exposures from modal input
-  const [modalTotalTime, setModalTotalTime] = useState(""); // Time from modal input
 
   const [durationHours, setDurationHours] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("");
@@ -85,14 +84,12 @@ export default function Home() {
       !modalTotalExposures.trim() ||
       isNaN(parseInt(modalTotalExposures, 10)) ||
       parseInt(modalTotalExposures, 10) <= 0 ||
-      // Ya no validamos el input original de totalTime
-      totalSecondsFromHHMMSS <= 0 || // Validar que la duración calculada sea > 0
-      !formattedStartTime // Validar hora de inicio
+      totalSecondsFromHHMMSS <= 0
+      // SE ELIMINA: !formattedStartTime
     ) {
       Toast.show({
         type: "error",
         text1: t("home.alerts.error.title"),
-        // Mensaje de error más genérico o específico
         text2: t(
           "home.alerts.emptyFieldsOrTimeOrDuration",
           "Por favor, completa todos los campos correctamente.",
@@ -127,11 +124,11 @@ export default function Home() {
       await addDoc(dosesCollectionRef, {
         dose: parseFloat(dose),
         totalExposures: parseInt(modalTotalExposures, 10),
-        totalTime: totalSecondsFromHHMMSS, // <-- ✨ GUARDAR SEGUNDOS CALCULADOS
+        totalTime: totalSecondsFromHHMMSS,
         day,
         month,
         year,
-        startTime: formattedStartTime, // Guardar hora de inicio HH:mm
+        startTime: formattedStartTime || null, // <-- CAMBIO AQUÍ: Si formattedStartTime es "", se guarda null
         timestamp: serverTimestamp(),
         entryMethod: "manual",
       });
@@ -150,8 +147,8 @@ export default function Home() {
       setDurationHours(""); // Resetear duración
       setDurationMinutes("");
       setDurationSeconds("");
-      setFormattedStartTime(""); // Resetear hora inicio
-      setStartTime(new Date());
+      setFormattedStartTime(""); // Se resetea a ""
+      setStartTime(new Date()); // Se resetea el Date object del picker
     } catch (error) {
       console.error("❌ Error saving dose data:", error);
       // Replace Alert with Toast for saving error
@@ -329,6 +326,7 @@ export default function Home() {
 
                 <Text style={styles.label}>
                   {t("home.modal.startTime", "Hora Inicio")}
+                  {t("home.modal.optional", "Opcional")}
                 </Text>
                 <Pressable
                   onPress={() => setShowTimePicker(true)}

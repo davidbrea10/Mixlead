@@ -367,6 +367,8 @@
     "errorMessage": "Please fill in all fields.",
     "invalidInputMessage": "Invalid input values. Please check your inputs.",
     "calculationError": "Calculation resulted in NaN. Please check inputs.",
+    "descriptionForThicknessInput": "The input field is for Material Thickness (mm). The 'Thickness' button switches to 'Calculate Thickness' mode.",
+    "descriptionForDistanceInput": "The input field is for Distance to Source (m). The 'Distance' button switches to 'Calculate Distance' mode.",
     "alerts": {
       "errorTitle": "Error"
     },
@@ -466,7 +468,8 @@
       "enterNumberOfExposures": "Enter number of exposures",
       "enterExposureTime": "Enter exposure time",
       "startTime": "Start Time",
-      "selectStartTime": "Select Start Time"
+      "selectStartTime": "Select Start Time",
+      "optional": " (Optional)"
     },
     "alerts": {
       "error": {

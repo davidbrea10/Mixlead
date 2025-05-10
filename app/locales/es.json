@@ -365,6 +365,8 @@
     "errorMessage": "Por favor, complete todos los campos.",
     "invalidInputMessage": "Valores de entrada inválidos. Por favor, verifique sus entradas.",
     "calculationError": "El cálculo resultó en NaN. Por favor, revise los datos de entrada.",
+    "descriptionForThicknessInput": "El campo de entrada es para Espesor del Material (mm). El botón 'Espesor' cambia al modo 'Calcular Espesor'.",
+    "descriptionForDistanceInput": "El campo de entrada es para Distancia a la Fuente (m). El botón 'Distancia' cambia al modo 'Calcular Distancia'.",
     "alerts": {
       "errorTitle": "Error"
     },
@@ -464,6 +466,7 @@
       "enterNumberOfExposures": "Ingrese el número de exposiciones",
       "enterExposureTime": "Ingrese el tiempo de exposición",
       "startTime": "Hora de Inicio",
+      "optional": " (Opcional)",
       "selectStartTime": "Seleccionar Hora de Inicio"
     },
     "alerts": {

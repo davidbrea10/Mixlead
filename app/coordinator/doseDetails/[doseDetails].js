@@ -13,19 +13,11 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { db, auth } from "../../../firebase/config";
-import {
-  collection,
-  getDocs,
-  doc,
-  getDoc,
-  query, // Import query
-  where, // Import where
-} from "firebase/firestore";
+import { db } from "../../../firebase/config";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
-import * as FileSystem from "expo-file-system"; // Import FileSystem
 import * as Sharing from "expo-sharing"; // Import Sharing
 
 export default function DoseDetails() {
