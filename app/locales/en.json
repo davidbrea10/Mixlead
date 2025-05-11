@@ -471,8 +471,8 @@
     "limit": "Limit:",
     "resultDistance": "DISTANCE: {{result}} m",
     "resultThickness": "THICKNESS: {{result}} mm",
-    "graph": "Graph",
-    "table": "Table"
+    "graph": "Zones Map",
+    "table": "Tables"
   },
 
   "home": {

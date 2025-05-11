@@ -265,7 +265,7 @@ export default function Calculation() {
     }
 
     // Validar que los valores numéricos no sean negativos
-    if (numericIrValue <= 0 || numericSeValue <= 0) {
+    if (numericIrValue < 0 || numericSeValue < 0) {
       Toast.show({
         type: "error",
         text1: t("radiographyCalculator.alerts.errorTitle"),
@@ -733,6 +733,17 @@ export default function Calculation() {
       valueForSummary = valueForSummary || "0";
     }
 
+    let distanceValueForSummary;
+
+    if (calculationTypeForNav === "distance") {
+      // Si se calculó la distancia, 'result' es la distancia calculada.
+      distanceValueForSummary = result.toFixed(3);
+    } else {
+      // calculationTypeForNav === "thickness" (se calculó el espesor)
+      // Si se calculó el espesor, 'valueForSummary' contiene la distancia que el usuario introdujo.
+      distanceValueForSummary = valueForSummary;
+    }
+
     router.push({
       pathname: "coordinator/calculationSummary",
       params: {
@@ -745,7 +756,7 @@ export default function Calculation() {
         limit: form.limit,
         calculationType: calculationTypeForNav,
         result: result.toFixed(3),
-        // distanceValueForSummary ya no es necesario si 'value' y 'result' se interpretan con 'calculationType'
+        distanceValueForSummary: distanceValueForSummary,
       },
     });
   };

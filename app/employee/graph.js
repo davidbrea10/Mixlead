@@ -491,7 +491,7 @@ export default function Graph() {
             />
           </Pressable>
           <Text style={styles.title}>{t("graph.header.title")}</Text>
-          <Pressable onPress={() => router.replace("/employee/home")}>
+          <Pressable onPress={() => router.replace("/coordinator/home")}>
             <Image
               source={require("../../assets/icon.png")}
               style={styles.icon}

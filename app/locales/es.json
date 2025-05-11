@@ -469,8 +469,8 @@
     "limit": "Límite:",
     "resultDistance": "DISTANCIA: {{result}} m",
     "resultThickness": "ESPESOR: {{result}} mm",
-    "graph": "Gráfico",
-    "table": "Tabla"
+    "graph": "Mapa de zonas",
+    "table": "Tablas"
   },
 
   "home": {
