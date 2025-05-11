@@ -367,7 +367,7 @@
     "calculationError": "El cálculo resultó en NaN. Por favor, revise los datos de entrada.",
     "descriptionForThicknessInput": "El campo de entrada es para Espesor del Material (mm). El botón 'Espesor' cambia al modo 'Calcular Espesor'.",
     "descriptionForDistanceInput": "El campo de entrada es para Distancia a la Fuente (m). El botón 'Distancia' cambia al modo 'Calcular Distancia'.",
-    "notAplicable": "No Aplicable",
+    "notApplicable": "No Aplicable",
     "alerts": {
       "errorTitle": "Error",
       "successTitle": "Éxito",
@@ -378,7 +378,7 @@
       "invalidInputMessage": "Valor de espesor/distancia inválido.",
       "calculationError": "Error en el cálculo. Verifique los valores.",
       "coefficientMissingForOther": "Faltan coeficientes para el material 'Otro'.",
-      "coefficientsCannotBeNegative": "Los coeficientes de atenuación no pueden ser negativos.",
+      "coefficientsCannotBeNegative": "Los coeficientes de atenuación no pueden ser zero o negativos.",
       "coefficientNotFound": "Coeficiente de atenuación no encontrado para {{material}} con {{isotope}}.",
       "cannotCalculateThicknessWithoutAttenuation": "No se puede calcular el espesor sin un coeficiente de atenuación > 0.",
       "distanceNeededForThickness": "Se necesita una distancia para calcular el espesor.",
@@ -389,6 +389,7 @@
       "validCoefficientsRequired": "Se requieren coeficientes de atenuación válidos (numéricos).",
       "materialUpdated": "Material '{{materialName}}' actualizado correctamente.",
       "materialAdded": "Material '{{materialName}}' añadido correctamente.",
+      "materialDeleted": "Material '{{materialName}}' eliminado correctamente.",
       "errorSavingMaterial": "Error al guardar el material personalizado.",
       "errorFetchingCustomMaterials": "Error al cargar materiales personalizados."
     },
@@ -403,6 +404,10 @@
       "addMaterial": {
         "title": "Añadir Nuevo Material",
         "message": "¿Desea añadir '{{materialName}}' a sus materiales frecuentes?"
+      },
+      "deleteMaterial": {
+        "title": "Eliminar Material",
+        "message": "¿Está seguro de que desea eliminar '{{materialName}}'?"
       }
     },
     "buttons": {

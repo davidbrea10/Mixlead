@@ -16,7 +16,14 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next"; // Import i18n hook
 import Toast from "react-native-toast-message";
 import { db, auth } from "../../firebase/config"; // Asegúrate que la ruta sea correcta
-import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
 
 const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
 const COLLIMATOR_EFFECT = { Yes: { "192Ir": 3, "75Se": 12.5 }, No: 0 };
@@ -193,6 +200,17 @@ export default function Calculation() {
     setConfirmModalVisible(true);
   };
 
+  // --- Lógica para determinar los placeholders dinámicos ---
+  const currentMaterialKey = useMemo(() => {
+    return Object.keys(combinedMaterialMap).find(
+      (key) => combinedMaterialMap[key] === form.material,
+    );
+  }, [combinedMaterialMap, form.material]);
+
+  const isCustomMaterialSelected = useMemo(() => {
+    return !!(currentMaterialKey && customMaterialsFromDB[currentMaterialKey]);
+  }, [currentMaterialKey, customMaterialsFromDB]);
+
   const handleAddOrUpdateCustomMaterial = async () => {
     const { otherMaterialName, attenuationIr, attenuationSe } = form;
     const employeeId = getCurrentEmployeeId();
@@ -217,29 +235,25 @@ export default function Calculation() {
       return;
     }
 
-    // --- Inicio de la modificación para coeficientes de atenuación ---
-    let irStringForDb = attenuationIr.replace(",", ".").trim();
+    // --- Procesamiento y validación de coeficientes de atenuación ---
     let numericIrValue;
-
-    if (irStringForDb === "") {
-      irStringForDb = "0"; // Si está vacío, se guarda "0" como cadena
-      numericIrValue = 0;
+    const cleanedIrInput = attenuationIr.replace(",", ".").trim(); // Limpia la entrada del formulario
+    if (cleanedIrInput === "") {
+      numericIrValue = 0; // Si está vacío, el valor numérico es 0
     } else {
-      numericIrValue = parseFloat(irStringForDb);
+      numericIrValue = parseFloat(cleanedIrInput);
     }
 
-    let seStringForDb = attenuationSe.replace(",", ".").trim();
     let numericSeValue;
-
-    if (seStringForDb === "") {
-      seStringForDb = "0"; // Si está vacío, se guarda "0" como cadena
-      numericSeValue = 0;
+    const cleanedSeInput = attenuationSe.replace(",", ".").trim(); // Limpia la entrada del formulario
+    if (cleanedSeInput === "") {
+      numericSeValue = 0; // Si está vacío, el valor numérico es 0
     } else {
-      numericSeValue = parseFloat(seStringForDb);
+      numericSeValue = parseFloat(cleanedSeInput);
     }
 
-    // Validar si los valores (después de la posible conversión de "" a 0) son numéricos
-    // Esto atrapará casos donde una entrada no vacía no era un número válido (ej: "abc")
+    // Validar si los valores numéricos resultantes son realmente números
+    // (atrapa casos como "abc" que resultarían en NaN)
     if (isNaN(numericIrValue) || isNaN(numericSeValue)) {
       Toast.show({
         type: "error",
@@ -251,7 +265,7 @@ export default function Calculation() {
     }
 
     // Validar que los valores numéricos no sean negativos
-    if (numericIrValue < 0 || numericSeValue < 0) {
+    if (numericIrValue <= 0 || numericSeValue <= 0) {
       Toast.show({
         type: "error",
         text1: t("radiographyCalculator.alerts.errorTitle"),
@@ -260,7 +274,7 @@ export default function Calculation() {
       });
       return;
     }
-    // --- Fin de la modificación para coeficientes de atenuación ---
+    // --- Fin del procesamiento y validación ---
 
     try {
       const materialDocRef = doc(
@@ -272,6 +286,11 @@ export default function Calculation() {
       );
       const docSnap = await getDoc(materialDocRef);
 
+      const dataToSave = {
+        attenuationIr: numericIrValue, // Guardar como número
+        attenuationSe: numericSeValue, // Guardar como número
+      };
+
       if (docSnap.exists()) {
         showConfirmationModal(
           t("radiographyCalculator.modals.replaceMaterial.title"),
@@ -279,11 +298,7 @@ export default function Calculation() {
             materialName: materialNameClean,
           }),
           async () => {
-            await setDoc(
-              materialDocRef,
-              { attenuationIr: irStringForDb, attenuationSe: seStringForDb }, // Usar los valores procesados
-              { merge: true },
-            );
+            await setDoc(materialDocRef, dataToSave, { merge: true });
             Toast.show({
               type: "success",
               text1: t("radiographyCalculator.alerts.successTitle"),
@@ -296,6 +311,10 @@ export default function Calculation() {
             setForm((prev) => ({
               ...prev,
               material: materialNameClean,
+              // Considerar si los campos del formulario attenuationIr/Se deben actualizarse aquí
+              // a String(numericIrValue) y String(numericSeValue) para reflejar el "0" si estaban vacíos.
+              attenuationIr: String(numericIrValue), // Actualiza el form para reflejar el 0 si estaba vacío
+              attenuationSe: String(numericSeValue), // Actualiza el form para reflejar el 0 si estaba vacío
             }));
           },
         );
@@ -306,10 +325,7 @@ export default function Calculation() {
             materialName: materialNameClean,
           }),
           async () => {
-            await setDoc(materialDocRef, {
-              attenuationIr: irStringForDb, // Usar los valores procesados
-              attenuationSe: seStringForDb,
-            });
+            await setDoc(materialDocRef, dataToSave);
             Toast.show({
               type: "success",
               text1: t("radiographyCalculator.alerts.successTitle"),
@@ -322,6 +338,8 @@ export default function Calculation() {
             setForm((prev) => ({
               ...prev,
               material: materialNameClean,
+              attenuationIr: String(numericIrValue), // Actualiza el form para reflejar el 0 si estaba vacío
+              attenuationSe: String(numericSeValue), // Actualiza el form para reflejar el 0 si estaba vacío
             }));
           },
         );
@@ -335,6 +353,88 @@ export default function Calculation() {
         position: "bottom",
       });
     }
+  };
+
+  const handleDeleteCustomMaterial = async (materialName) => {
+    const employeeId = getCurrentEmployeeId();
+    if (!employeeId) {
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle"),
+        text2: t("radiographyCalculator.alerts.userNotLoggedIn"),
+        position: "bottom",
+      });
+      return;
+    }
+
+    if (!materialName) {
+      console.error("Material name to delete is undefined.");
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle"),
+        text2: t("radiographyCalculator.alerts.errorDeletingMaterial"),
+        position: "bottom",
+      });
+      return;
+    }
+
+    try {
+      const materialDocRef = doc(
+        db,
+        "employees",
+        employeeId,
+        "materials",
+        materialName,
+      );
+      await deleteDoc(materialDocRef);
+
+      Toast.show({
+        type: "success",
+        text1: t("radiographyCalculator.alerts.successTitle"),
+        text2: t("radiographyCalculator.alerts.materialDeleted", {
+          materialName: materialName,
+        }),
+        position: "bottom",
+      });
+
+      await fetchCustomMaterials();
+
+      setForm((prevForm) => ({
+        ...prevForm,
+        material: t("radiographyCalculator.modal.material"),
+        otherMaterialName: "",
+        attenuationIr: "",
+        attenuationSe: "",
+      }));
+    } catch (error) {
+      console.error("Error deleting custom material:", error);
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle"),
+        text2: t("radiographyCalculator.alerts.errorDeletingMaterial"),
+        position: "bottom",
+      });
+    }
+  };
+
+  const onPressDeleteButton = () => {
+    if (!isCustomMaterialSelected || !currentMaterialKey) {
+      console.warn(
+        "Delete button pressed without a valid custom material selected.",
+      );
+      return;
+    }
+
+    const materialNameToDelete = currentMaterialKey;
+
+    showConfirmationModal(
+      t("radiographyCalculator.modals.deleteMaterial.title"),
+      t("radiographyCalculator.modals.deleteMaterial.message", {
+        materialName: materialNameToDelete,
+      }),
+      () => handleDeleteCustomMaterial(materialNameToDelete), // Correctly calls the separate handleDeleteCustomMaterial
+      true,
+    );
   };
 
   const calculateAndNavigate = () => {
@@ -611,7 +711,7 @@ export default function Calculation() {
     }
 
     let attCoefUsedDisplay = "N/A";
-    if (materialInternalKey !== WITHOUT_MATERIAL_KEY && µ > 0) {
+    if (materialInternalKey !== WITHOUT_MATERIAL_KEY && µ >= 0) {
       attCoefUsedDisplay = µ.toFixed(3);
     }
 
@@ -675,8 +775,14 @@ export default function Calculation() {
           // User selected a SAVED custom material
           const customMatData = customMaterialsFromDB[selectedMaterialKey];
           newFormValues.otherMaterialName = selectedMaterialKey; // Show its name
-          newFormValues.attenuationIr = customMatData.attenuationIr;
-          newFormValues.attenuationSe = customMatData.attenuationSe;
+          newFormValues.attenuationIr =
+            customMatData.attenuationIr != null
+              ? String(customMatData.attenuationIr)
+              : "";
+          newFormValues.attenuationSe =
+            customMatData.attenuationSe != null
+              ? String(customMatData.attenuationSe)
+              : "";
         } else if (selectedMaterialKey === WITHOUT_MATERIAL_KEY) {
           newFormValues.value = ""; // Clear thickness/distance for "Sin Material"
         }
@@ -688,25 +794,59 @@ export default function Calculation() {
   };
 
   const showMaterialDetailFields = useMemo(() => {
-    const internalValue = Object.keys(combinedMaterialMap).find(
-      (key) => combinedMaterialMap[key] === form.material,
-    );
     return (
-      internalValue === OTHER_MATERIAL_KEY ||
-      !!customMaterialsFromDB[internalValue]
+      currentMaterialKey === OTHER_MATERIAL_KEY ||
+      !!(currentMaterialKey && customMaterialsFromDB[currentMaterialKey]) // Simplified using currentMaterialKey directly
     );
-  }, [form.material, combinedMaterialMap, customMaterialsFromDB]);
+    // Or, more simply, using isCustomMaterialSelected:
+    // return currentMaterialKey === OTHER_MATERIAL_KEY || isCustomMaterialSelected;
+  }, [currentMaterialKey, customMaterialsFromDB]); // isCustomMaterialSelected if used
 
   // "+" button is active only if "Other" is selected and a name is typed
   const showAddMaterialButton = useMemo(() => {
-    const internalValue = Object.keys(combinedMaterialMap).find(
-      (key) => combinedMaterialMap[key] === form.material,
-    );
     return (
-      internalValue === OTHER_MATERIAL_KEY &&
+      currentMaterialKey === OTHER_MATERIAL_KEY &&
       form.otherMaterialName.trim() !== ""
     );
-  }, [form.material, form.otherMaterialName, combinedMaterialMap]);
+  }, [currentMaterialKey, form.otherMaterialName]);
+
+  let placeholderIrText = "0 μ (Ir)"; // Placeholder por defecto inicial
+  if (
+    form.attenuationIr === "" &&
+    currentMaterialKey &&
+    customMaterialsFromDB[currentMaterialKey] &&
+    currentMaterialKey !== OTHER_MATERIAL_KEY
+  ) {
+    // Check added for OTHER_MATERIAL_KEY
+    const dbValueIr = String(
+      customMaterialsFromDB[currentMaterialKey]?.attenuationIr ?? "0",
+    );
+    placeholderIrText = `${dbValueIr} μ (Ir)`;
+  } else if (
+    form.attenuationIr === "" &&
+    currentMaterialKey === OTHER_MATERIAL_KEY
+  ) {
+    placeholderIrText = "0 μ (Ir)";
+  } else if (form.attenuationIr === "") {
+    placeholderIrText = "μ (Ir)";
+  }
+
+  let placeholderSeText = "0 μ (Se)"; // Placeholder por defecto inicial
+  if (form.attenuationSe === "" && customMaterialsFromDB[currentMaterialKey]) {
+    // Si el input está vacío y es un material personalizado existente:
+    const dbValueSe = String(
+      customMaterialsFromDB[currentMaterialKey].attenuationSe ?? "0",
+    );
+    placeholderSeText = `${dbValueSe} μ (Se)`;
+  } else if (
+    form.attenuationSe === "" &&
+    currentMaterialKey === OTHER_MATERIAL_KEY
+  ) {
+    placeholderSeText = "0 μ (Se)"; // Placeholder para "Otro" si está vacío
+  } else if (form.attenuationSe === "") {
+    placeholderSeText = "μ (Se)"; // Placeholder genérico para otros casos si está vacío
+  }
+  // --- Fin de la lógica para placeholders ---
 
   const handleBack = () => router.back();
   const handleHome = () => router.replace("/employee/home");
@@ -837,12 +977,14 @@ export default function Calculation() {
           {/* NUEVOS CAMPOS PARA MATERIAL "OTRO" */}
           {showMaterialDetailFields && (
             <>
+              {/* Fila para el nombre del material */}
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  width: "93%", // Manteniendo la consistencia con tus otros estilos de fila
+                  width: "93%", // Manteniendo la consistencia
                   marginTop: 5,
+                  // marginBottom: 10, // Ajusta si es necesario antes de los coeficientes
                 }}
               >
                 <Text style={styles.label}>
@@ -855,10 +997,9 @@ export default function Calculation() {
                   style={[
                     styles.inputContainer,
                     styles.input,
-                    { flex: 1 },
-                    Object.keys(combinedMaterialMap).find(
-                      (k) => combinedMaterialMap[k] === form.material,
-                    ) !== OTHER_MATERIAL_KEY && styles.inputDisabled,
+                    { flex: 1 }, // Allow TextInput to take available space
+                    currentMaterialKey !== OTHER_MATERIAL_KEY &&
+                      styles.inputDisabled,
                   ]}
                   placeholder={t(
                     "radiographyCalculator.placeholders.otherMaterialName",
@@ -869,26 +1010,21 @@ export default function Calculation() {
                   onChangeText={(text) =>
                     setForm({ ...form, otherMaterialName: text })
                   }
-                  editable={
-                    Object.keys(combinedMaterialMap).find(
-                      (k) => combinedMaterialMap[k] === form.material,
-                    ) === OTHER_MATERIAL_KEY
-                  }
+                  editable={currentMaterialKey === OTHER_MATERIAL_KEY}
                 />
-                {/* El botón "+" se ha movido de aquí */}
               </View>
 
+              {/* Etiqueta para coeficientes de atenuación */}
               <Text
                 style={[
                   styles.label, // Reutilizando tu estilo de label
                   {
                     width: "93%",
-                    textAlign: "left", // O 'center' si prefieres
-                    // marginLeft: 15, // Ajusta según tu layout general de labels
-                    marginTop: 15, // Espacio antes de los coeficientes
+                    textAlign: "left",
+                    marginTop: 15,
                     marginBottom: 10,
-                    fontSize: 16, // Ajusta si es necesario
-                    fontWeight: "600", // Consistente con otros labels
+                    fontSize: 16,
+                    fontWeight: "600",
                   },
                 ]}
               >
@@ -897,16 +1033,18 @@ export default function Calculation() {
                   "Coeficiente de atenuación para:",
                 )}
               </Text>
+
+              {/* Fila para los inputs de coeficientes de atenuación */}
               <View
                 style={{
-                  // Estilo para la fila de los coeficientes
                   flexDirection: "row",
                   width: "93%",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  // marginBottom: 15 o 20 si el botón va después
+                  // marginBottom: 15, // Espacio antes del botón +/- si va después
                 }}
               >
+                {/* Input para 192Ir */}
                 <View style={{ flex: 1, marginRight: 5, alignItems: "center" }}>
                   <Text
                     style={[
@@ -920,28 +1058,23 @@ export default function Calculation() {
                     style={[
                       styles.inputContainer,
                       styles.input,
-                      { flex: undefined, width: "100%", marginBottom: 20 }, // marginBottom aquí para separar del botón si es la última fila de inputs
-                      Object.keys(combinedMaterialMap).find(
-                        (k) => combinedMaterialMap[k] === form.material,
-                      ) !== OTHER_MATERIAL_KEY && styles.inputDisabled,
+                      { flex: undefined, width: "100%" }, // Quita marginBottom: 20 de aquí si el botón +/- va después de esta fila
+                      currentMaterialKey !== OTHER_MATERIAL_KEY &&
+                        styles.inputDisabled,
                     ]}
-                    placeholder="0 μ (Ir)"
+                    placeholder={placeholderIrText} // Usando tu lógica de placeholder
                     placeholderTextColor="gray"
                     keyboardType="numeric"
                     value={form.attenuationIr}
                     onChangeText={(text) =>
                       setForm({ ...form, attenuationIr: text })
                     }
-                    editable={
-                      Object.keys(combinedMaterialMap).find(
-                        (k) => combinedMaterialMap[k] === form.material,
-                      ) === OTHER_MATERIAL_KEY
-                    }
+                    editable={currentMaterialKey === OTHER_MATERIAL_KEY}
                   />
-                  {form.attenuationIr !== "" && ( // Mostrar unidad solo si hay valor
-                    <Text style={styles.attenuationUnitText}>μ (Ir)</Text>
-                  )}
+                  <Text style={styles.attenuationUnitText}>μ (Ir)</Text>
                 </View>
+
+                {/* Input para 75Se */}
                 <View style={{ flex: 1, marginLeft: 5, alignItems: "center" }}>
                   <Text
                     style={[
@@ -955,41 +1088,47 @@ export default function Calculation() {
                     style={[
                       styles.inputContainer,
                       styles.input,
-                      { flex: undefined, width: "100%", marginBottom: 20 }, // marginBottom aquí
-                      Object.keys(combinedMaterialMap).find(
-                        (k) => combinedMaterialMap[k] === form.material,
-                      ) !== OTHER_MATERIAL_KEY && styles.inputDisabled,
+                      { flex: undefined, width: "100%" }, // Quita marginBottom: 20
+                      currentMaterialKey !== OTHER_MATERIAL_KEY &&
+                        styles.inputDisabled,
                     ]}
-                    placeholder="0 μ (Se)"
+                    placeholder={placeholderSeText} // Usando tu lógica de placeholder
                     placeholderTextColor="gray"
                     keyboardType="numeric"
                     value={form.attenuationSe}
                     onChangeText={(text) =>
                       setForm({ ...form, attenuationSe: text })
                     }
-                    editable={
-                      Object.keys(combinedMaterialMap).find(
-                        (k) => combinedMaterialMap[k] === form.material,
-                      ) === OTHER_MATERIAL_KEY
-                    }
+                    editable={currentMaterialKey === OTHER_MATERIAL_KEY}
                   />
-                  {form.attenuationSe !== "" && ( // Mostrar unidad solo si hay valor
-                    <Text style={styles.attenuationUnitText}>μ (Se)</Text>
-                  )}
+                  <Text style={styles.attenuationUnitText}>μ (Se)</Text>
                 </View>
               </View>
 
-              {/* NUEVA UBICACIÓN DEL BOTÓN "+" */}
-              {showAddMaterialButton && (
+              {/* ÁREA PARA LOS BOTONES DE AGREGAR (+) O ELIMINAR (-) */}
+              {/* El contenedor addMaterialButtonContainer se usa para ambos para la misma ubicación/estilo */}
+              {showAddMaterialButton ? (
                 <View style={styles.addMaterialButtonContainer}>
                   <Pressable
                     onPress={handleAddOrUpdateCustomMaterial}
-                    style={styles.addMaterialButton}
+                    style={styles.addMaterialButton} // Tu estilo existente para el botón "+"
                   >
                     <Text style={styles.addMaterialButtonText}>+</Text>
                   </Pressable>
                 </View>
-              )}
+              ) : isCustomMaterialSelected ? (
+                <View style={styles.addMaterialButtonContainer}>
+                  <Pressable
+                    onPress={onPressDeleteButton}
+                    style={[
+                      styles.addMaterialButton,
+                      styles.deleteActionButton,
+                    ]} // Reutiliza estilo base y aplica color de borrado
+                  >
+                    <Text style={styles.addMaterialButtonText}>-</Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </>
           )}
 
@@ -1352,5 +1491,8 @@ const styles = {
     fontSize: 18, // Mismo tamaño que el valor del input
     color: "grey", // Un color un poco más tenue para la unidad
     marginLeft: 8, // Espacio entre el valor numérico y la unidad
+  },
+  deleteActionButton: {
+    backgroundColor: "#DC3545", // Simplemente cambia el color de fondo
   },
 };
