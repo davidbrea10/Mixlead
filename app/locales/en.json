@@ -643,15 +643,15 @@
     "legend": {
       "title": "Zone Legend",
       "controlled": {
-        "name": "Controlled Zone (Green)",
+        "name": "Controlled Zone for 0.5 µSv/h (Green)",
         "desc": "Practical vigilance zone limit (>3.3 µSv/h, effective radius at 20 µSv/h). Restricted access for authorized personnel."
       },
       "limitedStay": {
-        "name": "Limited Stay Zone (Yellow)",
+        "name": "Limited Stay Zone for 11 µSv/h (Yellow)",
         "desc": "Within the 20 µSv/h limit. Authorized operators only."
       },
       "prohibited": {
-        "name": "Prohibited Access Zone (Red)",
+        "name": "Prohibited Access Zone for 250 µSv/h (Red)",
         "desc": "> 250 µSv/h dose rate. Access prohibited."
       },
       "remoteControl": {

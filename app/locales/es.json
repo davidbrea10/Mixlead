@@ -641,15 +641,15 @@
     "legend": {
       "title": "Leyenda de Zonas",
       "controlled": {
-        "name": "Zona Controlada (Verde)",
+        "name": "Zona Controlada para 0.5 µSv/h (Verde)",
         "desc": "Límite práctico zona vigilada (>3.3 µSv/h, radio efectivo a 20 µSv/h). Acceso restringido a personal autorizado."
       },
       "limitedStay": {
-        "name": "Zona de Permanencia Limitada (Amarillo)",
+        "name": "Zona de Permanencia Limitada para 11 µSv/h (Amarillo)",
         "desc": "Dentro del límite de 20 µSv/h. Solo operadores."
       },
       "prohibited": {
-        "name": "Zona de Acceso Prohibido (Rojo)",
+        "name": "Zona de Acceso Prohibido para 250 µSv/h (Rojo)",
         "desc": "Tasa de dosis > 250 µSv/h. Acceso prohibido."
       },
       "remoteControl": {

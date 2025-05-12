@@ -583,6 +583,9 @@ export default function Calculation() {
     let result;
     let µ = 0; // Inicializar µ por si acaso
     let inputValue = 0;
+    let distanceForControlled;
+    let distanceForLimited;
+    let distanceForProhibited;
 
     // Lógica de parseo de inputValue de tu versión "correcta"
     // Esta condición asegura que inputValue solo se parsea si es relevante.
@@ -617,9 +620,15 @@ export default function Calculation() {
     }
 
     const D_0 = Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)); // Distancia sin blindaje (D_0)
+    const D_0Controlled = Math.sqrt((A * Γ) / (Math.pow(2, Y) * 0.0005)); // Distancia para controlada
+    const D_0Limited = Math.sqrt((A * Γ) / (Math.pow(2, Y) * 0.011)); // Distancia para limitada
+    const D_0Prohibited = Math.sqrt((A * Γ) / (Math.pow(2, Y) * 0.25)); // Distancia para prohibida
 
     if (materialInternalKey === WITHOUT_MATERIAL_KEY) {
       result = D_0; // El * 1 es innecesario
+      distanceForControlled = D_0Controlled;
+      distanceForLimited = D_0Limited;
+      distanceForProhibited = D_0Prohibited;
     } else if (materialInternalKey === OTHER_MATERIAL_KEY) {
       // Obtener µ para "Other"
       if (form.isotope === "192Ir") {
@@ -643,9 +652,17 @@ export default function Calculation() {
       if (µ <= 0) {
         // Si µ es 0 o negativo (por si acaso), se trata como sin atenuación
         result = D_0;
+        distanceForControlled = D_0Controlled;
+        distanceForLimited = D_0Limited;
+        distanceForProhibited = D_0Prohibited;
       } else {
         // Tu fórmula original
         result = D_0 * (Math.log(2) / µ) * (1 / inputValue);
+        distanceForControlled =
+          D_0Controlled * (Math.log(2) / µ) * (1 / inputValue);
+        distanceForLimited = D_0Limited * (Math.log(2) / µ) * (1 / inputValue);
+        distanceForProhibited =
+          D_0Prohibited * (Math.log(2) / µ) * (1 / inputValue);
       }
     } else {
       // Material predefinido o personalizado guardado
@@ -687,6 +704,11 @@ export default function Calculation() {
       }
       // Tu fórmula original
       result = D_0 * (Math.log(2) / µ) * (1 / inputValue);
+      distanceForControlled =
+        D_0Controlled * (Math.log(2) / µ) * (1 / inputValue);
+      distanceForLimited = D_0Limited * (Math.log(2) / µ) * (1 / inputValue);
+      distanceForProhibited =
+        D_0Prohibited * (Math.log(2) / µ) * (1 / inputValue);
     }
 
     // Validación final del resultado (de tu versión "correcta")
@@ -744,6 +766,16 @@ export default function Calculation() {
       distanceValueForSummary = valueForSummary;
     }
 
+    console.log("Distance Value for Summary:", distanceValueForSummary);
+    console.log("Material Name for Summary:", materialNameForSummary);
+    console.log("Attenuation Coefficient Used:", attCoefUsedDisplay);
+    console.log("Result:", result.toFixed(3));
+    console.log("Value for Summary:", valueForSummary);
+    console.log("Calculation Type for Nav:", calculationTypeForNav);
+    console.log("Controlled Distance:", distanceForControlled.toFixed(3));
+    console.log("Limited Distance:", distanceForLimited.toFixed(3));
+    console.log("Prohibited Distance:", distanceForProhibited.toFixed(3));
+
     router.push({
       pathname: "coordinator/calculationSummary",
       params: {
@@ -757,6 +789,11 @@ export default function Calculation() {
         calculationType: calculationTypeForNav,
         result: result.toFixed(3),
         distanceValueForSummary: distanceValueForSummary,
+
+        // Valores de las distancias de las zonas calculadas
+        distanceForControlled: distanceForControlled.toFixed(3),
+        distanceForLimited: distanceForLimited.toFixed(3),
+        distanceForProhibited: distanceForProhibited.toFixed(3),
       },
     });
   };
