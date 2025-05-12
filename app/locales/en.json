@@ -529,7 +529,8 @@
         "emptyFields": "All fields must be filled and greater than zero.",
         "userNotAuthenticated": "User not authenticated.",
         "couldNotSave": "Could not save the dose data.",
-        "emptyOrInvalidFields": "Please fill in all fields correctly."
+        "emptyOrInvalidFields": "Please fill in all fields correctly.",
+        "dailyDoseLimitReached": "You have reached the daily limit of 15 doses."
       },
       "userNotAuthenticated": "User not authenticated.",
       "success": {

@@ -76,7 +76,7 @@ export default function CalculationSummary() {
   };
 
   const handleSaveDose = async () => {
-    // --- Inicio de validaciones de input (sin cambios) ---
+    // --- Validaciones de input (sin cambios) ---
     const hours = parseInt(durationHours || "0", 10);
     const minutes = parseInt(durationMinutes || "0", 10);
     const seconds = parseInt(durationSeconds || "0", 10);
@@ -94,10 +94,7 @@ export default function CalculationSummary() {
       Toast.show({
         type: "error",
         text1: t("home.alerts.error.title"),
-        text2: t(
-          "home.alerts.emptyFieldsOrTimeOrDuration",
-          "Por favor, completa todos los campos correctamente.",
-        ),
+        text2: t("errors.invalidDurationFormat", "Formato HH:MM:SS inválido."),
         position: "bottom",
       });
       return;
@@ -116,15 +113,12 @@ export default function CalculationSummary() {
       Toast.show({
         type: "error",
         text1: t("home.alerts.error.title"),
-        text2: t(
-          "home.alerts.emptyFieldsOrTimeOrDuration",
-          "Por favor, completa todos los campos correctamente.",
-        ),
+        text2: t("home.alerts.emptyFieldsOrTimeOrDuration"),
         position: "bottom",
       });
       return;
     }
-    // --- Fin de validaciones de input ---
+    // --- Fin validaciones de input ---
 
     const user = auth.currentUser;
     if (!user) {
@@ -137,13 +131,11 @@ export default function CalculationSummary() {
       return;
     }
 
-    // Podrías querer un estado de carga específico para esta operación si se vuelve lenta
-    // setLoading(true); // O un estado como setIsSavingDose(true);
-
+    // Considera un estado de carga específico para el guardado, ej: setIsSaving(true)
     let userCompanyId = null;
 
     try {
-      // --- PASO 1: Obtener el documento del empleado actual para sacar su companyId ---
+      // PASO 1: Obtener el companyId del empleado actual
       console.log(
         `Workspaceing employee data for user ${user.uid} to get companyId...`,
       );
@@ -151,7 +143,7 @@ export default function CalculationSummary() {
       const employeeQuery = query(
         employeesGroupRef,
         where("email", "==", user.email),
-      ); // Asumiendo que el email es un identificador fiable
+      );
       const employeeQuerySnapshot = await getDocs(employeeQuery);
 
       if (employeeQuerySnapshot.empty) {
@@ -161,18 +153,15 @@ export default function CalculationSummary() {
         Toast.show({
           type: "error",
           text1: t("errors.errorTitle"),
-          text2: t(
-            "errors.userDataNotFoundForDose",
-            "No se encontraron datos del usuario para guardar la dosis.",
-          ), // Nueva traducción
+          text2: t("errors.userDataNotFoundForDose"),
           position: "bottom",
         });
-        // setLoading(false); // O setIsSavingDose(false);
+        // setIsSaving(false);
         return;
       }
 
       const employeeData = employeeQuerySnapshot.docs[0].data();
-      userCompanyId = employeeData.companyId; // Obtenemos el companyId desde el documento del empleado
+      userCompanyId = employeeData.companyId;
 
       if (!userCompanyId) {
         console.error(
@@ -181,45 +170,70 @@ export default function CalculationSummary() {
         Toast.show({
           type: "error",
           text1: t("errors.errorTitle"),
-          text2: t(
-            "errors.companyInfoMissingForDose",
-            "El usuario no está asignado a una empresa. No se puede guardar la dosis.",
-          ), // Nueva traducción
+          text2: t("errors.companyInfoMissingForDose"),
           position: "bottom",
         });
-        // setLoading(false); // O setIsSavingDose(false);
+        // setIsSaving(false);
         return;
       }
       console.log(`Found companyId: ${userCompanyId} for user ${user.uid}`);
-      // --- FIN PASO 1 ---
 
-      // --- PASO 2: Guardar la dosis con el companyId obtenido ---
+      // Definir fecha actual para la nueva dosis Y para la consulta de límite
       const today = new Date();
       const day = today.getDate();
-      const month = today.getMonth() + 1;
+      const month = today.getMonth() + 1; // Meses en JS son 0-indexados
       const year = today.getFullYear();
 
-      const dosesCollectionRef = collection(
+      // --- NUEVA VALIDACIÓN: Límite de dosis diarias ---
+      const dosesCollectionPath = collection(
         db,
         "companies",
-        userCompanyId, // Usar el companyId obtenido
+        userCompanyId,
         "employees",
         user.uid,
         "doses",
       );
+      const dosesForTodayQuery = query(
+        dosesCollectionPath,
+        where("day", "==", day),
+        where("month", "==", month),
+        where("year", "==", year),
+      );
 
+      const dosesTodaySnapshot = await getDocs(dosesForTodayQuery);
+      console.log(
+        `Found ${dosesTodaySnapshot.size} doses already saved for ${day}/${month}/${year}.`,
+      );
+
+      if (dosesTodaySnapshot.size >= 15) {
+        Toast.show({
+          type: "error",
+          text1: t("home.alerts.error.title"),
+          text2: t(
+            "home.alerts.error.dailyDoseLimitReached",
+            "Has alcanzado el límite de 15 dosis diarias.",
+          ), // Nueva traducción
+          position: "bottom",
+        });
+        // setIsSaving(false);
+        return;
+      }
+      // --- FIN NUEVA VALIDACIÓN ---
+
+      // PASO 2: Guardar la dosis (usando dosesCollectionPath que ya definimos)
       console.log(
         `Adding new manual dose for employee ${user.uid} in company ${userCompanyId} on ${day}/${month}/${year}`,
       );
-      await addDoc(dosesCollectionRef, {
+      await addDoc(dosesCollectionPath, {
+        // Reutilizar dosesCollectionPath
         dose: parseFloat(dose),
         totalExposures: parseInt(modalTotalExposures, 10),
         totalTime: totalSecondsFromHHMMSS,
-        day,
-        month,
-        year,
+        day, // ya definidos arriba
+        month, // ya definidos arriba
+        year, // ya definidos arriba
         startTime: formattedStartTime || null,
-        timestamp: serverTimestamp(), // Asegúrate que serverTimestamp esté importado
+        timestamp: serverTimestamp(),
         entryMethod: "manual",
       });
 
@@ -238,12 +252,10 @@ export default function CalculationSummary() {
       setDurationMinutes("");
       setDurationSeconds("");
       setFormattedStartTime("");
-      setStartTime(new Date()); // Asume que estas funciones de estado existen
-      // --- FIN PASO 2 ---
+      setStartTime(new Date());
     } catch (error) {
       console.error("❌ Error saving dose data:", error);
       if (error.code === "failed-precondition") {
-        // Error específico de Firestore si falta un índice para la collectionGroup query
         Toast.show({
           type: "error",
           text1: t("errors.errorTitle"),
@@ -260,7 +272,7 @@ export default function CalculationSummary() {
         });
       }
     } finally {
-      // setLoading(false); // O setIsSavingDose(false);
+      // setIsSaving(false);
     }
   };
 
