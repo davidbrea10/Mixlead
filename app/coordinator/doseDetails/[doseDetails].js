@@ -341,42 +341,50 @@ export default function DoseDetails() {
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
       style={{ flex: 1 }}
     >
-      <View
+      <View // Contenedor Principal de la Cabecera
         style={{
           backgroundColor: "#FF9300",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: 16,
+          flexDirection: "row", // Elementos en fila
+          alignItems: "center", // Centrar verticalmente
+          paddingHorizontal: 16, // Padding horizontal general
+          paddingBottom: 16,
           borderBottomStartRadius: 40,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          paddingTop: Platform.select({ ios: 60, android: 40 }),
         }}
       >
-        <Pressable onPress={() => router.back()}>
-          <Image
-            source={require("../../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
-          />
-        </Pressable>
-        <View style={{ flexDirection: "column", alignItems: "center" }}>
+        {/* Contenedor Izquierdo (Ancho Fijo) */}
+        <View style={{ width: 50, alignItems: "center" }}>
+          <Pressable onPress={() => router.back()}>
+            <Image
+              source={require("../../../assets/go-back.png")}
+              style={{ width: 50, height: 50 }} // Tamaño del icono
+            />
+          </Pressable>
+        </View>
+
+        {/* ✨ Contenedor Central del Texto (Flexible) ✨ */}
+        <View
+          style={{
+            flex: 1, // Ocupa el espacio sobrante entre los lados
+            alignItems: "center", // Centra los Text hijos horizontalmente
+            justifyContent: "center", // Centra los Text hijos verticalmente
+          }}
+        >
           <Text
             style={{
               fontSize: 24,
               fontWeight: "bold",
               color: "white",
-              letterSpacing: 2,
+              textAlign: "center", // Importante para centrar texto multi-línea
               textShadowColor: "black",
               textShadowOffset: { width: 1, height: 1 },
               textShadowRadius: 1,
+              // Quita numberOfLines y ellipsizeMode para permitir wrapping
             }}
           >
             {t("doseDetails.title")}
@@ -393,16 +401,14 @@ export default function DoseDetails() {
           >
             {t("doseDetails.monthLabel", {
               month: t(`doseDetails.months.${parsedMonth}`),
-              year,
+              year: parsedYear,
             })}
           </Text>
         </View>
-        <Pressable onPress={() => router.replace("/coordinator/home")}>
-          <Image
-            source={require("../../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
-          />
-        </Pressable>
+        {/* FIN Contenedor Central */}
+
+        {/* Contenedor Derecho (Ancho Fijo IGUAL al izquierdo) */}
+        <View style={{ width: 50 }} />
       </View>
 
       {/* Main Content */}

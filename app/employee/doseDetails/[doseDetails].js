@@ -424,6 +424,12 @@ export default function DoseDetails() {
           alignItems: "center", // Centrar verticalmente
           paddingHorizontal: 16, // Padding horizontal general
           paddingBottom: 16,
+          borderBottomStartRadius: 40,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 10,
+          elevation: 10,
           paddingTop: Platform.select({ ios: 60, android: 40 }),
         }}
       >
