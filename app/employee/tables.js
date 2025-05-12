@@ -10,7 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-export default function Graph() {
+export default function Tables() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -38,7 +38,7 @@ export default function Graph() {
           </Pressable>
         </View>
 
-        <view style={styles.mainContainer}></view>
+        <View style={styles.mainContainer}></View>
 
         {/* Footer */}
         <View style={styles.footer}></View>
@@ -55,17 +55,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
-  mainContainer: {
-    flex: 1,
-    position: "relative",
-    backgroundColor: "#e0e0e0",
-  },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
     color: "#555",
     textAlign: "center", // Center text
   },
+
+  mainContainer: {
+    flex: 1,
+    position: "relative",
+    backgroundColor: "#e0e0e0",
+  },
+
   errorText: {
     fontSize: 16,
     color: "red",

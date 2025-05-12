@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   Platform, // Import Platform
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next"; // Import the translation hook
 import { db, auth } from "../../../firebase/config";
 import {
@@ -22,120 +22,170 @@ import {
   deleteDoc,
   doc,
   getDoc, // Import getDoc
+  query,
+  where,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
-import * as FileSystem from "expo-file-system"; // Import FileSystem
 import * as Sharing from "expo-sharing"; // Import Sharing
 import Toast from "react-native-toast-message";
 
 export default function DoseDetails() {
   const router = useRouter();
   const { t } = useTranslation(); // Initialize translation hook
-  const { month, year } = useLocalSearchParams();
-  const parsedMonth = parseInt(month, 10);
-  const parsedYear = parseInt(year, 10);
+  const params = useLocalSearchParams(); // Obtener todos los parámetros
+
+  const employeeIdFromParams = params.employeeId; // ID del empleado (user.uid)
+  const companyIdFromParams = params.companyId; // ID de la compañía del empleado
+  const monthFromParams = params.month;
+  const yearFromParams = params.year;
+
+  const parsedMonth = parseInt(monthFromParams, 10);
+  const parsedYear = parseInt(yearFromParams, 10);
+
   const [dailyDoses, setDailyDoses] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedDoseIndex, setSelectedDoseIndex] = useState(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false); // State for PDF generation
   const [isLoading, setIsLoading] = useState(true); // State for initial data loading
+  const [error, setError] = useState(null);
 
   // Consistent month names array
   const monthNames = Array.from({ length: 12 }, (_, i) =>
     t(`doseDetails.months.${i + 1}`, { defaultValue: `Month ${i + 1}` }),
   );
 
-  useEffect(() => {
-    // Ensure params are valid numbers before loading
-    if (!isNaN(parsedMonth) && !isNaN(parsedYear)) {
-      loadDailyDoses();
-    } else {
-      console.error("Invalid month or year parameters received.");
-      Alert.alert(t("errors.error"), t("errors.invalidParams"));
-      setIsLoading(false);
-      // Optionally navigate back or show an error message
-    }
-  }, [month, year]); // Depend on original params
+  useFocusEffect(
+    useCallback(() => {
+      // Validar parámetros antes de cargar
+      if (
+        employeeIdFromParams &&
+        companyIdFromParams &&
+        !isNaN(parsedMonth) &&
+        parsedMonth >= 1 &&
+        parsedMonth <= 12 &&
+        !isNaN(parsedYear)
+      ) {
+        console.log("DoseDetails focus: Valid params, loading doses.", {
+          employeeIdFromParams,
+          companyIdFromParams,
+          parsedMonth,
+          parsedYear,
+        });
+        loadDailyDoses();
+      } else {
+        console.error(
+          "DoseDetails focus: Invalid or missing navigation parameters.",
+          params,
+        );
+        setError(
+          t(
+            "errors.invalidNavParams",
+            "Parámetros de navegación inválidos o faltantes.",
+          ),
+        );
+        setIsLoading(false);
+        // Considerar redirigir o mostrar un error más prominente si los params son esenciales
+        // router.back();
+      }
+      // Limpieza opcional si es necesario
+      // return () => console.log("DoseDetails lost focus");
+    }, [
+      employeeIdFromParams,
+      companyIdFromParams,
+      monthFromParams,
+      yearFromParams,
+    ]), // Depender de los params originales string
+  );
 
   const loadDailyDoses = async () => {
-    setIsLoading(true); // Start loading indicator
-    setDailyDoses([]); // Clear previous data
-    const user = auth.currentUser;
-    if (!user) {
-      Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
-      setIsLoading(false);
-      return;
-    }
+    setIsLoading(true);
+    setDailyDoses([]);
+    setError(null); // Resetear error
 
-    // Double-check params are valid numbers
-    if (isNaN(parsedMonth) || isNaN(parsedYear)) {
-      Alert.alert(t("errors.error"), t("errors.invalidParams"));
+    const user = auth.currentUser; // Confirmar que el usuario actual coincide con employeeIdFromParams (opcional)
+    if (!user || user.uid !== employeeIdFromParams) {
+      console.error("User mismatch or not logged in.", {
+        currentUser: user?.uid,
+        paramEmployeeId: employeeIdFromParams,
+      });
+      setError(
+        t(
+          "errors.authOrParamMismatch",
+          "Error de autenticación o parámetros incorrectos.",
+        ),
+      );
       setIsLoading(false);
       return;
     }
 
     try {
-      const dosesRef = collection(db, "employees", user.uid, "doses");
-      // Query directly for the specific month and year for efficiency if needed,
-      // but filtering the result works fine too if the dataset isn't huge.
-      // Let's stick to client-side filtering for now based on the previous logic.
-      const snapshot = await getDocs(dosesRef);
+      // --- MODIFICACIÓN: Usar companyIdFromParams y employeeIdFromParams ---
+      const dosesCollectionPath = `companies/${companyIdFromParams}/employees/${employeeIdFromParams}/doses`;
+      const dosesRef = collection(db, dosesCollectionPath);
+      console.log("Querying doses from:", dosesCollectionPath);
+
+      // Consulta más eficiente filtrando por mes y año en Firestore
+      const q = query(
+        dosesRef,
+        where("month", "==", parsedMonth),
+        where("year", "==", parsedYear),
+      );
+      const snapshot = await getDocs(q);
+      // --- FIN MODIFICACIÓN ---
 
       let doseData = [];
-
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        // Stricter checks
+        // Las validaciones de data.month y data.year ya están en la query de Firestore
         if (
-          data.dose != null && // Check for existence
-          typeof data.dose === "number" && // Check type
-          !isNaN(data.dose) && // Check for NaN
-          data.day &&
-          parseInt(data.month, 10) === parsedMonth &&
-          parseInt(data.year, 10) === parsedYear
+          data.dose != null &&
+          typeof data.dose === "number" &&
+          !isNaN(data.dose) &&
+          data.day
         ) {
           doseData.push({
-            id: docSnap.id,
+            id: docSnap.id, // ID del documento de la dosis
             dose: data.dose,
             day: parseInt(data.day, 10),
-            month: parseInt(data.month, 10),
-            year: parseInt(data.year, 10),
+            month: parseInt(data.month, 10), // Ya es parsedMonth
+            year: parseInt(data.year, 10), // Ya es parsedYear
             totalTime: data.totalTime || 0,
             totalExposures: data.totalExposures || 0,
-            startTime: data.startTime || "--:--", // <-- AÑADIR ESTO (con fallback)
+            startTime: data.startTime || "--:--",
           });
         }
       });
 
+      // Ordenar por día y luego por hora de inicio
       doseData.sort((a, b) => {
-        // 1. Criterio Principal: Ordenar por día
-        if (a.day !== b.day) {
-          return a.day - b.day; // Orden ascendente por día
-        }
-
-        // 2. Criterio Secundario: Si el día es el mismo, ordenar por hora de inicio
-        // Comparamos los strings "HH:mm". Si falta startTime, se trata como el inicio del día.
-        const timeA = a.startTime || "00:00";
-        const timeB = b.startTime || "00:00";
-
-        if (timeA < timeB) {
-          return -1; // a viene antes que b
-        }
-        if (timeA > timeB) {
-          return 1; // a viene después que b
-        }
-
-        // Si el día y la hora son iguales, mantener el orden relativo (o devolver 0)
+        if (a.day !== b.day) return a.day - b.day;
+        const timeA = a.startTime === "--:--" ? "00:00" : a.startTime; // Tratar "--:--" como inicio del día
+        const timeB = b.startTime === "--:--" ? "00:00" : b.startTime;
+        if (timeA < timeB) return -1;
+        if (timeA > timeB) return 1;
         return 0;
       });
+
       setDailyDoses(doseData);
+      console.log(
+        `Loaded ${doseData.length} daily doses for ${parsedMonth}/${parsedYear}`,
+      );
     } catch (error) {
       console.error("Error loading daily doses:", error);
-      Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
+      if (error.code === "failed-precondition") {
+        setError(
+          t(
+            "errors.firestoreIndexRequiredDoses",
+            "Se necesita configurar la base de datos para esta vista. Contacte a soporte.",
+          ),
+        ); // Nueva traducción
+      } else {
+        setError(t("errors.loadDosesFailed"));
+      }
     } finally {
-      setIsLoading(false); // Stop loading indicator
+      setIsLoading(false);
     }
   };
 
@@ -180,69 +230,155 @@ export default function DoseDetails() {
       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const handleConfirmDecline = async () => {
-    if (selectedDoseIndex === null || !dailyDoses[selectedDoseIndex]) return;
+  const handleOpenDeleteModal = (index) => {
+    // Nueva función para abrir el modal
+    setSelectedDoseIndex(index);
+    setIsModalVisible(true);
+  };
 
-    const user = auth.currentUser;
-    if (!user) {
-      // Keep using Alert for critical auth errors or switch to Toast if preferred
-      Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
-      // Or:
-      // Toast.show({ type: 'error', text1: t("errors.error"), text2: t("errors.notLoggedIn"), position: 'bottom' });
+  const handleConfirmDecline = async () => {
+    // Recibir el ID de la dosis específica
+    // const doseToDelete = dailyDoses[selectedDoseIndex]; // Lógica antigua, no se usa selectedDoseIndex
+    // const docId = doseToDelete.id; // Lógica antigua
+
+    if (
+      selectedDoseIndex === null ||
+      typeof selectedDoseIndex !== "number" ||
+      !dailyDoses[selectedDoseIndex]
+    ) {
+      console.error("Invalid selectedDoseIndex:", selectedDoseIndex);
+      Toast.show({
+        type: "error",
+        text1: t("errors.error"),
+        text2: t(
+          "errors.noDoseSelectedForDeletion",
+          "Ninguna dosis seleccionada para eliminar.",
+        ),
+        position: "bottom",
+      });
+      setIsModalVisible(false); // Cerrar modal si hay error
       return;
     }
 
     const doseToDelete = dailyDoses[selectedDoseIndex];
-    const docId = doseToDelete.id;
+    const doseEntryId = doseToDelete.id; // Obtener el ID de la dosis del estado
 
-    if (!docId) {
-      console.error("Cannot delete dose: Document ID is missing.");
-      // Keep using Alert for critical errors or switch to Toast if preferred
-      Alert.alert(t("errors.error"), t("errors.deleteFailedMissingId"));
-      // Or:
-      // Toast.show({ type: 'error', text1: t("errors.error"), text2: t("errors.deleteFailedMissingId"), position: 'bottom' });
+    console.log(
+      "Attempting to delete dose. Retrieved doseEntryId:",
+      doseEntryId,
+    );
+    console.log("Current params from route: ", {
+      employeeIdFromParams,
+      companyIdFromParams,
+    });
+
+    // 1. Validar doseEntryId (ahora obtenido de doseToDelete.id)
+    if (typeof doseEntryId !== "string" || !doseEntryId.trim()) {
+      console.error(
+        "Invalid or missing doseEntryId from selected dose:",
+        doseEntryId,
+      );
+      Toast.show({
+        type: "error",
+        text1: t("errors.error"),
+        text2: t(
+          "errors.deleteFailedMissingDoseId",
+          "ID de dosis inválido o faltante.",
+        ),
+        position: "bottom",
+      });
       setIsModalVisible(false);
       return;
     }
 
-    try {
-      await deleteDoc(doc(db, "employees", user.uid, "doses", docId));
-
-      // Update state *after* successful deletion
-      setDailyDoses((prevDoses) =>
-        prevDoses.filter((_, index) => index !== selectedDoseIndex),
+    // 2. Validar employeeIdFromParams
+    if (
+      typeof employeeIdFromParams !== "string" ||
+      !employeeIdFromParams.trim()
+    ) {
+      console.error(
+        "Invalid or missing employeeIdFromParams:",
+        employeeIdFromParams,
       );
-
-      // Close modal and reset selection
+      Toast.show({
+        type: "error",
+        text1: t("errors.error"),
+        text2: t(
+          "errors.deleteFailedMissingEmployeeId",
+          "ID de empleado inválido o faltante.",
+        ),
+        position: "bottom",
+      });
       setIsModalVisible(false);
-      setSelectedDoseIndex(null);
+      return;
+    }
 
-      // --- ADD SUCCESS TOAST HERE ---
+    // 3. Validar companyIdFromParams
+    if (
+      typeof companyIdFromParams !== "string" ||
+      !companyIdFromParams.trim()
+    ) {
+      console.error(
+        "Invalid or missing companyIdFromParams:",
+        companyIdFromParams,
+      );
+      Toast.show({
+        type: "error",
+        text1: t("errors.error"),
+        text2: t(
+          "errors.deleteFailedMissingCompanyId",
+          "ID de compañía inválido o faltante.",
+        ),
+        position: "bottom",
+      });
+      setIsModalVisible(false);
+      return;
+    }
+
+    setIsModalVisible(false); // Cerrar el modal ANTES de la operación asíncrona
+    // Considera añadir un ActivityIndicator específico para la operación de borrado si es necesario
+
+    try {
+      const doseDocRef = doc(
+        db,
+        "companies",
+        companyIdFromParams,
+        "employees",
+        employeeIdFromParams,
+        "doses",
+        doseEntryId,
+      );
+      console.log("Attempting to delete dose at path:", doseDocRef.path);
+      await deleteDoc(doseDocRef);
+
+      setDailyDoses(
+        (prevDoses) =>
+          prevDoses.filter((dose, index) => index !== selectedDoseIndex), // Filtrar por índice o por ID
+      );
+      // O mejor, filtrar por ID si `doseEntryId` es fiable:
+      // setDailyDoses((prevDoses) => prevDoses.filter((dose) => dose.id !== doseEntryId));
+
       Toast.show({
         type: "success",
-        text1: t("doseDetails.deleteSuccessTitle", { defaultValue: "Éxito" }), // Provide default if key missing
-        text2: t("doseDetails.deleteSuccessMessage", {
-          defaultValue: "Dosis eliminada correctamente.",
-        }), // Provide default
+        text1: t("doseDetails.deleteSuccessTitle", "Éxito"),
+        text2: t(
+          "doseDetails.deleteSuccessMessage",
+          "Dosis eliminada correctamente.",
+        ),
         position: "bottom",
-        visibilityTime: 3000, // Optional: duration in ms (default is 4000)
       });
-      // --- END OF SUCCESS TOAST ---
-
-      // Remove the old Alert if you had one here
-      // // Alert.alert(t("doseDetails.deleteSuccessTitle"), t("doseDetails.deleteSuccessMessage"));
+      // No es necesario resetear selectedDoseIndex aquí si el modal ya está cerrado
+      // y la lista se actualiza.
     } catch (error) {
-      console.error("Error deleting dose:", error);
-      // Keep Alert for errors or switch to Toast
-      // Or:
+      console.error("Error deleting dose in try-catch:", error);
       Toast.show({
         type: "error",
         text1: t("errors.error"),
         text2: t("errors.deleteFailed") + `: ${error.message}`,
         position: "bottom",
       });
-      setIsModalVisible(false);
-      setSelectedDoseIndex(null);
+    } finally {
+      setSelectedDoseIndex(null); // Resetear el índice seleccionado después de todo
     }
   };
 
@@ -250,51 +386,72 @@ export default function DoseDetails() {
   const generateMonthlyPdf = async () => {
     if (isGeneratingPdf) return;
     if (dailyDoses.length === 0) {
+      /* ... (validación sin cambios) ... */
       Alert.alert(
         t("employeesAgenda.pdf.errorTitle"),
         t("employeesAgenda.pdf.errorNoDataToExport"),
       );
       return;
     }
-    if (isNaN(parsedMonth) || isNaN(parsedYear)) {
-      Alert.alert(t("errors.error"), t("errors.invalidParams"));
+    if (
+      isNaN(parsedMonth) ||
+      isNaN(parsedYear) ||
+      !employeeIdFromParams ||
+      !companyIdFromParams
+    ) {
+      /* ... */
+      Alert.alert(t("errors.error"), t("errors.invalidParamsOrUserInfo")); // Nueva traducción
       return;
     }
 
     setIsGeneratingPdf(true);
-
-    const user = auth.currentUser;
-    if (!user) {
-      Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
-      setIsGeneratingPdf(false);
-      return;
-    }
+    // const user = auth.currentUser; // Ya tenemos employeeIdFromParams y companyIdFromParams
 
     try {
-      // 1. Get Employee Info & Company Info (same as annual PDF)
       let employeeName = t("employeesAgenda.pdf.unknownEmployee");
-      let companyId = null;
-      let companyName = t("employeesAgenda.pdf.unknownCompany");
+      let fetchedCompanyName = t("employeesAgenda.pdf.unknownCompany"); // Renombrado para evitar conflicto
 
-      const empDocRef = doc(db, "employees", user.uid);
+      // --- MODIFICACIÓN: Usar companyIdFromParams y employeeIdFromParams para obtener datos del empleado ---
+      const empDocRef = doc(
+        db,
+        "companies",
+        companyIdFromParams,
+        "employees",
+        employeeIdFromParams,
+      );
+      console.log("Fetching employee data for PDF from path:", empDocRef.path);
+      // --- FIN MODIFICACIÓN ---
       const empDocSnap = await getDoc(empDocRef);
+
       if (empDocSnap.exists()) {
         const empData = empDocSnap.data();
         employeeName =
           `${empData.firstName || ""} ${empData.lastName || ""}`.trim() ||
           employeeName;
-        companyId = empData.companyId;
+        // El companyId del empleado (empData.companyId) debería coincidir con companyIdFromParams
+        // Si no, hay una inconsistencia, pero usaremos companyIdFromParams para el nombre de la compañía
+      } else {
+        console.warn(
+          "Employee document not found for PDF generation with path:",
+          empDocRef.path,
+        );
       }
 
-      if (companyId) {
-        const companyDocRef = doc(db, "companies", companyId);
+      // Obtener nombre de la compañía (usando companyIdFromParams)
+      if (companyIdFromParams) {
+        const companyDocRef = doc(db, "companies", companyIdFromParams);
         const companyDocSnap = await getDoc(companyDocRef);
         if (companyDocSnap.exists()) {
-          companyName = companyDocSnap.data().Name || companyName;
+          fetchedCompanyName =
+            companyDocSnap.data().Name ||
+            companyDocSnap.data().name ||
+            fetchedCompanyName;
+        } else {
+          console.warn(
+            `Company document for PDF not found with ID: ${companyIdFromParams}`,
+          );
         }
       }
-
-      // 2. Data is already in `dailyDoses` state, sorted by day.
 
       // 3. Generate HTML Table for Daily Data
       let tableHtml = "";
@@ -336,7 +493,7 @@ export default function DoseDetails() {
           </style>
         </head>
         <body>
-          <div class="header-title">${companyName}</div>
+          <div class="header-title">${fetchedCompanyName}</div>
           <div class="header-subtitle">${t("employeesAgenda.pdf.monthlyReportTitle")}</div>
 
           <div class="info-section">

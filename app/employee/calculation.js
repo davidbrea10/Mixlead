@@ -23,6 +23,9 @@ import {
   getDocs,
   setDoc,
   deleteDoc,
+  collectionGroup,
+  query,
+  where,
 } from "firebase/firestore";
 
 const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
@@ -53,19 +56,78 @@ export default function Calculation() {
   });
 
   const getCurrentEmployeeId = useCallback(() => {
-    return auth.currentUser?.uid;
-  }, []);
+    return auth.currentUser?.uid; // USA 'auth' importado
+  }, []); // auth podría ser una dependencia si cambia, pero usualmente es estable
+
+  const _fetchCurrentUserCompanyId = async (employeeId) => {
+    if (!employeeId) {
+      console.log("No employeeId provided to _fetchCurrentUserCompanyId.");
+      return null;
+    }
+    const user = auth.currentUser; // USA 'auth' importado
+    if (!user || user.uid !== employeeId) {
+      console.error(
+        "User mismatch or not authenticated for fetching companyId.",
+      );
+      return null;
+    }
+
+    try {
+      const employeesQueryRef = collectionGroup(db, "employees"); // USA 'db' importado
+      const q = query(employeesQueryRef, where("email", "==", user.email));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userDocSnap = querySnapshot.docs[0];
+        const userData = userDocSnap.data();
+        if (userData.companyId) {
+          return userData.companyId;
+        } else {
+          console.warn(
+            `User ${employeeId} (email: ${user.email}) document is missing companyId.`,
+          );
+          return null;
+        }
+      } else {
+        console.warn(
+          `Could not find employee document for email ${user.email} to retrieve companyId.`,
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching user's companyId:", error);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t("errors.fetchCompanyIdError"),
+        position: "bottom",
+      });
+      return null;
+    }
+  };
 
   const fetchCustomMaterials = useCallback(async () => {
     const employeeId = getCurrentEmployeeId();
     if (!employeeId) {
-      // console.log("No employee logged in to fetch materials.");
-      setCustomMaterialsFromDB({}); // Clear if no user
+      setCustomMaterialsFromDB({});
       return;
     }
+
+    const companyId = await _fetchCurrentUserCompanyId(employeeId);
+    if (!companyId) {
+      console.log(
+        "Cannot fetch custom materials: companyId not found for employee:",
+        employeeId,
+      );
+      setCustomMaterialsFromDB({});
+      return;
+    }
+
     try {
       const materialsColRef = collection(
-        db,
+        db, // USA 'db' importado
+        "companies",
+        companyId,
         "employees",
         employeeId,
         "materials",
@@ -73,7 +135,7 @@ export default function Calculation() {
       const materialSnapshot = await getDocs(materialsColRef);
       const fetchedMaterials = {};
       materialSnapshot.forEach((doc) => {
-        fetchedMaterials[doc.id] = doc.data(); // { attenuationIr: "...", attenuationSe: "..." }
+        fetchedMaterials[doc.id] = doc.data();
       });
       setCustomMaterialsFromDB(fetchedMaterials);
     } catch (error) {
@@ -84,20 +146,21 @@ export default function Calculation() {
         text2: t("radiographyCalculator.alerts.errorFetchingCustomMaterials"),
         position: "bottom",
       });
-      setCustomMaterialsFromDB({}); // Clear on error
+      setCustomMaterialsFromDB({});
     }
-  }, [t, getCurrentEmployeeId]);
+  }, [t, getCurrentEmployeeId]); // db no suele cambiar, por lo que no es estrictamente necesario aquí si es estable
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
+      // USA 'auth' importado
       if (user) {
         fetchCustomMaterials();
       } else {
-        setCustomMaterialsFromDB({}); // Clear materials if user logs out
+        setCustomMaterialsFromDB({});
       }
     });
-    return () => unsubscribe(); // Cleanup subscription on unmount
-  }, [fetchCustomMaterials]);
+    return () => unsubscribe();
+  }, [fetchCustomMaterials]); // auth no suele cambiar, por lo que no es estrictamente necesario aquí si es estable
 
   // Maps for internal values and translations
   const collimatorMap = useMemo(
@@ -224,6 +287,18 @@ export default function Calculation() {
       });
       return;
     }
+
+    const companyId = await _fetchCurrentUserCompanyId(employeeId);
+    if (!companyId) {
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle"),
+        text2: t("radiographyCalculator.alerts.userNotLoggedIn"),
+        position: "bottom",
+      });
+      return;
+    }
+
     const materialNameClean = otherMaterialName.trim();
     if (!materialNameClean) {
       Toast.show({
@@ -278,7 +353,9 @@ export default function Calculation() {
 
     try {
       const materialDocRef = doc(
-        db,
+        db, // USA 'db' importado
+        "companies",
+        companyId,
         "employees",
         employeeId,
         "materials",
@@ -367,6 +444,17 @@ export default function Calculation() {
       return;
     }
 
+    const companyId = await _fetchCurrentUserCompanyId(employeeId);
+    if (!companyId) {
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle"),
+        text2: t("radiographyCalculator.alerts.userNotLoggedIn"),
+        position: "bottom",
+      });
+      return;
+    }
+
     if (!materialName) {
       console.error("Material name to delete is undefined.");
       Toast.show({
@@ -380,7 +468,9 @@ export default function Calculation() {
 
     try {
       const materialDocRef = doc(
-        db,
+        db, // USA 'db' importado
+        "companies",
+        companyId,
         "employees",
         employeeId,
         "materials",

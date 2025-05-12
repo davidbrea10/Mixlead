@@ -14,7 +14,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { db, auth } from "../../firebase/config";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  collectionGroup,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -50,6 +58,7 @@ export default function Home() {
   };
 
   const handleSaveDose = async () => {
+    // --- Inicio de validaciones de input (sin cambios) ---
     const hours = parseInt(durationHours || "0", 10);
     const minutes = parseInt(durationMinutes || "0", 10);
     const seconds = parseInt(durationSeconds || "0", 10);
@@ -66,17 +75,17 @@ export default function Home() {
     ) {
       Toast.show({
         type: "error",
-        text1: t("errors.errorTitle"),
-        text2: t("errors.invalidDurationFormat", "Formato HH:MM:SS inválido."),
+        text1: t("home.alerts.error.title"),
+        text2: t(
+          "home.alerts.emptyFieldsOrTimeOrDuration",
+          "Por favor, completa todos los campos correctamente.",
+        ),
         position: "bottom",
       });
       return;
     }
-    // Calcular segundos totales
     const totalSecondsFromHHMMSS = hours * 3600 + minutes * 60 + seconds;
-    // --- Fin Validación HH:MM:SS ---
 
-    // Validación de los otros campos (dose, exposures, startTime)
     if (
       !dose.trim() ||
       isNaN(parseFloat(dose)) ||
@@ -85,7 +94,6 @@ export default function Home() {
       isNaN(parseInt(modalTotalExposures, 10)) ||
       parseInt(modalTotalExposures, 10) <= 0 ||
       totalSecondsFromHHMMSS <= 0
-      // SE ELIMINA: !formattedStartTime
     ) {
       Toast.show({
         type: "error",
@@ -98,28 +106,92 @@ export default function Home() {
       });
       return;
     }
+    // --- Fin de validaciones de input ---
 
     const user = auth.currentUser;
     if (!user) {
-      // Replace Alert with Toast for authentication error
       Toast.show({
         type: "error",
         text1: t("home.alerts.error.title"),
         text2: t("home.alerts.userNotAuthenticated"),
         position: "bottom",
       });
-      return; // Keep the return
+      return;
     }
 
+    // Podrías querer un estado de carga específico para esta operación si se vuelve lenta
+    // setLoading(true); // O un estado como setIsSavingDose(true);
+
+    let userCompanyId = null;
+
     try {
+      // --- PASO 1: Obtener el documento del empleado actual para sacar su companyId ---
+      console.log(
+        `Workspaceing employee data for user ${user.uid} to get companyId...`,
+      );
+      const employeesGroupRef = collectionGroup(db, "employees");
+      const employeeQuery = query(
+        employeesGroupRef,
+        where("email", "==", user.email),
+      ); // Asumiendo que el email es un identificador fiable
+      const employeeQuerySnapshot = await getDocs(employeeQuery);
+
+      if (employeeQuerySnapshot.empty) {
+        console.error(
+          `Could not find employee document for email ${user.email} to retrieve companyId.`,
+        );
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t(
+            "errors.userDataNotFoundForDose",
+            "No se encontraron datos del usuario para guardar la dosis.",
+          ), // Nueva traducción
+          position: "bottom",
+        });
+        // setLoading(false); // O setIsSavingDose(false);
+        return;
+      }
+
+      const employeeData = employeeQuerySnapshot.docs[0].data();
+      userCompanyId = employeeData.companyId; // Obtenemos el companyId desde el documento del empleado
+
+      if (!userCompanyId) {
+        console.error(
+          `Employee document for ${user.email} is missing companyId.`,
+        );
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t(
+            "errors.companyInfoMissingForDose",
+            "El usuario no está asignado a una empresa. No se puede guardar la dosis.",
+          ), // Nueva traducción
+          position: "bottom",
+        });
+        // setLoading(false); // O setIsSavingDose(false);
+        return;
+      }
+      console.log(`Found companyId: ${userCompanyId} for user ${user.uid}`);
+      // --- FIN PASO 1 ---
+
+      // --- PASO 2: Guardar la dosis con el companyId obtenido ---
       const today = new Date();
       const day = today.getDate();
       const month = today.getMonth() + 1;
       const year = today.getFullYear();
-      const dosesCollectionRef = collection(db, "employees", user.uid, "doses");
+
+      const dosesCollectionRef = collection(
+        db,
+        "companies",
+        userCompanyId, // Usar el companyId obtenido
+        "employees",
+        user.uid,
+        "doses",
+      );
 
       console.log(
-        `Adding new manual dose for employee ${user.uid} on ${day}/${month}/${year}`,
+        `Adding new manual dose for employee ${user.uid} in company ${userCompanyId} on ${day}/${month}/${year}`,
       );
       await addDoc(dosesCollectionRef, {
         dose: parseFloat(dose),
@@ -128,12 +200,11 @@ export default function Home() {
         day,
         month,
         year,
-        startTime: formattedStartTime || null, // <-- CAMBIO AQUÍ: Si formattedStartTime es "", se guarda null
-        timestamp: serverTimestamp(),
+        startTime: formattedStartTime || null,
+        timestamp: serverTimestamp(), // Asegúrate que serverTimestamp esté importado
         entryMethod: "manual",
       });
 
-      // Replace Alert with Toast for success
       Toast.show({
         type: "success",
         text1: t("home.alerts.success.title"),
@@ -141,23 +212,37 @@ export default function Home() {
         position: "bottom",
       });
 
+      // Resetear campos del modal
       setModalVisible(false);
       setDose("");
       setModalTotalExposures("");
-      setDurationHours(""); // Resetear duración
+      setDurationHours("");
       setDurationMinutes("");
       setDurationSeconds("");
-      setFormattedStartTime(""); // Se resetea a ""
-      setStartTime(new Date()); // Se resetea el Date object del picker
+      setFormattedStartTime("");
+      setStartTime(new Date()); // Asume que estas funciones de estado existen
+      // --- FIN PASO 2 ---
     } catch (error) {
       console.error("❌ Error saving dose data:", error);
-      // Replace Alert with Toast for saving error
-      Toast.show({
-        type: "error",
-        text1: t("home.alerts.error.title"),
-        text2: t("home.alerts.error.couldNotSave"),
-        position: "bottom",
-      });
+      if (error.code === "failed-precondition") {
+        // Error específico de Firestore si falta un índice para la collectionGroup query
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t("errors.firestoreIndexRequired"),
+          position: "bottom",
+          visibilityTime: 5000,
+        });
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("home.alerts.error.title"),
+          text2: t("home.alerts.error.couldNotSave"),
+          position: "bottom",
+        });
+      }
+    } finally {
+      // setLoading(false); // O setIsSavingDose(false);
     }
   };
 

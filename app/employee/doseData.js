@@ -21,6 +21,7 @@ import {
   getDoc, // Import getDoc
   query, // Import query
   where, // Import where
+  collectionGroup,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import RNPickerSelect from "react-native-picker-select";
@@ -37,6 +38,7 @@ export default function Home() {
   const [totalAnnualDose, setTotalAnnualDose] = useState(0);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUserCompanyId, setCurrentUserCompanyId] = useState(null);
 
   // Consistent month names array (assuming keys like 'months.1', 'months.2' etc.)
   const monthNames = Array.from({ length: 12 }, (_, i) =>
@@ -69,29 +71,88 @@ export default function Home() {
   }, [monthlyDoses, selectedYear]);
 
   const loadDataOnFocus = async () => {
-    console.log("Executing loadDataOnFocus..."); // For debugging
+    console.log("Executing loadDataOnFocus for employee dose history...");
     setIsLoading(true);
     setMonthlyDoses([]);
     setAvailableYears([]);
-    // Don't reset selectedYear here, try to preserve it below
+    setCurrentUserCompanyId(null); // Resetear companyId al cargar
 
     const user = auth.currentUser;
     if (!user) {
       setIsLoading(false);
       Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
+      // Considerar redirigir al login si no hay usuario
+      // router.replace("/auth/login");
       return;
     }
 
-    // Store current selected year to try preserving it
     const previousSelectedYear = selectedYear;
+    let fetchedUserCompanyId = null;
 
     try {
-      const dosesRef = collection(db, "employees", user.uid, "doses");
+      // --- PASO 1: Obtener el companyId del usuario actual ---
+      console.log(
+        `Workspaceing employee data for user ${user.uid} (email: ${user.email}) to get companyId...`,
+      );
+      const employeesGroupRef = collectionGroup(db, "employees");
+      const employeeQuery = query(
+        employeesGroupRef,
+        where("email", "==", user.email),
+      );
+      const employeeQuerySnapshot = await getDocs(employeeQuery);
+
+      if (employeeQuerySnapshot.empty) {
+        console.error(
+          `Could not find employee document for email ${user.email}.`,
+        );
+        Alert.alert(
+          t("errors.error"),
+          t(
+            "errors.userDataNotFoundForDose",
+            "No se encontraron datos del usuario.",
+          ),
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      const employeeData = employeeQuerySnapshot.docs[0].data();
+      fetchedUserCompanyId = employeeData.companyId;
+      setCurrentUserCompanyId(fetchedUserCompanyId); // Guardar en estado
+
+      if (!fetchedUserCompanyId) {
+        console.error(
+          `Employee document for ${user.email} is missing companyId.`,
+        );
+        Alert.alert(
+          t("errors.error"),
+          t(
+            "errors.companyInfoMissingForDose",
+            "El usuario no está asignado a una empresa.",
+          ),
+        );
+        setIsLoading(false);
+        return;
+      }
+      console.log(
+        `Found companyId: ${fetchedUserCompanyId} for user ${user.uid}`,
+      );
+      // --- FIN PASO 1 ---
+
+      // --- PASO 2: Obtener las dosis del usuario usando el companyId obtenido ---
+      const dosesRef = collection(
+        db,
+        "companies",
+        fetchedUserCompanyId,
+        "employees",
+        user.uid,
+        "doses",
+      );
       const snapshot = await getDocs(dosesRef);
+      // --- FIN PASO 2 ---
 
       let doseData = {};
       let yearsSet = new Set();
-      let hasData = false;
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
@@ -114,7 +175,6 @@ export default function Home() {
             monthValue <= 12 &&
             !isNaN(doseValue)
           ) {
-            hasData = true;
             const key = `${yearValue}-${monthValue}`;
             if (!doseData[key]) {
               doseData[key] = {
@@ -131,29 +191,30 @@ export default function Home() {
       const years = [...yearsSet].sort((a, b) => b - a);
       setAvailableYears(years);
 
-      // Logic to set selectedYear: preserve if possible, else default
       if (years.includes(previousSelectedYear)) {
-        setSelectedYear(previousSelectedYear); // Preserve previous selection
+        setSelectedYear(previousSelectedYear);
       } else if (years.length > 0) {
-        setSelectedYear(years[0]); // Default to the most recent year
+        setSelectedYear(years[0]);
       } else {
         const currentYear = new Date().getFullYear();
         if (!years.includes(currentYear)) {
-          // Add current year if not present
           setAvailableYears((prev) =>
             [...prev, currentYear].sort((a, b) => b - a),
           );
         }
-        setSelectedYear(currentYear); // Fallback to current year
+        setSelectedYear(currentYear);
       }
-
       setMonthlyDoses(Object.values(doseData));
     } catch (error) {
       console.error("Error loading monthly doses:", error);
-      Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
+      if (error.code === "failed-precondition") {
+        Alert.alert(t("errors.error"), t("errors.firestoreIndexRequired"));
+      } else {
+        Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
+      }
       const currentYear = new Date().getFullYear();
-      setAvailableYears([currentYear]); // Fallback on error
-      setSelectedYear(currentYear); // Fallback on error
+      setAvailableYears([currentYear]);
+      setSelectedYear(currentYear);
     } finally {
       setIsLoading(false);
     }
@@ -173,7 +234,8 @@ export default function Home() {
         pathname: "/employee/doseDetails/[doseDetails]",
         // Pass uid for consistency, even if details screen might re-fetch it
         params: {
-          uid: auth.currentUser.uid,
+          employeeId: auth.currentUser.uid,
+          companyId: currentUserCompanyId,
           month: month.toString(),
           year: year.toString(),
         },
@@ -196,23 +258,40 @@ export default function Home() {
       );
       return;
     }
+    if (!currentUserCompanyId) {
+      // <-- VERIFICAR SI TENEMOS EL COMPANY ID
+      Alert.alert(
+        t("errors.error"),
+        t(
+          "errors.companyInfoMissingForPdf",
+          "Información de la empresa no disponible para generar PDF.",
+        ),
+      );
+      return;
+    }
 
     setIsGeneratingPdf(true);
-
     const user = auth.currentUser;
     if (!user) {
+      /* ... (manejo de usuario no logueado) ... */
       Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
       setIsGeneratingPdf(false);
       return;
     }
 
     try {
-      // 1. Get Employee Info (Name, Company ID)
       let employeeName = t("employeesAgenda.pdf.unknownEmployee");
-      let companyId = null;
       let companyName = t("employeesAgenda.pdf.unknownCompany");
 
-      const empDocRef = doc(db, "employees", user.uid);
+      // --- MODIFICACIÓN: Obtener datos del empleado desde la ruta correcta ---
+      const empDocRef = doc(
+        db,
+        "companies",
+        currentUserCompanyId,
+        "employees",
+        user.uid,
+      );
+      // --- FIN MODIFICACIÓN ---
       const empDocSnap = await getDoc(empDocRef);
 
       if (empDocSnap.exists()) {
@@ -220,25 +299,37 @@ export default function Home() {
         employeeName =
           `${empData.firstName || ""} ${empData.lastName || ""}`.trim() ||
           employeeName;
-        companyId = empData.companyId;
+        // companyId ya lo tenemos en currentUserCompanyId, no necesitamos leerlo de empData para esto.
       } else {
-        console.warn("Employee document not found for PDF generation.");
-        // Proceed without name/company if needed, or alert user
+        console.warn(
+          "Employee document not found for PDF generation using new path.",
+        );
       }
 
-      // 2. Get Company Name (if companyId found)
-      if (companyId) {
-        const companyDocRef = doc(db, "companies", companyId);
-        const companyDocSnap = await getDoc(companyDocRef);
-        if (companyDocSnap.exists()) {
-          companyName = companyDocSnap.data().Name || companyName;
-        } else {
-          console.warn(`Company document not found for ID: ${companyId}`);
-        }
+      // Obtener Nombre de la Compañía (ya tenemos currentUserCompanyId)
+      const companyDocRef = doc(db, "companies", currentUserCompanyId);
+      const companyDocSnap = await getDoc(companyDocRef);
+      if (companyDocSnap.exists()) {
+        companyName =
+          companyDocSnap.data().Name ||
+          companyDocSnap.data().name ||
+          companyName;
+      } else {
+        console.warn(
+          `Company document not found for ID: ${currentUserCompanyId}`,
+        );
       }
 
-      // 3. Fetch Employee's DAILY Doses for the selected year
-      const dosesRef = collection(db, "employees", user.uid, "doses");
+      // --- MODIFICACIÓN: Obtener dosis desde la ruta correcta ---
+      const dosesRef = collection(
+        db,
+        "companies",
+        currentUserCompanyId,
+        "employees",
+        user.uid,
+        "doses",
+      );
+      // --- FIN MODIFICACIÓN ---
       const q = query(dosesRef, where("year", "==", selectedYear));
       const snapshot = await getDocs(q);
 

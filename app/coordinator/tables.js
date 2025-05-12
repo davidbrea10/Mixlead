@@ -10,7 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-export default function Graph() {
+export default function Tables() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();

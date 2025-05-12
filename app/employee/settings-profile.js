@@ -8,6 +8,7 @@ import {
   Modal,
   Animated,
   Platform,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -22,6 +23,7 @@ import {
   where,
   getDocs,
   query,
+  collectionGroup,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import i18n from "../locales/i18n";
@@ -39,50 +41,124 @@ export default function Profile() {
   const [modalVisible, setModalVisible] = useState(false);
   const [companyCode, setCompanyCode] = useState("");
   const [codeSubmitted, setCodeSubmitted] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [noCompanyDocId, setNoCompanyDocId] = useState(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const fadeErrorAnim = useRef(new Animated.Value(1)).current;
 
-  const auth = getAuth();
-  const db = getFirestore();
+  const authInstance = getAuth();
+  const dbInstance = getFirestore();
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserDataAndNoCompanyId = async () => {
+      setLoading(true);
+      setError(null);
+      setUserData(null);
+      setCompanyName(null);
+      setNoCompanyDocId(null); // Resetear
+
+      let fetchedUserData = null;
+      let fetchedUserCompanyId = null;
+      let actualNoCompanyId = null;
+
       try {
-        const user = auth.currentUser;
+        // Primero, identificar el ID de "No Company"
+        // AJUSTA "No Company" AL NOMBRE REAL O IDENTIFICADOR EN TU FIRESTORE
+        const companiesRef = collection(dbInstance, "companies");
+        const noCompanyQuery = query(
+          companiesRef,
+          where("Name", "==", "No Company"),
+        );
+        const noCompanySnapshot = await getDocs(noCompanyQuery);
+
+        if (!noCompanySnapshot.empty) {
+          actualNoCompanyId = noCompanySnapshot.docs[0].id;
+          setNoCompanyDocId(actualNoCompanyId);
+          console.log(
+            "Actual 'No Company' ID identified as:",
+            actualNoCompanyId,
+          );
+        } else {
+          console.warn(
+            "'No Company' document not found in 'companies' collection. Functionality relying on it might be affected.",
+          );
+        }
+
+        // Luego, buscar los datos del usuario actual
+        const user = authInstance.currentUser;
         if (user) {
-          const docRef = doc(db, "employees", user.uid);
-          const docSnap = await getDoc(docRef);
+          const employeesQueryRef = collectionGroup(dbInstance, "employees");
+          const q = query(employeesQueryRef, where("email", "==", user.email));
+          const querySnapshot = await getDocs(q);
 
-          if (docSnap.exists()) {
-            const data = docSnap.data();
+          if (!querySnapshot.empty) {
+            const userDocSnap = querySnapshot.docs[0];
+            fetchedUserData = userDocSnap.data();
+            fetchedUserCompanyId = fetchedUserData.companyId; // ID de la compañía actual del usuario
+            console.log("User data fetched from path:", userDocSnap.ref.path);
 
-            // Formatear la fecha de nacimiento si existe
-            if (data.birthDate) {
-              const birthDate = new Date(data.birthDate);
-
-              // Verificar si la fecha es válida
-              if (!isNaN(birthDate.getTime())) {
-                data.birthDate = format(birthDate, "dd MMMM yyyy", {
-                  locale: i18n.language === "es" ? es : enUS,
-                });
+            // Formatear fecha de nacimiento
+            if (fetchedUserData.birthDate) {
+              const dateParts = fetchedUserData.birthDate.split("-");
+              let birthDateObj;
+              if (dateParts.length === 3) {
+                birthDateObj = new Date(
+                  Date.UTC(
+                    parseInt(dateParts[0]),
+                    parseInt(dateParts[1]) - 1,
+                    parseInt(dateParts[2]),
+                  ),
+                );
               } else {
-                data.birthDate = null; // O maneja el error de otra forma, como un mensaje
-                console.error("Invalid birthDate value:", data.birthDate);
+                birthDateObj = new Date(fetchedUserData.birthDate);
               }
+              if (!isNaN(birthDateObj.getTime())) {
+                fetchedUserData.formattedBirthDate = format(
+                  birthDateObj,
+                  "dd MMMM yyyy",
+                  {
+                    locale: i18n.language === "es" ? es : enUS,
+                  },
+                );
+              } else {
+                fetchedUserData.formattedBirthDate = fetchedUserData.birthDate;
+              }
+            } else {
+              fetchedUserData.formattedBirthDate = t(
+                "profile.notAvailable",
+                "N/A",
+              );
             }
+            setUserData(fetchedUserData);
 
-            setUserData(data);
-
-            if (data.companyId) {
-              const companyRef = doc(db, "companies", data.companyId);
+            // Determinar el companyName a mostrar
+            if (
+              fetchedUserCompanyId === actualNoCompanyId &&
+              actualNoCompanyId !== null
+            ) {
+              setCompanyName(t("profile.noCompanyAssigned")); // Mostrar "No asignado" si está en "No Company"
+            } else if (fetchedUserCompanyId) {
+              const companyRef = doc(
+                dbInstance,
+                "companies",
+                fetchedUserCompanyId,
+              );
               const companySnap = await getDoc(companyRef);
-
               if (companySnap.exists()) {
-                setCompanyName(companySnap.data().Name);
+                setCompanyName(
+                  companySnap.data().Name ||
+                    companySnap.data().name ||
+                    t("profile.unknownCompany"),
+                );
               } else {
-                setError(t("profile.fetchUserDataError"));
+                console.warn(
+                  `Company with ID ${fetchedUserCompanyId} not found for user ${user.uid}.`,
+                );
+                setCompanyName(t("profile.noCompanyAssigned"));
               }
+            } else {
+              setCompanyName(t("profile.noCompanyAssigned"));
             }
           } else {
             setError(t("profile.userDataNotFound"));
@@ -91,33 +167,227 @@ export default function Profile() {
           setError(t("profile.userNotAuthenticated"));
         }
       } catch (err) {
-        setError(`${t("profile.fetchUserDataError")}: ${err.message}`);
+        console.error("Error fetching data:", err);
+        if (err.code === "failed-precondition") {
+          setError(t("errors.firestoreIndexRequired"));
+        } else {
+          setError(`${t("profile.fetchUserDataError")}: ${err.message}`);
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserData();
-  }, []);
+    const handleLanguageChange = () => {
+      if (authInstance.currentUser) {
+        fetchUserDataAndNoCompanyId();
+      }
+    };
+    i18n.on("languageChanged", handleLanguageChange);
+    fetchUserDataAndNoCompanyId();
+    return () => {
+      i18n.off("languageChanged", handleLanguageChange);
+    };
+  }, [i18n.language]);
 
   const handleBack = () => {
     router.back();
   };
 
   const handleHome = () => {
-    router.replace("employee/home");
+    // Esta ruta sugiere que es un perfil de empleado normal
+    router.replace("/employee/home");
   };
 
-  const handleCompany = () => {
+  const handleCompanyModalOpen = () => {
+    setCompanyCode("");
+    setErrorMessage("");
+    setCodeSubmitted(false);
     setModalVisible(true);
   };
 
+  const handleCompanyCodeSubmit = async () => {
+    if (companyCode.trim() === "") {
+      setErrorMessage(t("profile.modal.submitEmpty", "Code cannot be empty."));
+      // ... animación de error ...
+      return;
+    }
+    setSubmitLoading(true);
+    setErrorMessage("");
+    try {
+      const user = authInstance.currentUser;
+      if (!user || !userData) {
+        // userData también es necesario para los datos de la aplicación
+        setErrorMessage(
+          t("profile.modal.submitUserError", "User not available."),
+        );
+        setSubmitLoading(false);
+        return;
+      }
+      const userId = user.uid;
+      const targetCompanyId = companyCode.trim(); // companyCode es el ID de la compañía destino
+
+      // Verificar si la compañía a la que se aplica existe
+      const targetCompanyRef = doc(dbInstance, "companies", targetCompanyId);
+      const targetCompanySnap = await getDoc(targetCompanyRef);
+      if (!targetCompanySnap.exists()) {
+        setErrorMessage(
+          t("profile.modal.submitInvalidCode", "Invalid company code."),
+        );
+        setSubmitLoading(false);
+        return;
+      }
+
+      // --- MODIFICACIÓN: Buscar coordinadores DENTRO de la compañía especificada por companyCode ---
+      const coordinatorsInTargetCompanyRef = collection(
+        dbInstance,
+        "companies",
+        targetCompanyId,
+        "employees",
+      );
+      const coordinatorsQuery = query(
+        coordinatorsInTargetCompanyRef,
+        where("role", "==", "coordinator"),
+      );
+      // --- FIN MODIFICACIÓN ---
+
+      const coordinatorsSnap = await getDocs(coordinatorsQuery);
+
+      if (coordinatorsSnap.empty) {
+        setErrorMessage(
+          t(
+            "profile.modal.submitNoCoordinators",
+            "No coordinators found for this company to process applications.",
+          ),
+        );
+        setSubmitLoading(false);
+        return;
+      }
+
+      let alreadyAppliedToAnyCoordinatorInThisCompany = false;
+      let applicationSent = false;
+
+      for (const coordinatorDoc of coordinatorsSnap.docs) {
+        const coordinatorId = coordinatorDoc.id;
+
+        // --- MODIFICACIÓN: Ruta para la subcolección 'applications' ---
+        const applicationRef = doc(
+          dbInstance,
+          "companies",
+          targetCompanyId,
+          "employees",
+          coordinatorId,
+          "applications",
+          userId,
+        );
+        // --- FIN MODIFICACIÓN ---
+
+        const existingApp = await getDoc(applicationRef);
+
+        if (!existingApp.exists()) {
+          await setDoc(applicationRef, {
+            id: userId, // ID del aplicante
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            dni: userData.dni,
+            email: userData.email, // Guardar email del aplicante
+            createdAt: new Date(),
+            status: "pending", // Estado inicial de la aplicación
+          });
+          applicationSent = true;
+          console.log(
+            `Application sent to coordinator ${coordinatorId} in company ${targetCompanyId}`,
+          );
+        } else {
+          console.log(
+            `Application already exists for coordinator ${coordinatorId} in company ${targetCompanyId}`,
+          );
+          alreadyAppliedToAnyCoordinatorInThisCompany = true;
+        }
+      }
+
+      if (applicationSent) {
+        setCodeSubmitted(true);
+        // ... animación de éxito ...
+        // eslint-disable-next-line no-undef
+        setTimeout(() => setModalVisible(false), 3500); // Cerrar modal tras éxito
+      } else if (alreadyAppliedToAnyCoordinatorInThisCompany) {
+        setErrorMessage(
+          t(
+            "profile.modal.submitAlreadySent",
+            "Application already sent to this company.",
+          ),
+        );
+      } else {
+        // Esto no debería ocurrir si se encontraron coordinadores y no había aplicaciones previas
+        setErrorMessage(
+          t("profile.modal.submitError", "Could not send application."),
+        );
+      }
+    } catch (err) {
+      console.error("Error submitting company code:", err);
+      setErrorMessage(t("profile.modal.submitError", "An error occurred."));
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
   if (loading) {
-    return <ActivityIndicator size={50} color="#FF9300" />;
+    return (
+      <LinearGradient
+        colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      >
+        <ActivityIndicator
+          size={Platform.OS === "ios" ? "large" : 50}
+          color="#FF8C00"
+        />
+      </LinearGradient>
+    );
   }
 
+  const showJoinCompanyButton =
+    !userData?.companyId ||
+    (noCompanyDocId && userData?.companyId === noCompanyDocId);
+
   if (error) {
-    return <Text style={{ color: "red", padding: 20 }}>{error}</Text>;
+    return (
+      <LinearGradient
+        colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 20,
+        }}
+      >
+        <Ionicons name="alert-circle-outline" size={60} color="red" />
+        <Text
+          style={{
+            color: "red",
+            fontSize: 18,
+            textAlign: "center",
+            marginTop: 10,
+          }}
+        >
+          {error}
+        </Text>
+        <Pressable
+          onPress={() => router.replace("/auth/login")}
+          style={{
+            marginTop: 20,
+            backgroundColor: "#FF9300",
+            paddingVertical: 10,
+            paddingHorizontal: 20,
+            borderRadius: 8,
+          }}
+        >
+          <Text style={{ color: "white", fontSize: 16 }}>
+            {t("common.goToLogin", "Go to Login")}
+          </Text>
+        </Pressable>
+      </LinearGradient>
+    );
   }
 
   return (
@@ -172,53 +442,72 @@ export default function Profile() {
       </View>
 
       {/* Main Content */}
-      <View style={{ flex: 1, padding: 20 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
         {[
-          { label: t("profile.name"), value: userData?.firstName || "N/A" },
-          { label: t("profile.lastName"), value: userData?.lastName || "N/A" },
-          { label: t("profile.dni"), value: userData?.dni || "N/A" },
-          { label: t("profile.telephone"), value: userData?.phone || "N/A" },
-          { label: t("profile.birth"), value: userData?.birthDate || "N/A" },
-          { label: t("profile.email"), value: userData?.email || "N/A" },
-          userData?.companyId && {
-            label: t("profile.companyName"),
-            value: companyName || "N/A",
-          },
+          { label: t("profile.name"), value: userData?.firstName },
+          { label: t("profile.lastName"), value: userData?.lastName },
+          { label: t("profile.dni"), value: userData?.dni },
+          { label: t("profile.telephone"), value: userData?.phone },
+          { label: t("profile.birth"), value: userData?.formattedBirthDate }, // Usar fecha formateada
+          { label: t("profile.email"), value: userData?.email },
           {
-            label: t("profile.companyCode"),
-            value: userData?.companyId || t("profile.noCompanyAssigned"),
+            label: t("profile.companyName"),
+            value: companyName || t("profile.noCompanyAssigned"),
           },
-        ]
-          .filter(Boolean)
-          .map((item, index) => (
-            <View key={index} style={{ marginBottom: 10 }}>
-              <Text style={{ fontSize: 16, fontWeight: "bold" }}>
-                {item.label}
-              </Text>
-              <Text style={{ fontSize: 16, color: "grey", marginBottom: 5 }}>
-                {item.value}
-              </Text>
-              <View style={{ height: 1, backgroundColor: "black" }} />
-            </View>
-          ))}
+        ].map((item, index) => (
+          <View key={index} style={{ marginBottom: 15 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: "#333",
+                marginBottom: 3,
+              }}
+            >
+              {item.label}
+            </Text>
+            <Text style={{ fontSize: 18, color: "#555", marginBottom: 8 }}>
+              {item.value || t("profile.notAvailable", "N/A")}
+            </Text>
+            <View style={{ height: 1, backgroundColor: "#ccc" }} />
+          </View>
+        ))}
 
-        {!userData?.companyId && (
-          <>
-            <Text style={{ fontSize: 16, fontWeight: "bold", marginTop: 20 }}>
+        {showJoinCompanyButton && ( // <-- Condición actualizada
+          <View style={{ marginTop: 30, alignItems: "center" }}>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "bold",
+                marginBottom: 10,
+                textAlign: "center",
+              }}
+            >
               {t("profile.joinCompanyQuestion")}
             </Text>
-            <Pressable onPress={handleCompany}>
-              <Text style={{ color: "blue", fontSize: 16 }}>
+            <Pressable
+              onPress={handleCompanyModalOpen}
+              style={{
+                backgroundColor: "#0077B6",
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: "center",
+                paddingHorizontal: 30,
+              }}
+            >
+              <Text
+                style={{ color: "white", fontSize: 16, fontWeight: "bold" }}
+              >
                 {t("profile.joinCompanyAction")}
               </Text>
             </Pressable>
-          </>
+          </View>
         )}
-      </View>
+      </ScrollView>
 
       {/* Modal */}
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
@@ -228,7 +517,7 @@ export default function Profile() {
             flex: 1,
             justifyContent: "center",
             alignItems: "center",
-            backgroundColor: "rgba(0,0,0,0.5)",
+            backgroundColor: "rgba(0,0,0,0.6)",
           }}
         >
           <View
@@ -236,7 +525,7 @@ export default function Profile() {
               backgroundColor: "white",
               padding: 24,
               borderRadius: 16,
-              width: "85%",
+              width: "90%",
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.25,
@@ -245,22 +534,44 @@ export default function Profile() {
             }}
           >
             <Text
-              style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}
+              style={{
+                fontSize: 20,
+                fontWeight: "bold",
+                marginBottom: 10,
+                textAlign: "center",
+              }}
             >
-              {t("profile.modal.title")}
+              {t("profile.modal.title", "Join a Company")}
             </Text>
-            <Text style={{ fontSize: 14, marginBottom: 20 }}>
-              {t("profile.modal.description")}
+            <Text
+              style={{
+                fontSize: 14,
+                marginBottom: 20,
+                textAlign: "center",
+                color: "#555",
+              }}
+            >
+              {t(
+                "profile.modal.description",
+                "Enter the code provided by your company to send a join request.",
+              )}
             </Text>
-            <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 8 }}>
-              {t("profile.modal.companyCodeLabel")}
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "600",
+                marginBottom: 8,
+                color: "#333",
+              }}
+            >
+              {t("profile.modal.companyCodeLabel", "Company Code:")}
             </Text>
 
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                marginBottom: 10,
+                marginBottom: 15,
               }}
             >
               <TextInput
@@ -269,137 +580,51 @@ export default function Profile() {
                   setCompanyCode(text);
                   setErrorMessage("");
                   setCodeSubmitted(false);
-                  fadeAnim.setValue(1); // Reinicia la opacidad al escribir
+                  fadeAnim.setValue(1);
                 }}
-                placeholder={t("profile.modal.companyCodePlaceholder")}
+                placeholder={t(
+                  "profile.modal.companyCodePlaceholder",
+                  "Enter code",
+                )}
                 placeholderTextColor={"gray"}
                 style={{
                   flex: 1,
                   borderWidth: 1,
                   borderColor: "#ccc",
                   borderRadius: 8,
-                  padding: 10,
+                  padding: 12,
                   fontSize: 16,
+                  marginRight: 10,
                 }}
+                autoCapitalize="none"
               />
               <Pressable
-                onPress={async () => {
-                  if (companyCode.trim() === "") {
-                    setErrorMessage(t("profile.modal.submitEmpty"));
-                    fadeErrorAnim.setValue(1);
-                    // eslint-disable-next-line no-undef
-                    setTimeout(() => {
-                      Animated.timing(fadeErrorAnim, {
-                        toValue: 0,
-                        duration: 1000,
-                        useNativeDriver: true,
-                      }).start(() => setErrorMessage(""));
-                    }, 3000);
-                    return;
-                  }
-
-                  try {
-                    if (!auth.currentUser) {
-                      setErrorMessage(t("profile.modal.emptyCodeError"));
-                      return;
-                    }
-
-                    const user = auth.currentUser;
-                    const userId = user.uid;
-
-                    const employeesRef = collection(db, "employees");
-                    const coordinatorsQuery = query(
-                      employeesRef,
-                      where("companyId", "==", companyCode),
-                      where("role", "==", "coordinator"),
-                    );
-
-                    console.log("Coordinators Query:", coordinatorsQuery);
-
-                    const coordinatorsSnap = await getDocs(coordinatorsQuery);
-
-                    if (coordinatorsSnap.empty) {
-                      setErrorMessage(t("profile.modal.submitNoCoordinators"));
-                      return;
-                    }
-
-                    let alreadyApplied = false;
-
-                    for (const docSnap of coordinatorsSnap.docs) {
-                      const coordinatorId = docSnap.id;
-
-                      console.log("Coordinator ID:", coordinatorId);
-
-                      const applicationRef = doc(
-                        db,
-                        "employees",
-                        coordinatorId,
-                        "applications",
-                        userId,
-                      );
-
-                      console.log("Application Reference:", applicationRef);
-
-                      const existingApp = await getDoc(applicationRef);
-
-                      console.log(
-                        "Existing Application:",
-                        existingApp.exists(),
-                      );
-
-                      if (!existingApp.exists()) {
-                        console.log("Creating new application...");
-                        await setDoc(applicationRef, {
-                          id: userId,
-                          firstName: userData.firstName,
-                          lastName: userData.lastName,
-                          dni: userData.dni,
-                          createdAt: new Date(),
-                        });
-                        console.log("Application created successfully.");
-                      } else {
-                        alreadyApplied = true;
-                      }
-                    }
-
-                    if (alreadyApplied) {
-                      setErrorMessage(t("profile.modal.submitAlreadySent"));
-                    } else {
-                      setCodeSubmitted(true);
-                      setErrorMessage("");
-
-                      // eslint-disable-next-line no-undef
-                      setTimeout(() => {
-                        Animated.timing(fadeAnim, {
-                          toValue: 0,
-                          duration: 1000,
-                          useNativeDriver: true,
-                        }).start(() => setCodeSubmitted(false));
-                      }, 3000);
-                    }
-                  } catch (err) {
-                    console.error(err);
-                    setErrorMessage(t("profile.modal.submitError"));
-                  }
-                }}
+                onPress={handleCompanyCodeSubmit}
+                disabled={submitLoading}
                 style={{
-                  backgroundColor: "#0077B6",
-                  padding: 10,
+                  backgroundColor: submitLoading ? "#ccc" : "#0077B6",
+                  padding: 12,
                   borderRadius: 8,
-                  marginLeft: 8,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minWidth: 50,
                 }}
               >
-                <Ionicons name="arrow-forward" size={20} color="white" />
+                {submitLoading ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Ionicons name="arrow-forward" size={24} color="white" />
+                )}
               </Pressable>
             </View>
 
-            {/* Error message */}
             {errorMessage !== "" && (
-              <Animated.View style={{ opacity: fadeErrorAnim }}>
+              <Animated.View
+                style={{ opacity: fadeErrorAnim, marginBottom: 10 }}
+              >
                 <Text
                   style={{
                     color: "red",
-                    marginBottom: 10,
                     textAlign: "center",
                     fontWeight: "600",
                   }}
@@ -408,40 +633,27 @@ export default function Profile() {
                 </Text>
               </Animated.View>
             )}
-
-            {/* Success message */}
             {codeSubmitted && (
-              <Animated.View style={{ opacity: fadeAnim }}>
+              <Animated.View style={{ opacity: fadeAnim, marginBottom: 10 }}>
                 <Text
                   style={{
                     color: "#2E7D32",
-                    marginBottom: 10,
                     textAlign: "center",
                     fontWeight: "600",
                   }}
                 >
-                  {t("profile.modal.submitSuccess")}
+                  {t("profile.modal.submitSuccess", "Request Sent!")}
                 </Text>
               </Animated.View>
             )}
 
             <Pressable
               onPress={() => setModalVisible(false)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                alignSelf: "center",
-              }}
+              style={{ alignSelf: "center", marginTop: 10, paddingVertical: 8 }}
             >
-              <Text style={{ color: "blue", fontSize: 16 }}>
-                {t("profile.modal.continueGuest")}
+              <Text style={{ color: "#0077B6", fontSize: 16 }}>
+                {t("common.cancel", "Cancel")}
               </Text>
-              <Ionicons
-                name="arrow-forward-outline"
-                size={16}
-                color="blue"
-                style={{ marginLeft: 4 }}
-              />
             </Pressable>
           </View>
         </View>
