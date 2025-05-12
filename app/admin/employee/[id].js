@@ -316,17 +316,13 @@ export default function EmployeeDetail() {
                 style={styles.modalContent}
                 onStartShouldSetResponder={() => true}
               >
-                {/* Prevent overlay press closing when interacting with content */}
-                <Text style={styles.modalTitle}>
-                  {t("employee_details.selectRole")}
-                </Text>
                 {roles.map((role) => (
                   <TouchableOpacity
                     key={role}
                     onPress={() => handleRoleSelect(role)}
-                    style={styles.modalOption}
+                    style={styles.modalItem}
                   >
-                    <Text style={styles.modalOptionText}>{role}</Text>
+                    <Text style={styles.modalItemText}>{role}</Text>
                   </TouchableOpacity>
                 ))}
                 <Pressable
@@ -512,58 +508,41 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: "#1F1F1F", // Dark background
-    padding: 24,
-    borderRadius: 20,
+    backgroundColor: "#FFF",
+    borderRadius: 15,
+    padding: 20,
     width: "85%",
-    maxWidth: 340,
-    alignItems: "center",
+    maxHeight: "70%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
   },
-  // Optional: Title style if you add one
-  // modalTitleText: { ... },
-  modalMessageText: {
-    color: "white",
-    fontSize: 17,
+  modalItem: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  modalItemText: {
+    fontSize: 18,
+    color: "#333",
     textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 24,
   },
-  modalButtonRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
-    marginTop: 10,
-  },
-  modalButton: {
-    flex: 1,
+  modalCloseButton: {
+    marginTop: 15,
+    backgroundColor: "#FF9300",
     paddingVertical: 12,
-    paddingHorizontal: 20,
     borderRadius: 10,
     alignItems: "center",
-    marginHorizontal: 8,
-    minWidth: 100,
   },
-  modalCancelButton: {
-    backgroundColor: "#4A4A4A", // Dark grey for Cancel/No
-  },
-  modalConfirmButton: {
-    backgroundColor: "#D32F2F", // Destructive red for Delete/Yes
-  },
-  modalButtonText: {
+  modalCloseButtonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "600",
-  },
-  modalConfirmButtonText: {
-    // Optional: Specific styles for confirm text
+    fontWeight: "bold",
   },
   buttonContainer: {
     flexDirection: "row",

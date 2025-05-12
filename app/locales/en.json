@@ -37,8 +37,8 @@
     "invalidPhone": "Invalid phone number format (9 digits)",
     "invalidEmail": "Invalid email format",
     "ageRestriction": "You must be at least 18 years old",
-    "invalidPassword": "Password must be at least 8 characters long and contain at least one letter and one number."
-
+    "invalidPassword": "Password must be at least 8 characters long and contain at least one letter and one number.",
+    "prohibitedRadiusMissing": "Prohibited radius is missing"
   },
   "register": {
     "successTitle": "Registration Successful",
@@ -697,6 +697,10 @@
   "error": {
     "title": "Error",
     "message": "An error occurred. Please try again."
+  },
+
+  "tables": {
+    "header.title": "Tables"
   }
   
 }

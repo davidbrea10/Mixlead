@@ -37,7 +37,8 @@
     "invalidPhone": "Formato de teléfono inválido (9 dígitos)",
     "invalidEmail": "Formato de correo electrónico inválido",
     "ageRestriction": "Debes tener al menos 18 años",
-    "invalidPassword": "La contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número."
+    "invalidPassword": "La contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número.",
+    "prohibitedRadiusMissing": "El radio de prohibición no puede estar vacío."
   },
   "register": {
     "successTitle": "Registro Exitoso",
@@ -681,6 +682,10 @@
   "error": {
     "title": "Error",
     "message": "Ocurrió un error. Por favor, inténtalo de nuevo."
+  },
+
+  "tables": {
+    "header.title": "Tablas"
   }
 }
   

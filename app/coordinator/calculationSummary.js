@@ -55,14 +55,16 @@ export default function CalculationSummary() {
       params: {
         latitude: null, // Aún no tenemos lat/lon aquí, se marcarán en Graph
         longitude: null,
-        radius: params.distanceValueForSummary, // El resultado del cálculo (asumimos que está en metros)
+        radiusControlled: params.distanceForControlled, // El resultado del cálculo (asumimos que está en metros)
+        radiusLimited: params.distanceForLimited, // El resultado del cálculo (asumimos que está en metros)
+        radiusProhibited: params.distanceForProhibited, // El resultado del cálculo (asumimos que está en metros)
         radiusUnit: "m", // Especificar la unidad
       },
     });
   };
 
   const handleTable = () => {
-    router.push("/coordinator/table");
+    router.push("/coordinator/tables");
   };
 
   const handleSaveDose = async () => {

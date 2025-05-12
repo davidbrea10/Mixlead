@@ -111,6 +111,8 @@ export default function Login() {
         errorMessage = t("too_many_attempts");
       } else if (error.code === "auth/invalid-email") {
         errorMessage = t("invalid_email_format");
+      } else if (error.code === "auth/network-request-failed") {
+        errorMessage = t("network_error");
       }
 
       // Remove or comment out this line to hide logs from the console:
