@@ -12,8 +12,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase/config";
+import { collectionGroup, getDocs, query, where } from "firebase/firestore";
+import { db, auth } from "../../firebase/config";
 import i18n from "../locales/i18n";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
@@ -29,34 +29,51 @@ export default function Profile() {
   useEffect(() => {
     const fetchUserData = async () => {
       setLoading(true);
+      setUserData(null); // Resetear datos al inicio de la carga
       try {
-        const authInstance = getAuth(); // Use getAuth() instance
+        const authInstance = getAuth();
         const user = authInstance.currentUser;
 
         if (!user) {
-          // 2. Replace Alert with Toast
           Toast.show({
             type: "error",
-            text1: t("errors.errorTitle", "Error"), // Use generic title or add specific one
-            text2: t("profile.userNotAuthenticated"),
+            text1: t("errors.errorTitle", "Error"),
+            text2: t("profile.userNotAuthenticated", "User not authenticated."), // Añadir traducción
           });
           setLoading(false);
-          // Optionally redirect
-          // router.replace("/");
+          // router.replace("/"); // Opcional: Redirigir al login
           return;
         }
 
-        const docRef = doc(db, "employees", user.uid);
-        const docSnap = await getDoc(docRef);
+        // --- MODIFICACIÓN: Buscar datos del usuario usando Collection Group Query POR EMAIL ---
+        console.log(
+          `Workspaceing profile data for user: ${user.uid}, email: ${user.email}`,
+        );
+        const employeesGroupRef = collectionGroup(db, "employees"); // Referencia al grupo 'employees'
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
+        // Buscar en el grupo 'employees' donde el campo 'email' coincida
+        const userDocumentQuery = query(
+          employeesGroupRef,
+          where("email", "==", user.email),
+        );
+        const querySnapshot = await getDocs(userDocumentQuery);
+        // --- FIN DE LA MODIFICACIÓN ---
 
-          // Formatear la fecha de nacimiento si existe
+        if (!querySnapshot.empty) {
+          // Debería haber solo un resultado si los emails son únicos
+          if (querySnapshot.size > 1) {
+            console.warn(
+              `Multiple profiles found for email ${user.email}. Using the first one.`,
+            );
+          }
+          const userDocSnap = querySnapshot.docs[0]; // Tomar el primer documento encontrado
+          const data = userDocSnap.data();
+          console.log("User data found in path:", userDocSnap.ref.path);
+
+          // Formatear la fecha de nacimiento (lógica existente)
           if (data.birthDate) {
             try {
-              // Handle potential invalid date strings from Firestore
-              const dateParts = data.birthDate.split("-"); // Assuming YYYY-MM-DD
+              const dateParts = data.birthDate.split("-");
               if (dateParts.length === 3) {
                 const birthDateObj = new Date(
                   Date.UTC(
@@ -68,64 +85,79 @@ export default function Profile() {
                 if (!isNaN(birthDateObj.getTime())) {
                   data.birthDateFormatted = format(
                     birthDateObj,
-                    "dd MMMM yyyy",
-                    {
-                      locale: i18n.language === "es" ? es : enUS,
-                    },
+                    "dd MMMM yyyy", // Formato deseado
+                    { locale: i18n.language === "es" ? es : enUS },
                   );
                 } else {
                   data.birthDateFormatted = data.birthDate;
-                } // Show original if invalid
+                }
               } else {
                 data.birthDateFormatted = data.birthDate;
-              } // Show original if format wrong
+              }
             } catch (formatError) {
               console.error("Error formatting birth date:", formatError);
-              data.birthDateFormatted = data.birthDate; // Fallback
+              data.birthDateFormatted = data.birthDate;
             }
           } else {
-            data.birthDateFormatted = "N/A"; // Handle missing date explicitly
+            data.birthDateFormatted = t("profile.notAvailable", "N/A"); // Usar traducción
           }
-
           setUserData(data);
         } else {
-          // 3. Replace Alert with Toast
+          console.warn(
+            `No profile data found in Firestore for user ${user.uid} with email ${user.email}.`,
+          );
           Toast.show({
             type: "error",
             text1: t("errors.errorTitle", "Error"),
-            text2: t("profile.userDataNotFound"),
+            text2: t("profile.userDataNotFound", "User data not found."), // Añadir traducción
           });
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
-        // 4. Replace Alert with Toast (show generic message)
-        Toast.show({
-          type: "error",
-          text1: t("errors.errorTitle", "Error"),
-          // Use original specific error key + fallback generic message
-          text2: t(
-            "profile.fetchUserDataError",
-            "Could not fetch profile data.",
-          ),
-        });
+        // Verificar si el error es por índice faltante
+        if (error.code === "failed-precondition") {
+          console.error(
+            "Query failed likely due to missing Firestore index for collectionGroup 'employees' on field 'email'. Check console/Firebase for index creation link.",
+          );
+          Toast.show({
+            type: "error",
+            text1: t("errors.errorTitle"),
+            text2: t(
+              "errors.firestoreIndexRequired",
+              "A database configuration is needed. Please try again later or contact support.",
+            ),
+            visibilityTime: 5000,
+          });
+        } else {
+          Toast.show({
+            type: "error",
+            text1: t("errors.errorTitle", "Error"),
+            text2: t(
+              "profile.fetchUserDataError",
+              "Could not fetch profile data.",
+            ), // Añadir traducción
+          });
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    // Listen for language changes to reformat date
     const handleLanguageChange = () => {
-      fetchUserData(); // Refetch data to reformat date on language change
+      // Refresca los datos para que la fecha se reformatee con el nuevo locale
+      if (auth.currentUser) {
+        // Solo si hay un usuario
+        fetchUserData();
+      }
     };
+
     i18n.on("languageChanged", handleLanguageChange);
+    fetchUserData(); // Carga inicial
 
-    fetchUserData();
-
-    // Cleanup listener on unmount
     return () => {
       i18n.off("languageChanged", handleLanguageChange);
     };
-  }, [t, i18n.language]); // Add t and i18n.language as dependencies
+  }, [t, i18n.language]); // 't' y 'i18n.language' para que se actualice si cambian
 
   const handleBack = () => {
     router.back();

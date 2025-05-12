@@ -147,6 +147,7 @@
     "selectRolePlaceholder": "Selecciona un rol",
     "save": "Guardar cambios",
     "delete": "Eliminar",
+    "success.delete": "Empleado eliminado correctamente",
     "cancel": "Cancelar",
     "delete1": "Eliminar",
     "confirmDeleteTitle": "Confirmar eliminación",

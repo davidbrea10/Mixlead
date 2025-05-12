@@ -23,7 +23,15 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  collection, // <-- Necesario
+  query, // <-- Necesario
+  where, // <-- Necesario
+  getDocs, // <-- Necesario
+  getFirestore, // <-- Necesario si no usas 'db' directamente
+} from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import i18n from "../locales/i18n"; // Importa la configuración de i18next
 import { format } from "date-fns"; // Importamos date-fns para formatear la fecha
@@ -212,18 +220,16 @@ export default function Register() {
       confirmPassword,
     } = form;
 
+    // --- Validaciones previas (sin cambios) ---
     if (!termsAccepted) {
       Toast.show({
         type: "error",
-        text1: t("errors.errorTitle", "Error"),
-        text2: t("register.errors.acceptTerms"), // <-- AÑADIR ESTA LLAVE DE TRADUCCIÓN
+        text1: t("errors.errorTitle"),
+        text2: t("register.errors.acceptTerms"),
         visibilityTime: 3000,
       });
-      // Si tienes estado de error para los términos, podrías establecerlo aquí
-      // setErrors(prev => ({ ...prev, termsAccepted: t("register.errors.acceptTerms") }));
       return;
     }
-
     if (
       !firstName ||
       !lastName ||
@@ -236,107 +242,144 @@ export default function Register() {
     ) {
       Toast.show({
         type: "error",
-        text1: t("errors.errorTitle", "Error"), // Add a generic title translation
+        text1: t("errors.errorTitle"),
         text2: t("errors.fillAllFields"),
         visibilityTime: 3000,
       });
       return;
     }
-
     if (password !== confirmPassword) {
       Toast.show({
         type: "error",
-        text1: t("errors.errorTitle", "Error"),
+        text1: t("errors.errorTitle"),
         text2: t("errors.passwordsMismatch"),
         visibilityTime: 3000,
       });
       return;
     }
-
-    // Check if there are any existing validation errors displayed
     const hasErrors = Object.values(errors).some((error) => error !== "");
     if (hasErrors) {
       Toast.show({
         type: "error",
-        text1: t("errors.errorTitle", "Error"),
-        text2: t(
-          "errors.fixValidationErrors",
-          "Please fix the errors before submitting.",
-        ), // Add this translation
+        text1: t("errors.errorTitle"),
+        text2: t("errors.fixValidationErrors"),
         visibilityTime: 3000,
       });
       return;
     }
+    // --- Fin Validaciones previas ---
 
-    setLoading(true); // Set loading true
+    setLoading(true);
+    // const firestore = getFirestore(app); // Obtener instancia si 'db' no está disponible
+    const firestore = db; // Usar 'db' si ya está importado y configurado
+
     try {
-      // Crear usuario en Firebase Authentication
+      // ---- PASO 1: Buscar ID de "No Company" ----
+      const companiesColRef = collection(firestore, "companies");
+      const noCompanyQuery = query(
+        companiesColRef,
+        where("Name", "==", "No Company"),
+      );
+      const noCompanySnapshot = await getDocs(noCompanyQuery);
+
+      let noCompanyId = null;
+      if (!noCompanySnapshot.empty) {
+        noCompanyId = noCompanySnapshot.docs[0].id;
+        console.log("Found 'No Company' ID for registration:", noCompanyId);
+      } else {
+        // Error crítico: la compañía inicial no existe
+        console.error(
+          "Critical Setup Error: The 'No Company' document was not found during registration.",
+        );
+        throw new Error(
+          t(
+            "register.errors.noCompanySetupMissing",
+            "Registration cannot proceed: Initial company setup missing. Please contact support.",
+          ),
+        );
+      }
+      // ---- FIN PASO 1 ----
+
+      // ---- PASO 2: Crear usuario en Auth ----
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password,
       );
       const user = userCredential.user;
+      // ---- FIN PASO 2 ----
 
-      // Enviar correo de verificación
+      // ---- PASO 3: Enviar email de verificación (sin cambios) ----
       await sendEmailVerification(user);
+      // ---- FIN PASO 3 ----
 
-      // Guardar datos adicionales del usuario en Firestore
-      await setDoc(doc(db, "employees", user.uid), {
+      // ---- PASO 4: Guardar datos en Firestore (RUTA MODIFICADA) ----
+      const employeeDocRef = doc(
+        firestore,
+        "companies",
+        noCompanyId,
+        "employees",
+        user.uid,
+      );
+
+      await setDoc(employeeDocRef, {
         firstName,
         lastName,
-        role: "employee", // Default role
+        role: "employee", // Rol por defecto
         dni,
         phone,
-        birthDate: formBirthDate, // Save formatted date string
-        email,
-        companyId: "", // Initially empty
-        createdAt: new Date(), // Use Firestore server timestamp if preferred
+        birthDate: formBirthDate, // Guardar la fecha formateada
+        email: user.email, // Usar el email verificado de Auth
+        companyId: noCompanyId, // Guardamos el ID de 'No Company' aquí también por si acaso o para referencias futuras
+        // Originalmente puse "", pero guardar el ID real de "No Company" puede ser más útil
+        createdAt: new Date(), // O usar serverTimestamp() de Firestore
+        // Puedes añadir más campos por defecto aquí si es necesario
       });
+      console.log(
+        `Employee ${user.uid} data saved under company ${noCompanyId}`,
+      );
+      // ---- FIN PASO 4 ----
 
       Toast.show({
         type: "success",
-        text1: t("register.successTitle", "Success"), // Add this translation
-        text2: t(
-          "register.successMessage",
-          "Registration successful! Please check your email to verify your account.",
-        ), // Add this translation
+        text1: t("register.successTitle"),
+        text2: t("register.successMessage"),
         visibilityTime: 4000,
       });
 
-      // Redirigir a la pantalla de confirmación de correo
       router.replace("auth/emailConfirmation");
     } catch (error) {
-      // Replace alert with error toast, map common errors
-      let errorMessage = t(
-        "errors.genericError",
-        "An unexpected error occurred. Please try again.",
-      ); // Default message
-      let errorTitle = t("errors.errorTitle", "Error");
+      let errorMessage = t("errors.genericError");
+      let errorTitle = t("errors.errorTitle");
+      console.error("Registration Error Raw:", error); // Log completo del error
 
-      if (error.code === "auth/email-already-in-use") {
-        errorMessage = t(
-          "errors.emailExists",
-          "This email address is already registered.",
-        ); // Add translation
-        setErrors((prev) => ({ ...prev, email: errorMessage })); // Also show error under the field
+      // Mapeo de errores específicos (incluido el nuevo)
+      if (error.message === t("register.errors.noCompanySetupMissing")) {
+        errorMessage = error.message; // Usar el mensaje ya traducido
+        errorTitle = t("errors.setupErrorTitle", "Configuration Error"); // Título específico
+      } else if (error.code === "auth/email-already-in-use") {
+        errorMessage = t("errors.emailExists");
+        setErrors((prev) => ({ ...prev, email: errorMessage }));
       } else if (error.code === "auth/invalid-email") {
-        errorMessage = t(
-          "errors.invalidEmail",
-          "The email address is not valid.",
-        );
+        errorMessage = t("errors.invalidEmail");
         setErrors((prev) => ({ ...prev, email: errorMessage }));
       } else if (error.code === "auth/operation-not-allowed") {
-        errorMessage = t(
-          "errors.authOperationNotAllowed",
-          "Email/password accounts are not enabled.",
-        );
+        errorMessage = t("errors.authOperationNotAllowed");
       } else if (error.code === "auth/weak-password") {
-        errorMessage = t("errors.weakPassword", "The password is too weak."); // Add translation
+        errorMessage = t("errors.weakPassword");
         setErrors((prev) => ({ ...prev, password: errorMessage }));
       } else {
-        // Log unexpected errors for debugging
-        console.error("Registration Error:", error.code, error.message);
+        console.error(
+          "Unexpected Registration Error:",
+          error.code,
+          error.message,
+        );
+        // Para errores inesperados de Firestore u otros, muestra un mensaje genérico
+        // Si error.message tiene algo útil, podrías mostrarlo, pero con cuidado
+        errorMessage = t(
+          "errors.genericRegistrationError",
+          "Could not complete registration. Please try again later.",
+        );
       }
 
       Toast.show({
@@ -346,7 +389,7 @@ export default function Register() {
         visibilityTime: 4000,
       });
     } finally {
-      setLoading(false); // Set loading false
+      setLoading(false);
     }
   };
 

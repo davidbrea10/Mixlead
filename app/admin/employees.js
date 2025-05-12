@@ -13,10 +13,11 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, collectionGroup } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import DropDownPicker from "react-native-dropdown-picker";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
 
 export default function EmployeesScreen() {
   const router = useRouter();
@@ -33,36 +34,97 @@ export default function EmployeesScreen() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
+        // 1. Obtener Compañías
         const companiesSnapshot = await getDocs(collection(db, "companies"));
         const companiesList = companiesSnapshot.docs.map((doc) => ({
           id: doc.id,
-          name: doc.data().name || doc.data().Name || "Nombre no disponible",
+          name:
+            doc.data().Name ||
+            doc.data().name ||
+            t("common.nameNotAvailable", "Nombre no disponible"),
+          // Podrías añadir aquí un campo para identificar "No Company" si lo tienes en Firestore
+          // por ejemplo, isNoCompanyPlaceholder: doc.data().isNoCompanyPlaceholder || false
         }));
-
         companiesList.sort((a, b) => a.name.localeCompare(b.name));
-
         setCompanies(companiesList);
+
+        // Identificar el ID de "No Company"
+        // AJUSTA "No Company" AL NOMBRE REAL O IDENTIFICADOR DE TU "No Company" EN FIRESTORE
+        const noCompanyEntity = companiesList.find(
+          (c) => c.name === "No Company",
+        ); // O el criterio que uses para identificarla
+        const actualNoCompanyId = noCompanyEntity ? noCompanyEntity.id : null;
+        if (actualNoCompanyId) {
+          console.log(
+            "Actual 'No Company' ID identified as:",
+            actualNoCompanyId,
+          );
+        } else {
+          console.warn(
+            "'No Company' entity not found in companiesList. Display logic might be affected.",
+          );
+        }
+
+        // Crear opciones para el DropDownPicker
         setCompanyOptions([
           { label: t("employees.filterAll"), value: null },
-          { label: t("employees.withoutCompany"), value: "none" },
-          ...companiesList.map((c) => ({ label: c.name, value: c.id })),
+          { label: t("employees.withoutCompany"), value: "none" }, // Para filtrar empleados con companyId nulo/vacío
+          ...companiesList
+            // Opcional: Excluir "No Company" del filtro si se maneja por "none"
+            // .filter(c => c.id !== actualNoCompanyId)
+            .map((c) => ({ label: c.name, value: c.id })),
         ]);
 
-        const employeesSnapshot = await getDocs(collection(db, "employees"));
+        // 2. Obtener TODOS los empleados usando Collection Group Query
+        console.log("Fetching employees using collectionGroup...");
+        const employeesQuery = collectionGroup(db, "employees");
+        const employeesSnapshot = await getDocs(employeesQuery);
+        console.log(
+          `Found ${employeesSnapshot.size} total employee documents.`,
+        );
+
+        // 3. Mapear y Procesar Empleados
         const employeesList = employeesSnapshot.docs
           .map((doc) => {
             const data = doc.data();
-            const company = companiesList.find((c) => c.id === data.companyId);
+            const employeeId = doc.id;
+            const companyIdFromEmployee = data.companyId || null; // ID almacenado en el empleado
+
+            let displayCompanyName;
+
+            if (companyIdFromEmployee === actualNoCompanyId) {
+              // Si el empleado pertenece EXPLÍCITAMENTE a la entidad "No Company"
+              displayCompanyName = t(
+                "employees.withoutCompany",
+                "Without company",
+              );
+            } else if (companyIdFromEmployee) {
+              // Si tiene un companyId que NO es el de "No Company"
+              const company = companiesList.find(
+                (c) => c.id === companyIdFromEmployee,
+              );
+              displayCompanyName = company
+                ? company.name
+                : t("employees.withoutCompany", "Without company"); // Fallback si el ID es inválido o la compañía no está
+            } else {
+              // Si el companyId es null, undefined, o vacío
+              displayCompanyName = t(
+                "employees.withoutCompany",
+                "Without company",
+              );
+            }
+
             const fullName =
               `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
-              "Nombre no disponible";
+              t("common.nameNotAvailable", "Nombre no disponible");
 
             return {
-              id: doc.id,
+              id: employeeId,
               name: fullName,
-              companyName: company ? company.name : "Without company",
-              companyId: data.companyId || null,
+              companyName: displayCompanyName, // Nombre de la compañía a mostrar
+              companyId: companyIdFromEmployee, // ID de la compañía para filtrar (puede ser actualNoCompanyId o null)
             };
           })
           .sort((a, b) => a.name.localeCompare(b.name));
@@ -70,14 +132,23 @@ export default function EmployeesScreen() {
         setEmployees(employeesList);
         setFilteredEmployees(employeesList);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching data for employees screen:", error);
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle", "Error"),
+          text2: t(
+            "errors.fetchDataError",
+            "Could not load data. Please try again.",
+          ),
+          visibilityTime: 4000,
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [t]); // 't' como dependencia
 
   const handleBack = () => {
     router.replace("/admin/home");
@@ -90,11 +161,6 @@ export default function EmployeesScreen() {
   const handleSearch = (text) => {
     setSearchText(text);
     filterEmployees(text, selectedCompany);
-  };
-
-  const handleFilterCompany = (companyId) => {
-    setSelectedCompany(companyId);
-    filterEmployees(searchText, companyId);
   };
 
   const filterEmployees = (text, companyId) => {

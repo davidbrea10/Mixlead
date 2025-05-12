@@ -14,9 +14,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collectionGroup,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { auth, db } from "../../firebase/config";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import i18n from "../locales/i18n";
 import Toast from "react-native-toast-message";
@@ -36,19 +43,20 @@ export default function Login() {
   const { t } = useTranslation();
 
   const handleLogin = async () => {
+    // Validación inicial (sin cambios)
     if (!email || !password) {
-      // Use Error Toast for validation
       Toast.show({
         type: "error",
-        text1: t("error_title"), // e.g., "Oh snap!"
+        text1: t("error_title"),
         text2: t("please_enter_credentials"),
-        visibilityTime: 3000, // Optional: duration in ms
+        visibilityTime: 3000,
       });
       return;
     }
 
     setLoading(true);
     try {
+      // 1. Autenticar con Firebase Auth (sin cambios)
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -56,8 +64,8 @@ export default function Login() {
       );
       const user = userCredential.user;
 
+      // 2. Verificar si el email está verificado (sin cambios)
       if (!user.emailVerified) {
-        // Use Error Toast for email verification
         Toast.show({
           type: "error",
           text1: t("error_title"),
@@ -65,24 +73,48 @@ export default function Login() {
           visibilityTime: 4000,
         });
         setLoading(false);
+        // await signOut(auth); // Considerar desloguear
         return;
       }
 
-      const userDocRef = doc(db, "employees", user.uid);
-      const userDoc = await getDoc(userDocRef);
+      // --- PASO 3: Buscar datos usando Collection Group Query POR EMAIL ---
+      // ESTE CÓDIGO YA FUNCIONA CON LA ESTRUCTURA /companies/{id}/employees/{uid}
+      console.log(
+        `User authenticated: ${user.uid}. Searching Firestore data by email: ${user.email}...`,
+      );
+      const employeesGroupRef = collectionGroup(db, "employees"); // Busca en TODAS las colecciones llamadas 'employees'
 
-      if (userDoc.exists()) {
+      // Busca donde el campo 'email' dentro de esos documentos coincida
+      const userQuery = query(
+        employeesGroupRef,
+        where("email", "==", user.email),
+      );
+
+      const userQuerySnapshot = await getDocs(userQuery); // Ejecuta la consulta
+      // --- FIN PASO 3 ---
+
+      // --- PASO 4: Procesar el resultado ---
+      if (!userQuerySnapshot.empty) {
+        // Se encontró el documento del empleado en alguna subcolección 'employees'
+        if (userQuerySnapshot.size > 1) {
+          console.warn(
+            `Warning: Found multiple (${userQuerySnapshot.size}) user data entries for email ${user.email}. Using the first one.`,
+          );
+        }
+        const userDoc = userQuerySnapshot.docs[0];
         const userData = userDoc.data();
         const userRole = userData.role;
 
-        // Show Success Toast just before navigating
+        console.log(`Firestore data found. Role: ${userRole}`);
+
         Toast.show({
           type: "success",
-          text1: t("success_title"), // e.g., "Well done!"
+          text1: t("success_title"),
           text2: t("login_successful"),
-          visibilityTime: 2000, // Shorter duration as navigation follows
+          visibilityTime: 2000,
         });
 
+        // Redirigir según el rol (sin cambios)
         if (userRole === "admin") {
           router.replace("/admin/home");
         } else if (userRole === "coordinator") {
@@ -91,34 +123,37 @@ export default function Login() {
           router.replace("/employee/home");
         }
       } else {
+        // Autenticado, pero no se encontró el documento en Firestore con ese email
+        console.error(
+          `Login Error: Firestore data not found for authenticated user ${user.uid} with email ${user.email} in any 'employees' subcollection.`,
+        );
         Toast.show({
           type: "error",
           text1: t("error_title"),
-          text2: t("user_not_found"),
-          visibilityTime: 3000,
+          text2: t("user_data_not_found"),
+          visibilityTime: 4000,
         });
+        await signOut(auth); // Desloguear si no hay datos
       }
+      // --- FIN PASO 4 ---
     } catch (error) {
+      // --- Manejo de errores de Autenticación (sin cambios) ---
       let errorMessage = t("login_failed");
       if (
         error.code === "auth/user-not-found" ||
-        error.code === "auth/invalid-credential"
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/wrong-password"
       ) {
         errorMessage = t("invalid_credentials");
-      } else if (error.code === "auth/wrong-password") {
-        errorMessage = t("invalid_credentials"); // Corrected: also invalid credentials
       } else if (error.code === "auth/too-many-requests") {
         errorMessage = t("too_many_attempts");
       } else if (error.code === "auth/invalid-email") {
         errorMessage = t("invalid_email_format");
       } else if (error.code === "auth/network-request-failed") {
         errorMessage = t("network_error");
+      } else {
+        console.error("Login Error Raw:", error);
       }
-
-      // Remove or comment out this line to hide logs from the console:
-      // console.error("Login Error:", error.code, error.message);
-
-      // The Toast will still show the user-friendly message in the app:
       Toast.show({
         type: "error",
         text1: t("error_title"),

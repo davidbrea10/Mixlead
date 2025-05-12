@@ -14,7 +14,14 @@ import {
   StyleSheet, // 1. Import StyleSheet
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  collectionGroup,
+  getDocs,
+} from "firebase/firestore";
 import { db } from "../../../firebase/config";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,177 +30,233 @@ import Toast from "react-native-toast-message"; // 2. Import Toast
 
 export default function EmployeeDetail() {
   const { id } = useLocalSearchParams();
+  const employeeId = id;
   const router = useRouter();
-  const [employee, setEmployee] = useState({
-    firstName: "",
-    lastName: "",
-    dni: "",
-    email: "",
-    phone: "",
-    role: "",
-    birthDate: "",
-    companyName: "", // Assuming this comes from employee data now
-    companyId: "", // Keep companyId
-  });
+  const { t } = useTranslation();
+
+  const [employee, setEmployee] = useState(null); // Datos del empleado
+  const [employeeDocRef, setEmployeeDocRef] = useState(null); // <-- NUEVO ESTADO para guardar la referencia completa
   const [loading, setLoading] = useState(true);
   const [isRoleModalVisible, setRoleModalVisible] = useState(false);
-  // Company selection logic seems removed, focusing on role for now.
-  // const [isCompanyModalVisible, setCompanyModalVisible] = useState(false);
-  // const [companies, setCompanies] = useState([]);
-  const [isSaving, setIsSaving] = useState(false); // 3. Add saving state
-  const [isDeleting, setIsDeleting] = useState(false); // State for delete process
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-
-  const { t } = useTranslation(); // Initialize i18n
+  const [originalEmployeeData, setOriginalEmployeeData] = useState(null);
+  const [error, setError] = useState(null); // Estado para manejar errores de carga
 
   useEffect(() => {
     const fetchEmployee = async () => {
-      if (!id) {
+      setLoading(true);
+      setEmployee(null); // Resetear datos previos
+      setEmployeeDocRef(null); // Resetear ref previa
+      setError(null); // Resetear error previo
+
+      if (!employeeId) {
+        console.error("Error: Missing employeeId");
         Toast.show({
           type: "error",
-          text1: t("errors.errorTitle", "Error"),
-          text2: t(
-            "employee_details.errors.invalid_id",
-            "Invalid employee ID.",
-          ), // Add translation
+          text1: t("errors.errorTitle"),
+          text2: t("employee_details.errors.invalid_id"),
         });
-        router.back();
+        setError(t("employee_details.errors.invalid_id"));
+        setLoading(false);
+        // router.back(); // Opcional
         return;
       }
-      setLoading(true);
-      try {
-        const docRef = doc(db, "employees", id);
-        const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-          // Initialize state with fetched data, providing defaults if needed
-          const data = docSnap.data();
-          setEmployee({
-            firstName: data.firstName || "",
-            lastName: data.lastName || "",
-            dni: data.dni || "",
-            email: data.email || "",
-            phone: data.phone || "",
-            role: data.role || "",
-            birthDate: data.birthDate || "",
-            companyId: data.companyId || "", // Ensure companyId is fetched
-            // companyName: data.companyName || "" // If you still store companyName
-          });
+      try {
+        // --- Buscar usando Collection Group y filtrar por ID ---
+        console.log(
+          `Attempting collectionGroup query for employeeId: ${employeeId}`,
+        );
+        const employeesGroupRef = collectionGroup(db, "employees");
+
+        // *** Estrategia 1: Filtrar directamente en la query (Puede requerir índice y sintaxis exacta) ***
+        // const q = query(employeesGroupRef, where(documentId(), '==', employeeId)); // Intentar con documentId() si está disponible y funciona
+        // const employeesSnapshot = await getDocs(q);
+        // let foundDoc = employeesSnapshot.empty ? null : employeesSnapshot.docs[0];
+        // console.log(`Found via query filter: ${foundDoc ? foundDoc.id : 'None'}`);
+
+        // *** Estrategia 2: Obtener todos y filtrar cliente (Menos eficiente, pero funciona sin índices específicos) ***
+        const employeesSnapshot = await getDocs(employeesGroupRef);
+        console.log(
+          `Workspaceed ${employeesSnapshot.size} total employee docs to filter.`,
+        );
+        const foundDoc = employeesSnapshot.docs.find(
+          (doc) => doc.id === employeeId,
+        );
+        console.log(
+          `Found via client filter: ${foundDoc ? foundDoc.id : "None"}`,
+        );
+        // ****************************************************************
+
+        if (foundDoc) {
+          const data = { id: foundDoc.id, ...foundDoc.data() };
+          setEmployee(data);
+          setOriginalEmployeeData(data);
+          setEmployeeDocRef(foundDoc.ref); // <-- Guardar la REFERENCIA completa
+          console.log("Employee data fetched:", data);
+          console.log("Stored Document Reference Path:", foundDoc.ref.path);
         } else {
-          // 4. Replace alert with error toast
+          console.error(
+            `Employee document with ID ${employeeId} not found in any 'employees' subcollection.`,
+          );
           Toast.show({
             type: "error",
-            text1: t("errors.errorTitle", "Error"),
-            text2: t(
-              "employee_details.errors.not_found",
-              "Employee not found.",
-            ), // Add translation
+            text1: t("errors.errorTitle"),
+            text2: t("employee_details.errors.not_found"),
           });
-          router.back();
+          setError(t("employee_details.errors.not_found"));
+          // router.back(); // Opcional
         }
       } catch (error) {
-        console.error("Error fetching employee:", error);
-        // 4. Replace alert with error toast
-        Toast.show({
-          type: "error",
-          text1: t("errors.errorTitle", "Error"),
-          text2: t(
-            "employee_details.errors.fetch_error",
-            "Error fetching employee data.",
-          ), // Add translation
-        });
-        router.back();
+        console.error("Error fetching employee via collectionGroup:", error);
+        // Verificar si el error es por índice faltante (si usaste Estrategia 1)
+        if (error.code === "failed-precondition") {
+          console.error(
+            "Query failed likely due to missing Firestore index. Check console/Firebase for index creation link.",
+          );
+          Toast.show({
+            type: "error",
+            text1: t("errors.errorTitle"),
+            text2: t("errors.firestoreIndexRequired"),
+            visibilityTime: 5000,
+          }); // Añadir traducción
+          setError(t("errors.firestoreIndexRequired"));
+        } else {
+          Toast.show({
+            type: "error",
+            text1: t("errors.errorTitle"),
+            text2: t("employee_details.errors.fetch_error"),
+          });
+          setError(t("employee_details.errors.fetch_error"));
+        }
+        // router.back(); // Opcional
       } finally {
         setLoading(false);
       }
     };
 
-    // --- Company fetching logic removed as it's not used for selection ---
-    // const fetchCompanies = async () => { ... };
-
     fetchEmployee();
-    // fetchCompanies(); // Don't call if not needed
-  }, [id, t, router]); // Add dependencies
+  }, [employeeId, t, router]); // Depender solo de employeeId
 
-  // Define editable fields and their labels
+  // Define los campos editables
   const fields = [
     { key: "firstName", label: "employee_details.firstName", editable: true },
     { key: "lastName", label: "employee_details.lastName", editable: true },
     { key: "dni", label: "employee_details.dni", editable: true },
-    { key: "email", label: "employee_details.email", editable: false }, // Email usually not editable after creation
+    { key: "email", label: "employee_details.email", editable: false },
     {
       key: "phone",
       label: "employee_details.phone",
       editable: true,
       keyboardType: "phone-pad",
     },
-    { key: "birthDate", label: "employee_details.birthDate", editable: false }, // Birth date usually not editable
-    { key: "companyId", label: "employee_details.companyId", editable: true }, // Allow editing company ID association
-    // Role is handled separately
+    { key: "birthDate", label: "employee_details.birthDate", editable: false },
+    // { key: "companyId", label: "employee_details.companyId", editable: false }, // CompanyID no editable aquí
   ];
 
   const handleInputChange = (field, value) => {
-    setEmployee({ ...employee, [field]: value });
+    setEmployee((prev) => (prev ? { ...prev, [field]: value } : null));
   };
 
   const roles = ["admin", "coordinator", "employee"];
 
-  // --- Company selection logic removed ---
-  // const handleCompanySelect = (companyName) => { ... };
-
   const handleRoleSelect = (role) => {
-    setEmployee({ ...employee, role });
+    setEmployee((prev) => (prev ? { ...prev, role } : null));
     setRoleModalVisible(false);
   };
 
+  // --- GUARDAR CAMBIOS ---
   const handleSave = async () => {
-    setIsSaving(true); // Start saving indicator
+    // 6. Usar la referencia guardada 'employeeDocRef'
+    if (!employeeDocRef || !employee) {
+      // Verificar si la referencia existe
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t(
+          "errors.cannotSaveMissingRef",
+          "Cannot save, employee reference not found.",
+        ),
+      }); // Nueva traducción
+      return;
+    }
+
+    // Preparar datos a actualizar (excluir ID y companyId si no se debe cambiar)
+    const dataToUpdate = {
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      dni: employee.dni,
+      phone: employee.phone,
+      role: employee.role,
+      // NO actualizamos companyId aquí
+    };
+
+    console.log("Attempting to update docRef:", employeeDocRef.path);
+    console.log("Data to update:", dataToUpdate);
+
+    setIsSaving(true);
     try {
-      const docRef = doc(db, "employees", id);
-      await updateDoc(docRef, employee);
-      // 5. Replace alert with success toast
+      // Usar la referencia guardada directamente
+      await updateDoc(employeeDocRef, dataToUpdate);
+
       Toast.show({
         type: "success",
         text1: t("success.title"),
         text2: t("success.message"),
       });
+      setOriginalEmployeeData(employee); // Actualizar original tras guardar
       router.replace({
         pathname: "/admin/employees",
         params: { refresh: Date.now() },
-      }); // Go back/refresh
+      });
     } catch (error) {
       console.error("Error updating employee:", error);
-      // 5. Replace alert with error toast
       Toast.show({
         type: "error",
-        text1: t("error.title"),
-        text2: t("error.message"), // Add translation
-      });
+        text1: t("errors.errorTitle"),
+        text2: t("errors.updateError", "Error saving changes."),
+      }); // Añadir traducción
     } finally {
-      setIsSaving(false); // Stop saving indicator
+      setIsSaving(false);
     }
   };
 
-  const handleDelete = async () => {
+  // --- ELIMINAR EMPLEADO ---
+  const handleDelete = () => {
     setIsDeleteModalVisible(true);
   };
 
-  // --- Handle Deletion from Custom Modal ---
   const handleConfirmDelete = async () => {
-    setIsDeleteModalVisible(false); // Close the modal first
-    // Optional: Add a specific deleting indicator if the process might take time
-    // setLoading(true); // Or a dedicated isDeleting state
+    // 7. Usar la referencia guardada 'employeeDocRef'
+    if (!employeeDocRef) {
+      // Verificar si la referencia existe
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t(
+          "errors.cannotDeleteMissingRef",
+          "Cannot delete, employee reference not found.",
+        ),
+      }); // Nueva traducción
+      setIsDeleteModalVisible(false);
+      return;
+    }
+
+    setIsDeleteModalVisible(false);
+    setIsDeleting(true);
+
+    console.log("Attempting to delete docRef:", employeeDocRef.path);
 
     try {
-      const docRef = doc(db, "employees", id);
-      await deleteDoc(docRef);
+      // Usar la referencia guardada directamente
+      await deleteDoc(employeeDocRef);
+
       Toast.show({
         type: "success",
-        text1: t("success.title"), // Using generic key
-        text2: t(
-          "employee_details.success.delete",
-          "Employee deleted successfully.",
-        ),
+        text1: t("success.title"),
+        text2: t("employee_details.success.delete"),
       });
       router.replace({
         pathname: "/admin/employees",
@@ -203,14 +266,11 @@ export default function EmployeeDetail() {
       console.error("Error deleting employee:", error);
       Toast.show({
         type: "error",
-        text1: t("errors.errorTitle"), // Using generic key
-        text2: t(
-          "employee_details.errors.delete_error",
-          "Error deleting employee.",
-        ),
+        text1: t("errors.errorTitle"),
+        text2: t("employee_details.errors.delete_error"),
       });
     } finally {
-      // setLoading(false); // Stop indicator if used
+      setIsDeleting(false);
     }
   };
 
@@ -384,31 +444,37 @@ export default function EmployeeDetail() {
         animationType="fade"
         onRequestClose={() => setIsDeleteModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalMessageText}>
+        <View style={styles.modalOverlayDelete}>
+          <View style={styles.modalContentDelete}>
+            <Text style={styles.modalMessageTextDelete}>
               {/* Use existing translation key for confirmation message */}
               {t("employee_details.confirmDelete")}
             </Text>
-            <View style={styles.modalButtonRow}>
+            <View style={styles.modalButtonRowDelete}>
               {/* Cancel Button */}
               <Pressable
                 onPress={() => setIsDeleteModalVisible(false)}
-                style={[styles.modalButton, styles.modalCancelButton]}
+                style={[
+                  styles.modalButtonDelete,
+                  styles.modalCancelButtonDelete,
+                ]}
               >
-                <Text style={styles.modalButtonText}>
+                <Text style={styles.modalButtonTextDelete}>
                   {t("employee_details.cancel")}
                 </Text>
               </Pressable>
               {/* Confirm Delete Button */}
               <Pressable
                 onPress={handleConfirmDelete}
-                style={[styles.modalButton, styles.modalConfirmButton]}
+                style={[
+                  styles.modalButtonDelete,
+                  styles.modalConfirmButtonDelete,
+                ]}
               >
                 <Text
                   style={[
-                    styles.modalButtonText,
-                    styles.modalConfirmButtonText,
+                    styles.modalButtonTextDelete,
+                    styles.modalConfirmButtonTextDelete,
                   ]}
                 >
                   {t("employee_details.delete1")}
@@ -579,5 +645,74 @@ const styles = StyleSheet.create({
     padding: 30,
     borderTopEndRadius: 40,
     borderTopStartRadius: 40,
+  },
+  modalOverlayDelete: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.6)", // Overlay semitransparente oscuro
+  },
+  modalContentDelete: {
+    backgroundColor: "#1F1F1F", // Fondo oscuro como el ejemplo
+    padding: 24,
+    borderRadius: 20, // Bordes redondeados
+    width: "85%", // Ancho relativo
+    maxWidth: 340, // Ancho máximo
+    alignItems: "center", // Centra el contenido
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  // Opcional: Si quieres un título separado del mensaje
+  // modalTitleText: {
+  //   color: "white",
+  //   fontSize: 18,
+  //   fontWeight: 'bold',
+  //   textAlign: "center",
+  //   marginBottom: 10,
+  // },
+  modalMessageTextDelete: {
+    // Estilo para el texto de confirmación
+    color: "white",
+    fontSize: 17, // Ligeramente más grande
+    textAlign: "center",
+    marginBottom: 24, // Espacio antes de los botones
+    lineHeight: 24, // Mejor legibilidad
+  },
+  modalButtonRowDelete: {
+    // Contenedor para los botones
+    flexDirection: "row",
+    justifyContent: "space-around", // Espaciado entre botones
+    width: "100%", // Ocupa todo el ancho del modalContent
+    marginTop: 10,
+  },
+  modalButtonDelete: {
+    // Estilo base para ambos botones
+    flex: 1, // Para que ocupen espacio similar si es necesario
+    paddingVertical: 12,
+    paddingHorizontal: 20, // Más padding horizontal
+    borderRadius: 10,
+    alignItems: "center",
+    marginHorizontal: 8, // Espacio entre botones
+    minWidth: 100, // Ancho mínimo para que no queden muy pequeños
+  },
+  modalCancelButtonDelete: {
+    // Estilo específico para el botón "No" / "Cancelar"
+    backgroundColor: "#4A4A4A", // Un gris oscuro diferente
+  },
+  modalConfirmButtonDelete: {
+    // Estilo específico para el botón "Sí" / "Eliminar"
+    backgroundColor: "#D32F2F", // Rojo destructivo (como el botón principal)
+  },
+  modalButtonTextDelete: {
+    // Estilo del texto de los botones
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600", // Semi-negrita
+  },
+  modalConfirmButtonTextDelete: {
+    // Puedes añadir estilos específicos si quieres diferenciar el texto del botón de confirmación
   },
 });

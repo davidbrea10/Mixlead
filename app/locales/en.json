@@ -146,6 +146,7 @@
     "selectRole": "Select Role",
     "selectRolePlaceholder": "Select role",
     "save": "Save Changes",
+    "success.delete": "Employee deleted successfully",
     "delete": "Delete Employee",
     "cancel": "Cancel",
     "delete1": "Delete",
