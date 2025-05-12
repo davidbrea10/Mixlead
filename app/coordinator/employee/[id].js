@@ -21,22 +21,23 @@ import { Ionicons } from "@expo/vector-icons"; // Import icons for modal if desi
 
 export default function EmployeeDetailCoordinatorView() {
   // Renamed component for clarity
-  const { id } = useLocalSearchParams();
   const router = useRouter();
   const { t } = useTranslation();
-  const [employee, setEmployee] = useState({
-    firstName: "",
-    lastName: "",
-    dni: "",
-    email: "",
-    phone: "",
-    role: "",
-    birthDate: "",
-    companyId: "", // Keep companyId
+  const params = useLocalSearchParams(); // Obtener todos los parámetros
+
+  // 1. Extraer y renombrar parámetros para claridad
+  const employeeId = params.id;
+  const companyIdFromParams = params.companyId; // El ID de la compañía del empleado
+  console.log("EmployeeDetailCoordinatorView Received Params:", {
+    employeeId,
+    companyId: companyIdFromParams,
   });
+
+  const [employee, setEmployee] = useState(null); // Inicializar como null
   const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false); // Add saving state
-  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false); // State for custom delete modal
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [error, setError] = useState(null); // Para mostrar errores de carga
 
   const fields = [
     { key: "firstName", label: t("employee_detail.firstName"), editable: true },
@@ -61,24 +62,47 @@ export default function EmployeeDetailCoordinatorView() {
 
   useEffect(() => {
     const fetchEmployee = async () => {
-      if (!id) {
+      setLoading(true);
+      setError(null);
+      setEmployee(null);
+
+      // 2. Validar que AMBOS IDs (employeeId y companyIdFromParams) están presentes
+      if (!employeeId || !companyIdFromParams) {
+        console.error("Error: Missing employeeId or companyId from params", {
+          employeeId,
+          companyIdFromParams,
+        });
         Toast.show({
           type: "error",
           text1: t("errors.errorTitle"),
-          text2: t("employee_detail.alert.invalidId", "Invalid employee ID."),
+          text2: t(
+            "employee_detail.alert.invalidParams",
+            "Faltan parámetros necesarios.",
+          ), // Nueva traducción
         });
-        router.back();
+        setError(t("employee_detail.alert.invalidParams")); // Actualizar estado de error
+        setLoading(false);
+        // router.back(); // Podrías considerar ir atrás
         return;
       }
-      setLoading(true);
+
       try {
-        const docRef = doc(db, "employees", id);
+        // 3. Construir la ruta CORRECTA al documento del empleado
+        const docRef = doc(
+          db,
+          "companies",
+          companyIdFromParams,
+          "employees",
+          employeeId,
+        );
+        console.log("Fetching employee from path:", docRef.path);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          // Provide defaults for safety
           const data = docSnap.data();
+          // Guardar datos en el estado. companyId ya lo tenemos de los params.
           setEmployee({
+            id: docSnap.id, // Guardar el ID del empleado también
             firstName: data.firstName || "",
             lastName: data.lastName || "",
             dni: data.dni || "",
@@ -86,54 +110,69 @@ export default function EmployeeDetailCoordinatorView() {
             phone: data.phone || "",
             role: data.role || "",
             birthDate: data.birthDate || "",
-            companyId: data.companyId || "",
+            companyId: data.companyId || companyIdFromParams, // Usar el de los datos, o el de params como fallback
           });
         } else {
-          // 2. Replace alert with Toast
+          console.error("Employee document not found at path:", docRef.path);
           Toast.show({
             type: "error",
             text1: t("errors.errorTitle"),
             text2: t("employee_detail.alert.notFound"),
           });
-          router.back();
+          setError(t("employee_detail.alert.notFound"));
         }
       } catch (error) {
         console.error("Error fetching employee:", error);
-        // 2. Replace alert with Toast
         Toast.show({
           type: "error",
           text1: t("errors.errorTitle"),
-          text2: t("employee_detail.alert.fetchError"), // Use specific key
+          text2: t("employee_detail.alert.fetchError"),
         });
-        router.back();
+        setError(t("employee_detail.alert.fetchError"));
       } finally {
         setLoading(false);
       }
     };
 
     fetchEmployee();
-  }, [id, t, router]); // Add t and router
+  }, [employeeId, companyIdFromParams, t, router]); // Depender de los IDs de los params
 
   const handleInputChange = (field, value) => {
-    setEmployee({ ...employee, [field]: value });
+    setEmployee((prev) => (prev ? { ...prev, [field]: value } : null));
   };
 
   const handleSave = async () => {
+    if (!employee || !employeeId || !companyIdFromParams) {
+      // Validar contra los params originales
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t(
+          "errors.cannotSaveMissingInfo",
+          "Falta información para guardar.",
+        ),
+      });
+      return;
+    }
     setIsSaving(true);
     try {
-      const docRef = doc(db, "employees", id);
-      // Prepare data for update (potentially exclude non-editable fields if needed)
+      // 4. Construir la ruta CORRECTA para actualizar
+      const docRef = doc(
+        db,
+        "companies",
+        companyIdFromParams,
+        "employees",
+        employeeId,
+      );
       const updateData = {
         firstName: employee.firstName,
         lastName: employee.lastName,
         dni: employee.dni,
         phone: employee.phone,
-        // Only include fields coordinators should update
-        // companyId: employee.companyId, // Uncomment if coordinator can change this
-        // role: employee.role,           // Uncomment if coordinator can change this
+        // No permitir que el coordinador cambie el email, birthDate, companyId o role aquí directamente
+        // Esos cambios podrían necesitar lógicas más complejas (ej. mover empleado, re-autenticación)
       };
       await updateDoc(docRef, updateData);
-      // 3. Replace alert with Toast
       Toast.show({
         type: "success",
         text1: t("success.title"),
@@ -145,59 +184,73 @@ export default function EmployeeDetailCoordinatorView() {
       });
     } catch (error) {
       console.error("Error updating employee:", error);
-      // 3. Replace alert with Toast
       Toast.show({
         type: "error",
         text1: t("errors.errorTitle"),
-        text2: t("employee_detail.alert.updateError"), // Use specific key
+        text2: t("employee_detail.alert.updateError"),
       });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    // Show the custom modal instead of Alert.alert
+  const handleDelete = () => {
     setIsDeleteModalVisible(true);
   };
 
-  // --- Handle Deletion from Custom Modal ---
   const handleConfirmDelete = async () => {
-    setIsDeleteModalVisible(false); // Close modal
-    // setLoading(true); // Optional: Indicate processing
+    setIsDeleteModalVisible(false);
+    if (!employeeId || !companyIdFromParams) {
+      // Validar contra los params originales
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t(
+          "errors.cannotDeleteMissingInfo",
+          "Falta información para eliminar.",
+        ),
+      });
+      return;
+    }
 
+    setIsSaving(true); // Reutilizar isSaving o crear isDeleting
     try {
-      const docRef = doc(db, "employees", id);
+      // 5. Construir la ruta CORRECTA para eliminar
+      const docRef = doc(
+        db,
+        "companies",
+        companyIdFromParams,
+        "employees",
+        employeeId,
+      );
+
+      // ADVERTENCIA: Esto solo elimina el documento del empleado.
+      // Las subcolecciones (doses, materials) NO se eliminarán automáticamente.
+      // Para una eliminación completa, necesitarías una Cloud Function o eliminar manualmente cada subcolección.
       await deleteDoc(docRef);
-      // 4. Replace alert with Toast
+
       Toast.show({
         type: "success",
         text1: t("success.title"),
-        // Use correct translation key if different from admin version
-        text2: t(
-          "employee_detail.deleteSuccess",
-          "Employee deleted successfully.",
-        ),
+        text2: t("employee_detail.deleteSuccess"),
       });
-      // Navigate back to list or coordinator home
       router.replace({
         pathname: "/coordinator/myEmployees",
         params: { refresh: Date.now() },
       });
     } catch (error) {
       console.error("Error deleting employee:", error);
-      // 4. Replace alert with Toast
       Toast.show({
         type: "error",
         text1: t("errors.errorTitle"),
-        // Use correct translation key if different from admin version
-        text2: t("employee_detail.deleteError", "Error deleting employee."),
+        text2: t("employee_detail.deleteError"),
       });
     } finally {
-      // setLoading(false); // Stop indicator
+      setIsSaving(false); // Reutilizar isSaving o crear isDeleting
     }
   };
 
+  // --- RENDERIZADO ---
   if (loading) {
     return (
       <LinearGradient
@@ -205,6 +258,43 @@ export default function EmployeeDetailCoordinatorView() {
         style={styles.loadingContainer}
       >
         <ActivityIndicator size="large" color="#FF8C00" />
+      </LinearGradient>
+    );
+  }
+
+  if (error || !employee) {
+    // Si hay error o el empleado es null después de cargar
+    return (
+      <LinearGradient
+        colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
+        style={styles.gradient}
+      >
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()}>
+            <Image
+              source={require("../../../assets/go-back.png")}
+              style={styles.headerIcon}
+            />
+          </Pressable>
+          <Text style={styles.headerTitleMain}>{t("errors.errorTitle")}</Text>
+          <View style={{ width: 50 }} />
+        </View>
+        <View style={styles.errorDisplayContainer}>
+          <Ionicons name="alert-circle-outline" size={60} color="#D32F2F" />
+          <Text style={styles.errorDisplayText}>
+            {error || t("employee_detail.alert.notFound")}
+          </Text>
+          <Pressable
+            onPress={() => router.back()}
+            style={[
+              styles.button,
+              styles.saveButton,
+              { width: "80%", marginTop: 20 },
+            ]}
+          >
+            <Text style={styles.buttonText}>{t("common.back", "Volver")}</Text>
+          </Pressable>
+        </View>
       </LinearGradient>
     );
   }

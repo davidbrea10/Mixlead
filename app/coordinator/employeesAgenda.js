@@ -22,6 +22,7 @@ import {
   query,
   where,
   limit,
+  collectionGroup,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -33,48 +34,54 @@ import RNPickerSelect from "react-native-picker-select";
 // --- Helper function to get distinct years from all doses of a company ---
 // NOTE: This performs a potentially large read. Consider optimizing
 // if performance becomes an issue (e.g., using Cloud Functions to maintain a list).
-const getAllYearsWithDoses = async (companyId) => {
+const getAllYearsWithDoses = async (companyId, t) => {
+  // Pasamos 't' para traducciones
   const years = new Set();
   try {
     console.log(
-      `getAllYearsWithDoses: Querying 'doses' collection group where companyId == ${companyId}`,
+      `getAllYearsWithDoses: Querying 'employees' in company ${companyId}`,
     );
     // 1. Get all employees of the company
-    const employeesQuery = query(
-      collection(db, "employees"),
-      where("companyId", "==", companyId),
+    const employeesInCompanyRef = collection(
+      db,
+      "companies",
+      companyId,
+      "employees",
     );
-    const usersSnapshot = await getDocs(employeesQuery);
+    const usersSnapshot = await getDocs(employeesInCompanyRef); // No se necesita query aquí si quieres todos
     const employeeIds = usersSnapshot.docs.map((doc) => doc.id);
 
     if (employeeIds.length === 0) {
       console.log("getAllYearsWithDoses: No employees found for company.");
-      return [new Date().getFullYear()]; // Return current year as default
+      return [new Date().getFullYear()];
     }
 
     // 2. Fetch doses for each employee and collect years
     const dosePromises = employeeIds.map((empId) => {
-      const dosesRef = collection(db, "employees", empId, "doses");
-      // We only need the 'year' field, but Firestore fetches the whole doc.
-      // No specific query needed here, just get all doses for the employee.
+      // --- MODIFICACIÓN DE RUTA ---
+      const dosesRef = collection(
+        db,
+        "companies",
+        companyId,
+        "employees",
+        empId,
+        "doses",
+      );
+      // --- FIN MODIFICACIÓN ---
       return getDocs(dosesRef);
     });
-
     const doseSnapshots = await Promise.all(dosePromises);
 
     doseSnapshots.forEach((snapshot) => {
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        if (data.year) {
-          years.add(data.year);
+        if (data.year && !isNaN(parseInt(data.year, 10))) {
+          // Asegurar que sea un número
+          years.add(parseInt(data.year, 10));
         }
       });
     });
-
-    // Always include the current year if it's not already present
     years.add(new Date().getFullYear());
-
-    // Sort years descending
     return [...years].sort((a, b) => b - a);
   } catch (error) {
     console.error("Error fetching all available years:", error);
@@ -82,39 +89,44 @@ const getAllYearsWithDoses = async (companyId) => {
       t("errors.error"),
       t("errors.loadYearsFailed") + `: ${error.message}`,
     );
-    return [new Date().getFullYear()]; // Fallback to current year
+    return [new Date().getFullYear()];
   }
 };
 
 // --- Helper function to get employees who have doses in a specific year ---
-const getEmployeesWithDosesInYear = async (companyId, year) => {
-  const employeesWithData = [];
+const getEmployeesWithDosesInYear = async (companyId, year, t) => {
   try {
-    // 1. Get all employees of the company
-    const employeesQuery = query(
-      collection(db, "employees"),
-      where("companyId", "==", companyId),
+    console.log(
+      `getEmployeesWithDosesInYear: Querying employees in company ${companyId} for year ${year}`,
     );
-    const usersSnapshot = await getDocs(employeesQuery);
+    // 1. Get all employees of the company
+    const employeesInCompanyRef = collection(
+      db,
+      "companies",
+      companyId,
+      "employees",
+    );
+    const usersSnapshot = await getDocs(employeesInCompanyRef); // No se necesita query aquí
 
-    if (usersSnapshot.empty) {
-      return [];
-    }
+    if (usersSnapshot.empty) return [];
 
-    // 2. For each employee, check if they have *any* dose in the specified year
+    // 2. For each employee, check if they have any dose in the specified year
     const employeeCheckPromises = usersSnapshot.docs.map(async (empDoc) => {
       const empId = empDoc.id;
       const empData = empDoc.data();
-      const dosesRef = collection(db, "employees", empId, "doses");
-      // Query for just one document in that year to confirm existence
-      const yearQuery = query(
-        dosesRef, // Colección: employees/{empId}/doses
-        where("year", "==", year), // Solo filtrar por año
-        limit(1),
+      // --- MODIFICACIÓN DE RUTA ---
+      const dosesRef = collection(
+        db,
+        "companies",
+        companyId,
+        "employees",
+        empId,
+        "doses",
       );
+      // --- FIN MODIFICACIÓN ---
+      const yearQuery = query(dosesRef, where("year", "==", year), limit(1));
       const yearDoseSnapshot = await getDocs(yearQuery);
       if (!yearDoseSnapshot.empty) {
-        // If the snapshot is not empty, this employee has data for the year
         return {
           id: empId,
           name:
@@ -122,12 +134,9 @@ const getEmployeesWithDosesInYear = async (companyId, year) => {
             t("employeesAgenda.employee.unnamed"),
         };
       }
-      return null; // Return null if no data for this year
+      return null;
     });
-
     const results = await Promise.all(employeeCheckPromises);
-
-    // Filter out the nulls and sort the valid employees
     return results
       .filter((emp) => emp !== null)
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -140,28 +149,40 @@ const getEmployeesWithDosesInYear = async (companyId, year) => {
       t("errors.error"),
       t("errors.loadFilteredEmployeesFailed") + `: ${error.message}`,
     );
-    return []; // Return empty on error
+    return [];
   }
 };
 
 const calculateCompanyTotalDoseForYear = async (companyId, year, t) => {
   let totalDose = 0;
   try {
-    // 1. Obtener todos los empleados de la compañía
-    const employeesQuery = query(
-      collection(db, "employees"),
-      where("companyId", "==", companyId),
+    console.log(
+      `calculateCompanyTotalDoseForYear: Calculating for company ${companyId}, year ${year}`,
     );
-    const usersSnapshot = await getDocs(employeesQuery);
+    // 1. Get all employees of the company
+    const employeesInCompanyRef = collection(
+      db,
+      "companies",
+      companyId,
+      "employees",
+    );
+    const usersSnapshot = await getDocs(employeesInCompanyRef); // No se necesita query
     const employeeIds = usersSnapshot.docs.map((doc) => doc.id);
 
-    if (employeeIds.length === 0) {
-      return 0; // No hay empleados, la dosis es 0
-    }
+    if (employeeIds.length === 0) return 0;
 
-    // 2. Para cada empleado, obtener sus dosis del año especificado y sumarlas
+    // 2. For each employee, get their doses for the year and sum them
     const dosePromises = employeeIds.map(async (empId) => {
-      const dosesRef = collection(db, "employees", empId, "doses");
+      // --- MODIFICACIÓN DE RUTA ---
+      const dosesRef = collection(
+        db,
+        "companies",
+        companyId,
+        "employees",
+        empId,
+        "doses",
+      );
+      // --- FIN MODIFICACIÓN ---
       const yearQuery = query(dosesRef, where("year", "==", year));
       const doseSnapshot = await getDocs(yearQuery);
       let employeeYearlyDose = 0;
@@ -171,16 +192,12 @@ const calculateCompanyTotalDoseForYear = async (companyId, year, t) => {
           typeof data.dose === "number"
             ? data.dose
             : parseFloat(data.dose || 0);
-        if (!isNaN(doseValue)) {
-          employeeYearlyDose += doseValue;
-        }
+        if (!isNaN(doseValue)) employeeYearlyDose += doseValue;
       });
       return employeeYearlyDose;
     });
-
     const yearlyDoses = await Promise.all(dosePromises);
     totalDose = yearlyDoses.reduce((sum, currentDose) => sum + currentDose, 0);
-
     console.log(`Total company dose for year ${year}: ${totalDose}`);
     return totalDose;
   } catch (error) {
@@ -252,14 +269,19 @@ export default function Home() {
       try {
         // Get Coordinator's Company ID
         console.log(
-          `loadInitialData: Checking 'employees/${user.uid}' for coordinator data...`,
+          `loadInitialData: Fetching coordinator's (email: ${user.email}) companyId...`,
         );
-        const coordinatorEmpDocRef = doc(db, "employees", user.uid);
-        const coordinatorEmpDocSnap = await getDoc(coordinatorEmpDocRef);
+        const employeesGroupRef = collectionGroup(db, "employees");
+        const coordQuery = query(
+          employeesGroupRef,
+          where("email", "==", user.email),
+          limit(1),
+        );
+        const coordinatorSnapshot = await getDocs(coordQuery);
 
         if (
-          !coordinatorEmpDocSnap.exists() ||
-          !coordinatorEmpDocSnap.data().companyId
+          coordinatorSnapshot.empty ||
+          !coordinatorSnapshot.docs[0].data().companyId
         ) {
           console.error(
             "loadInitialData: Coordinator doc not found or missing companyId.",
@@ -269,9 +291,10 @@ export default function Home() {
           return;
         }
 
-        const fetchedCompanyId = coordinatorEmpDocSnap.data().companyId;
-        const userRole = coordinatorEmpDocSnap.data().role; // Check role for permissions
-        companyIdRef.current = fetchedCompanyId; // Store companyId
+        const coordinatorData = coordinatorSnapshot.docs[0].data();
+        const fetchedCompanyId = coordinatorData.companyId;
+        const userRole = coordinatorData.role; // Check role for permissions
+        companyIdRef.current = fetchedCompanyId;
 
         // Basic role check (adjust as needed per your rules)
         if (userRole !== "coordinator" && userRole !== "admin") {
@@ -286,37 +309,31 @@ export default function Home() {
         );
 
         // Fetch all unique years across the company that have dose data
-        const years = await getAllYearsWithDoses(fetchedCompanyId);
+        const years = await getAllYearsWithDoses(fetchedCompanyId, t); // Pasar 't' a la helper function
         setAllAvailableYears(years);
-
-        // Optionally set the default selected year to the latest available one
-        if (years.length > 0) {
-          // setSelectedYear(years[0]); // Auto-select the most recent year
-          // Let's keep it null initially to force user selection
-          setSelectedYear(null);
-        } else {
-          setSelectedYear(new Date().getFullYear()); // Fallback if no years found
-        }
+        if (years.length > 0)
+          setSelectedYear(null); // No auto-seleccionar
+        else setSelectedYear(new Date().getFullYear());
 
         // Also load all employees initially IF needed elsewhere (like PDF)
         // If only needed for filtering, this can be skipped or done within the filtering function
-        const employeesQuery = query(
-          collection(db, "employees"),
-          where("companyId", "==", fetchedCompanyId),
+        const employeesInCompanyRef = collection(
+          db,
+          "companies",
+          fetchedCompanyId,
+          "employees",
         );
-        const usersSnapshot = await getDocs(employeesQuery);
-        const companyEmployees = [];
-        usersSnapshot.forEach((doc) => {
-          const data = doc.data();
-          companyEmployees.push({
+        // --- FIN MODIFICACIÓN ---
+        const usersSnapshot = await getDocs(employeesInCompanyRef);
+        const companyEmployees = usersSnapshot.docs
+          .map((doc) => ({
             id: doc.id,
             name:
-              `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+              `${doc.data().firstName || ""} ${doc.data().lastName || ""}`.trim() ||
               t("employeesAgenda.employee.unnamed"),
-          });
-        });
-        companyEmployees.sort((a, b) => a.name.localeCompare(b.name));
-        setAllCompanyEmployees(companyEmployees); // Store the full list
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setAllCompanyEmployees(companyEmployees);
       } catch (error) {
         console.error("Error during initial data load:", error);
         Alert.alert(
@@ -338,24 +355,21 @@ export default function Home() {
   useEffect(() => {
     const updateDataForYear = async () => {
       if (!selectedYear || !companyIdRef.current) {
-        // Reset states when no year is selected
+        /* ... (resetear estados) ... */
         setFilteredEmployees([]);
         setSelectedEmployeeId(null);
         setMonthlyDoses([]);
         setCompanyTotalAnnualDose(0);
-        setTotalAnnualDose(0); // Reset individual total too
+        setTotalAnnualDose(0);
         return;
       }
-
       setIsLoadingEmployees(true);
       setIsLoadingCompanyTotal(true);
-      // Reset before fetching new data for the year
       setFilteredEmployees([]);
-      setSelectedEmployeeId(null); // Crucial: deselect employee when year changes
+      setSelectedEmployeeId(null);
       setMonthlyDoses([]);
       setCompanyTotalAnnualDose(0);
-      setTotalAnnualDose(0); // Reset individual total
-
+      setTotalAnnualDose(0);
       try {
         const employees = await getEmployeesWithDosesInYear(
           companyIdRef.current,
@@ -363,7 +377,6 @@ export default function Home() {
           t,
         );
         setFilteredEmployees(employees);
-
         const total = await calculateCompanyTotalDoseForYear(
           companyIdRef.current,
           selectedYear,
@@ -371,34 +384,37 @@ export default function Home() {
         );
         setCompanyTotalAnnualDose(total);
       } catch (error) {
-        setFilteredEmployees([]);
-        setCompanyTotalAnnualDose(0);
+        /* ... (manejo de error) ... */
       } finally {
         setIsLoadingEmployees(false);
         setIsLoadingCompanyTotal(false);
       }
     };
     updateDataForYear();
-  }, [selectedYear, t]);
+  }, [selectedYear, t]); // 't' por si las helpers lo usan para errores
 
   // 3. Load Doses when Employee Changes (and year is already selected)
   useEffect(() => {
     const loadDoses = async () => {
-      if (selectedEmployeeId && selectedYear) {
+      if (selectedEmployeeId && selectedYear && companyIdRef.current) {
+        // <-- AÑADIR companyIdRef.current
         console.log(
-          `Loading doses for employee: ${selectedEmployeeId}, year: ${selectedYear}`,
+          `Loading doses for employee: ${selectedEmployeeId}, year: ${selectedYear}, company: ${companyIdRef.current}`,
         );
         setIsLoadingDoses(true);
-        setMonthlyDoses([]); // Clear previous doses
+        setMonthlyDoses([]);
         setTotalAnnualDose(0);
         try {
+          // --- MODIFICACIÓN DE RUTA ---
           const dosesRef = collection(
             db,
+            "companies",
+            companyIdRef.current,
             "employees",
             selectedEmployeeId,
             "doses",
           );
-          // Query only for the selected year
+          // --- FIN MODIFICACIÓN ---
           const q = query(dosesRef, where("year", "==", selectedYear));
           const snapshot = await getDocs(q);
 
@@ -473,15 +489,22 @@ export default function Home() {
   };
 
   const handleViewDetails = (month) => {
-    // We already have selectedEmployeeId and selectedYear from state
-    if (!selectedEmployeeId || !selectedYear || !month) {
+    if (
+      !selectedEmployeeId ||
+      !selectedYear ||
+      !month ||
+      !companyIdRef.current
+    ) {
+      // <-- AÑADIR companyIdRef.current
       console.warn("handleViewDetails called without necessary parameters.");
       return;
     }
     router.push({
       pathname: "/coordinator/doseDetails/[doseDetails]",
       params: {
-        uid: selectedEmployeeId,
+        // uid: selectedEmployeeId, // Cambiado a employeeId para consistencia
+        employeeId: selectedEmployeeId,
+        companyId: companyIdRef.current, // <-- PASAR EL COMPANY ID
         month: month.toString(),
         year: selectedYear.toString(),
       },
@@ -522,12 +545,14 @@ export default function Home() {
 
     try {
       // --- Common Setup ---
-      let companyName = t("pdf.unknownCompany");
+      let companyName = t("pdf.unknownCompany"); // Nombre de la compañía del coordinador
       const companyDocRef = doc(db, "companies", companyIdRef.current);
       const companyDocSnap = await getDoc(companyDocRef);
-      if (companyDocSnap.exists()) {
-        companyName = companyDocSnap.data().Name || companyName;
-      }
+      if (companyDocSnap.exists())
+        companyName =
+          companyDocSnap.data().Name ||
+          companyDocSnap.data().name ||
+          companyName;
 
       let htmlContent = "";
       let pdfFileName = "";
@@ -552,10 +577,13 @@ export default function Home() {
         // 2. Fetch Employee's DAILY Doses for the selected year
         const dosesRef = collection(
           db,
+          "companies",
+          companyIdRef.current,
           "employees",
           selectedEmployeeId,
           "doses",
         );
+
         const q = query(dosesRef, where("year", "==", selectedYear));
         const snapshot = await getDocs(q);
         const dailyDoses = []; // Array of { month, day, dose }
@@ -675,7 +703,16 @@ export default function Home() {
         // 1. Fetch all doses for the selected year for ALL company employees
         //    (using the stored allCompanyEmployees list)
         const allDosesPromises = allCompanyEmployees.map(async (emp) => {
-          const dosesRef = collection(db, "employees", emp.id, "doses");
+          // --- MODIFICACIÓN DE RUTA ---
+          const dosesRef = collection(
+            db,
+            "companies",
+            companyIdRef.current,
+            "employees",
+            emp.id,
+            "doses",
+          );
+
           const q = query(dosesRef, where("year", "==", selectedYear));
           const snapshot = await getDocs(q);
           const empDoses = [];

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,17 +12,16 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { db, auth } from "../../firebase/config";
 import {
-  doc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
   collection,
   getDocs,
+  doc,
   query,
   where,
+  writeBatch, // Para operaciones atómicas
+  collectionGroup,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { t } from "i18next";
@@ -38,50 +37,126 @@ export default function ApplicationsScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [isLoading, setIsLoading] = useState(true); // Add loading state for initial fetch
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const loadApplications = async () => {
-    setIsLoading(true); // Start loading
+  const [coordinatorInfo, setCoordinatorInfo] = useState({
+    id: null, // UID del coordinador
+    companyId: null, // CompanyID del coordinador
+    // companyName: null, // Opcional si necesitas mostrar el nombre de la compañía del coordinador
+  });
+
+  const loadCoordinatorAndApplications = useCallback(async () => {
+    setIsLoading(true);
+    setApplications([]); // Limpiar aplicaciones previas
     const user = auth.currentUser;
     if (!user) {
-      // 2. Replace Alert with Toast
       Toast.show({
         type: "error",
-        text1: t("errors.errorTitle", "Error"),
-        text2: t("errors.notLoggedIn", "User not logged in."),
+        text1: t("errors.errorTitle"),
+        text2: t("errors.notLoggedIn"),
       });
       setIsLoading(false);
+      router.replace("/auth/login"); // Redirigir si no está logueado
       return;
     }
 
     try {
-      const appsRef = collection(db, "employees", user.uid, "applications");
-      const snapshot = await getDocs(appsRef);
+      // 1. Obtener el documento del coordinador actual y su companyId
+      const employeesGroupRef = collectionGroup(db, "employees");
+      const coordQuery = query(
+        employeesGroupRef,
+        where("email", "==", user.email),
+      );
+      const coordSnapshot = await getDocs(coordQuery);
 
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id, // This is the applicant's UID
-        ...doc.data(), // Includes firstName, lastName, dni, createdAt, status
-      }));
+      if (coordSnapshot.empty) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t(
+            "errors.coordinatorProfileNotFound",
+            "Perfil de coordinador no encontrado.",
+          ),
+        });
+        setIsLoading(false);
+        return;
+      }
 
-      setApplications(data);
-    } catch (err) {
-      console.error("Error loading applications:", err);
-      // 2. Replace Alert with Toast
-      Toast.show({
-        type: "error",
-        text1: t("errors.errorTitle", "Error"),
-        text2: t(
-          "errors.loadApplicationsFailed",
-          "Could not load applications.",
-        ), // Add translation
+      const coordDoc = coordSnapshot.docs[0];
+      const coordData = coordDoc.data();
+      const fetchedCoordinatorId = coordDoc.id; // Es user.uid
+      const fetchedCoordinatorCompanyId = coordData.companyId;
+
+      if (!fetchedCoordinatorCompanyId) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t(
+            "errors.coordinatorNoCompany",
+            "Coordinador no asignado a una empresa.",
+          ),
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      setCoordinatorInfo({
+        id: fetchedCoordinatorId,
+        companyId: fetchedCoordinatorCompanyId,
       });
-    } finally {
-      setIsLoading(false); // Stop loading
-    }
-  };
+      console.log("Coordinator Info Set:", {
+        id: fetchedCoordinatorId,
+        companyId: fetchedCoordinatorCompanyId,
+      });
 
-  useEffect(() => {
-    loadApplications();
-  }, []);
+      // 2. Cargar solicitudes usando el companyId y userId (coordId) del coordinador
+      const appsRef = collection(
+        db,
+        "companies",
+        fetchedCoordinatorCompanyId,
+        "employees",
+        fetchedCoordinatorId,
+        "applications",
+      );
+      const snapshot = await getDocs(appsRef);
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id, // Este es el UID del solicitante
+        ...doc.data(),
+      }));
+      setApplications(data);
+      console.log(`Loaded ${data.length} applications.`);
+    } catch (err) {
+      console.error("Error loading coordinator/applications:", err);
+      if (err.code === "failed-precondition") {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t("errors.firestoreIndexRequired"),
+        });
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t("errors.loadApplicationsFailed"),
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [t, router]); // t y router como dependencias
+
+  useFocusEffect(
+    useCallback(() => {
+      // Ahora, solo llamamos a la función (que ya está memoizada)
+      loadCoordinatorAndApplications();
+
+      // Puedes devolver una función de limpieza si es necesario
+      // return () => {
+      //   console.log("ApplicationsScreen lost focus or unmounted");
+      //   // Lógica de limpieza aquí (ej. abortar fetches, limpiar listeners)
+      // };
+    }, [loadCoordinatorAndApplications]), // La dependencia es la función memoizada
+  );
 
   const handleExpandRow = (index) => {
     setExpandedRows((prev) => ({
@@ -91,199 +166,262 @@ export default function ApplicationsScreen() {
   };
 
   const handleAccept = async (application) => {
-    // Optional: Add a loading state for this specific action
-    // setIsAccepting(true);
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        Toast.show({
-          type: "error",
-          text1: t("errors.errorTitle"),
-          text2: t("errors.notLoggedIn"),
-        });
-        return;
-      }
-
-      // 1. Get the coordinator's companyId
-      const coordinatorRef = doc(db, "employees", currentUser.uid);
-      const coordinatorSnap = await getDoc(coordinatorRef);
-      if (!coordinatorSnap.exists()) {
-        Toast.show({
-          type: "error",
-          text1: t("errors.errorTitle"),
-          text2: t(
-            "errors.coordinatorNotFound",
-            "Coordinator profile not found.",
-          ),
-        }); // Add translation
-        return;
-      }
-      const coordinatorCompanyId = coordinatorSnap.data().companyId;
-      if (!coordinatorCompanyId) {
-        Toast.show({
-          type: "error",
-          text1: t("errors.errorTitle"),
-          text2: t(
-            "errors.coordinatorNoCompany",
-            "Coordinator not assigned to a company.",
-          ),
-        }); // Add translation
-        return;
-      }
-
-      // 2. Update the accepted employee's document
-      const targetEmployeeRef = doc(db, "employees", application.id); // applicant's ID
-      await updateDoc(targetEmployeeRef, {
-        companyId: coordinatorCompanyId, // Assign coordinator's company
+    if (!coordinatorInfo.id || !coordinatorInfo.companyId) {
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t("errors.coordinatorDataMissing"),
       });
+      return;
+    }
+    if (!application || !application.id || !application.email) {
+      // Email es crucial para buscar el original
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t("errors.invalidApplicationData"),
+      });
+      return;
+    }
 
-      // 3. Find all coordinators of the SAME company to delete the application everywhere
-      const employeesRef = collection(db, "employees");
+    setActionLoading(true);
+    const batch = writeBatch(db);
+    const applicantId = application.id;
+    const targetCompanyId = coordinatorInfo.companyId;
+
+    // Nombres de las subcolecciones que esperas que un empleado pueda tener
+    const employeeSubcollectionNames = ["doses", "materials"]; // Añade otras si existen
+
+    try {
+      // 1. Encontrar el documento original del solicitante (si existe)
+      //    Esto es para obtener sus datos y la referencia a sus subcolecciones originales.
+      const employeesGroupRef = collectionGroup(db, "employees");
+      const applicantQuery = query(
+        employeesGroupRef,
+        where("email", "==", application.email),
+      );
+      const applicantSnapshot = await getDocs(applicantQuery);
+
+      let originalApplicantDocRef = null;
+      let originalApplicantData = {}; // Para fusionar con datos de la aplicación
+
+      if (!applicantSnapshot.empty) {
+        const originalDocSnap = applicantSnapshot.docs[0];
+        originalApplicantDocRef = originalDocSnap.ref;
+        originalApplicantData = originalDocSnap.data();
+        console.log(
+          "Found original applicant document at:",
+          originalApplicantDocRef.path,
+        );
+
+        // Si el documento original ya está en la compañía de destino, es un caso extraño (quizás una aplicación duplicada)
+        // pero nos aseguramos de no intentar borrarlo y volverlo a crear en el mismo sitio.
+        if (
+          originalApplicantData.companyId === targetCompanyId &&
+          originalApplicantDocRef.id === applicantId
+        ) {
+          console.warn(
+            "Applicant seems to already be in the target company. Proceeding to clean up application only.",
+          );
+          // No es necesario mover el documento principal ni sus subcolecciones.
+          // Solo se eliminarán las solicitudes de los coordinadores.
+          originalApplicantDocRef = null; // Anular para que no se procese el borrado/movimiento
+        }
+      } else {
+        console.log(
+          "No existing employee document found for applicant email:",
+          application.email,
+          ". A new employee profile will be created in the target company.",
+        );
+      }
+
+      // 2. Preparar los datos del empleado para la nueva compañía (o actualizar si ya estaba)
+      const newEmployeeData = {
+        // Datos de la aplicación (pueden ser más actualizados para nombre/DNI)
+        firstName:
+          application.firstName || originalApplicantData.firstName || "",
+        lastName: application.lastName || originalApplicantData.lastName || "",
+        dni: application.dni || originalApplicantData.dni || "",
+        email: application.email, // El email de la aplicación debería ser el maestro
+        // Datos del documento original (si existían y no están en la aplicación)
+        birthDate:
+          originalApplicantData.birthDate || application.birthDate || null,
+        phone: originalApplicantData.phone || application.phone || null,
+        // Asignación de rol y compañía
+        role: originalApplicantData.role || "employee", // Mantener rol si existía, sino 'employee'
+        companyId: targetCompanyId,
+        createdAt: originalApplicantData.createdAt || new Date(), // Mantener createdAt original si es un movimiento
+        updatedAt: new Date(), // Marcar cuándo se actualizó/movió
+      };
+
+      // 3. Referencia al nuevo (o actualizado) documento del empleado
+      const newEmployeeDocRef = doc(
+        db,
+        "companies",
+        targetCompanyId,
+        "employees",
+        applicantId,
+      );
+      batch.set(newEmployeeDocRef, newEmployeeData, { merge: true }); // Crear o fusionar en la nueva ubicación
+      console.log(
+        "Scheduled set/update for applicant at new path:",
+        newEmployeeDocRef.path,
+      );
+
+      // 4. Mover subcolecciones si había un documento original y no estaba ya en la compañía de destino
+      if (
+        originalApplicantDocRef &&
+        originalApplicantDocRef.path !== newEmployeeDocRef.path
+      ) {
+        for (const subcollectionName of employeeSubcollectionNames) {
+          const oldSubcollectionRef = collection(
+            db,
+            originalApplicantDocRef.path,
+            subcollectionName,
+          );
+          const oldSubDocsSnapshot = await getDocs(oldSubcollectionRef);
+
+          if (!oldSubDocsSnapshot.empty) {
+            console.log(
+              `Moving ${oldSubDocsSnapshot.size} docs from subcollection '${subcollectionName}' of ${originalApplicantDocRef.id}`,
+            );
+            oldSubDocsSnapshot.forEach((subDoc) => {
+              const newSubDocRef = doc(
+                db,
+                newEmployeeDocRef.path,
+                subcollectionName,
+                subDoc.id,
+              );
+              batch.set(newSubDocRef, subDoc.data()); // Copiar a la nueva ubicación
+              batch.delete(subDoc.ref); // Eliminar de la ubicación antigua
+              console.log(
+                `  - Scheduled move for ${subcollectionName}/${subDoc.id}`,
+              );
+            });
+          }
+        }
+        // 5. Eliminar el documento principal original (después de mover subcolecciones)
+        console.log(
+          "Scheduled deletion of original applicant document:",
+          originalApplicantDocRef.path,
+        );
+        batch.delete(originalApplicantDocRef);
+      }
+
+      // 6. Encontrar todos los coordinadores de la MISMA compañía para eliminar la aplicación
+      const coordinatorsInCompanyRef = collection(
+        db,
+        "companies",
+        targetCompanyId,
+        "employees",
+      );
       const coordinatorsQuery = query(
-        employeesRef,
-        where("companyId", "==", coordinatorCompanyId),
+        coordinatorsInCompanyRef,
         where("role", "==", "coordinator"),
       );
       const coordinatorsSnap = await getDocs(coordinatorsQuery);
 
-      // 4. Delete the application from every relevant coordinator's subcollection
-      const deletePromises = coordinatorsSnap.docs.map((coordDoc) => {
-        const coordinatorId = coordDoc.id;
+      coordinatorsSnap.forEach((coordDoc) => {
         const appRef = doc(
           db,
+          "companies",
+          targetCompanyId,
           "employees",
-          coordinatorId,
+          coordDoc.id,
           "applications",
-          application.id,
+          applicantId,
         );
-        return deleteDoc(appRef);
+        batch.delete(appRef);
+        console.log(
+          "Scheduled deletion of application from coordinator:",
+          coordDoc.id,
+        );
       });
-      await Promise.all(deletePromises);
 
-      // 5. Show success Toast
+      // 7. Ejecutar todas las operaciones en lote
+      await batch.commit();
+
       Toast.show({
         type: "success",
-        text1: t("success.successTitle", "Success"),
+        text1: t("success_title"),
         text2: t("applications.successMessageAccepted"),
       });
-
-      // 6. Refrescar la lista
-      loadApplications(); // Reload applications to reflect changes
+      loadCoordinatorAndApplications(); // Recargar la lista
     } catch (error) {
       console.error("Error accepting application:", error);
-      // 7. Show error Toast
       Toast.show({
         type: "error",
-        text1: t("errors.errorTitle", "Error"),
-        text2: t(
-          "errors.acceptApplicationFailed",
-          "Could not accept application.",
-        ), // Add translation
+        text1: t("errors.errorTitle"),
+        text2: t("errors.acceptApplicationFailed"),
       });
     } finally {
-      // setIsAccepting(false); // Stop specific loading state if used
+      setActionLoading(false);
     }
   };
 
   const handleConfirmDecline = async () => {
-    // Optional: Add specific loading state
-    // setIsDeclining(true);
+    if (!selectedApplication || !selectedApplication.id) {
+      /* ... validación ... */ return;
+    }
+    if (!coordinatorInfo.id || !coordinatorInfo.companyId) {
+      /* ... validación ... */ return;
+    }
+
+    setActionLoading(true);
+    setIsModalVisible(false); // Cerrar modal
+    const batch = writeBatch(db);
+    const applicantId = selectedApplication.id;
+    const targetCompanyId = coordinatorInfo.companyId; // La compañía del coordinador actual
+
     try {
-      if (!selectedApplication) {
-        Toast.show({
-          type: "error",
-          text1: t("errors.errorTitle"),
-          text2: t("errors.noApplicationSelected", "No application selected."),
-        }); // Add translation
-        setIsModalVisible(false); // Close modal anyway
-        return;
-      }
-
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        Toast.show({
-          type: "error",
-          text1: t("errors.errorTitle"),
-          text2: t("errors.notLoggedIn"),
-        });
-        setIsModalVisible(false);
-        return;
-      }
-
-      // Get coordinator's company ID to find other relevant coordinators
-      const coordinatorRef = doc(db, "employees", currentUser.uid);
-      const coordinatorSnap = await getDoc(coordinatorRef);
-      if (!coordinatorSnap.exists()) {
-        Toast.show({
-          type: "error",
-          text1: t("errors.errorTitle"),
-          text2: t("errors.coordinatorNotFound"),
-        });
-        setIsModalVisible(false);
-        return;
-      }
-      const coordinatorCompanyId = coordinatorSnap.data().companyId;
-      if (!coordinatorCompanyId) {
-        Toast.show({
-          type: "error",
-          text1: t("errors.errorTitle"),
-          text2: t("errors.coordinatorNoCompany"),
-        });
-        setIsModalVisible(false);
-        return;
-      }
-
-      // Find all coordinators of that company
-      const employeesRef = collection(db, "employees");
+      // Encontrar todos los coordinadores de ESA compañía
+      const coordinatorsInCompanyRef = collection(
+        db,
+        "companies",
+        targetCompanyId,
+        "employees",
+      );
       const coordinatorsQuery = query(
-        employeesRef,
-        where("companyId", "==", coordinatorCompanyId),
+        coordinatorsInCompanyRef,
         where("role", "==", "coordinator"),
       );
       const coordinatorsSnap = await getDocs(coordinatorsQuery);
 
-      // Delete the application from all relevant coordinators
-      const deletePromises = coordinatorsSnap.docs.map((coordDoc) => {
-        const coordinatorId = coordDoc.id;
+      // Eliminar la aplicación de la subcolección de cada coordinador de esa compañía
+      coordinatorsSnap.forEach((coordDoc) => {
         const appRef = doc(
           db,
+          "companies",
+          targetCompanyId,
           "employees",
-          coordinatorId,
+          coordDoc.id,
           "applications",
-          selectedApplication.id,
+          applicantId,
         );
-        return deleteDoc(appRef);
+        batch.delete(appRef);
       });
-      await Promise.all(deletePromises);
 
-      // Show success Toast
+      await batch.commit();
+
       Toast.show({
-        type: "success", // Or 'info' if preferred for decline
-        text1: t("success.successTitle", "Success"),
+        type: "success",
+        text1: t("success_title"),
         text2: t("applications.successMessageDeclined"),
       });
-
-      setIsModalVisible(false);
       setSelectedApplication(null);
-      loadApplications(); // Refresh list
+      loadCoordinatorAndApplications(); // Recargar
     } catch (error) {
       console.error("Error declining application:", error);
-      // Show error Toast
       Toast.show({
         type: "error",
-        text1: t("errors.errorTitle", "Error"),
-        text2: t(
-          "errors.declineApplicationFailed",
-          "Could not decline application.",
-        ), // Add translation
+        text1: t("error_title"),
+        text2: t("errors.declineApplicationFailed"),
       });
-      // Close modal even on error? Or let user retry? Closing for now.
-      setIsModalVisible(false);
-      setSelectedApplication(null);
     } finally {
-      // setIsDeclining(false); // Stop specific loading state
+      setActionLoading(false);
     }
   };
+
   const handleBack = () => {
     router.back();
   };
@@ -291,6 +429,14 @@ export default function ApplicationsScreen() {
   const handleHome = () => {
     router.replace("/coordinator/home");
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF9300" />
+      </View>
+    );
+  }
 
   return (
     <LinearGradient

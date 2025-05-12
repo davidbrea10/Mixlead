@@ -780,7 +780,7 @@ export default function Calculation() {
       }
 
       // Validación de µ para predefinidos/personalizados (tu lógica original era estricta aquí)
-      if (µ === undefined || isNaN(µ) || µ <= 0) {
+      if (µ === undefined || isNaN(µ) || µ < 0) {
         // Cambiado a µ <= 0
         Toast.show({
           type: "error",

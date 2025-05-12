@@ -21,6 +21,8 @@ import {
   getDoc,
   query,
   where,
+  limit,
+  collectionGroup,
 } from "firebase/firestore"; // <-- Ensure all needed functions are imported
 import { Ionicons } from "@expo/vector-icons";
 // Remove unused Picker import if you're only using RNPickerSelect
@@ -40,6 +42,9 @@ export default function Home() {
   const [totalAnnualDose, setTotalAnnualDose] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false); // <-- Add state for PDF generation
+  const [currentUserCompanyId, setCurrentUserCompanyId] = useState(null); // Para el companyId del empleado actual
+  const [employeeFullName, setEmployeeFullName] = useState(""); // Para el nombre del empleado actual
+  const [currentCompanyName, setCurrentCompanyName] = useState(""); // Para el nombre de la compañía actual
 
   // Consistent month names array (reuse keys if applicable or create new ones)
   const monthNames = Array.from({ length: 12 }, (_, i) =>
@@ -56,31 +61,15 @@ export default function Home() {
     router.replace("/coordinator/home");
   };
 
-  const handleViewDetails = (month, year) => {
-    if (month && year && auth.currentUser) {
-      router.push({
-        pathname: "/employee/doseDetails/[doseDetails]",
-        params: {
-          uid: auth.currentUser.uid, // Pass UID explicitly
-          month: month.toString(),
-          year: year.toString(),
-        },
-      });
-    } else {
-      console.warn("Attempted to view details with invalid params or user.");
-      Alert.alert(t("errors.error"), t("errors.navigationParamsMissing"));
-    }
-  };
-
-  // --- Data Loading ---
   useFocusEffect(
     useCallback(() => {
       loadDataOnFocus();
-    }, []),
+    }, []), // Se ejecuta cuando la pantalla obtiene foco
   );
 
   useEffect(() => {
-    if (selectedYear !== null) {
+    // Recalcular total solo si hay un año seleccionado y dosis cargadas
+    if (selectedYear !== null && monthlyDoses.length > 0) {
       calculateTotalAnnualDose();
     } else {
       setTotalAnnualDose(0);
@@ -88,86 +77,173 @@ export default function Home() {
   }, [monthlyDoses, selectedYear]);
 
   const loadDataOnFocus = async () => {
-    console.log("Executing loadDataOnFocus...");
+    console.log("Employee Home: Executing loadDataOnFocus...");
     setIsLoading(true);
     setMonthlyDoses([]);
     setAvailableYears([]);
-    const previousSelectedYear = selectedYear; // Preserve to try and reselect
+    setCurrentUserCompanyId(null); // Resetear
+    setEmployeeFullName(t("employeesAgenda.pdf.unknownEmployee")); // Resetear
+    setCurrentCompanyName(t("employeesAgenda.pdf.unknownCompany")); // Resetear
 
+    const previousSelectedYear = selectedYear;
     const user = auth.currentUser;
+
     if (!user) {
       setIsLoading(false);
       Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
+      router.replace("/auth/login"); // Redirigir si no hay usuario
       return;
     }
 
+    let fetchedUserCompanyId = null;
+    let fetchedEmployeeData = null;
+
     try {
-      const dosesRef = collection(db, "employees", user.uid, "doses");
-      const snapshot = await getDocs(dosesRef);
+      // 1. Obtener datos del empleado actual (incluyendo companyId)
+      console.log(
+        `Workspaceing current employee data (email: ${user.email}) to get companyId...`,
+      );
+      const employeesGroupRef = collectionGroup(db, "employees");
+      const employeeQuery = query(
+        employeesGroupRef,
+        where("email", "==", user.email),
+        limit(1),
+      );
+      const employeeQuerySnapshot = await getDocs(employeeQuery);
 
-      let doseData = {};
-      let yearsSet = new Set();
-      let hasData = false;
-
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const yearValue =
-          typeof data.year === "number" ? data.year : parseInt(data.year, 10);
-        const monthValue =
-          typeof data.month === "number"
-            ? data.month
-            : parseInt(data.month, 10);
-        const doseValue =
-          typeof data.dose === "number"
-            ? data.dose
-            : parseFloat(data.dose || 0);
-
-        if (!isNaN(yearValue)) {
-          yearsSet.add(yearValue);
-          if (
-            !isNaN(monthValue) &&
-            monthValue >= 1 &&
-            monthValue <= 12 &&
-            !isNaN(doseValue)
-          ) {
-            hasData = true;
-            const key = `${yearValue}-${monthValue}`;
-            if (!doseData[key]) {
-              doseData[key] = {
-                totalDose: 0,
-                month: monthValue,
-                year: yearValue,
-              };
-            }
-            doseData[key].totalDose += doseValue;
-          }
-        }
-      });
-
-      const years = [...yearsSet].sort((a, b) => b - a);
-      setAvailableYears(years);
-
-      if (years.includes(previousSelectedYear)) {
-        setSelectedYear(previousSelectedYear);
-      } else if (years.length > 0) {
-        setSelectedYear(years[0]);
-      } else {
-        const currentYear = new Date().getFullYear();
-        if (!years.includes(currentYear)) {
-          setAvailableYears((prev) =>
-            [...prev, currentYear].sort((a, b) => b - a),
-          );
-        }
-        setSelectedYear(currentYear);
+      if (employeeQuerySnapshot.empty) {
+        console.error(
+          `Could not find employee document for email ${user.email}.`,
+        );
+        Alert.alert(t("errors.error"), t("errors.userDataNotFoundForDose"));
+        setIsLoading(false);
+        return;
       }
 
-      setMonthlyDoses(Object.values(doseData));
+      fetchedEmployeeData = employeeQuerySnapshot.docs[0].data();
+      fetchedUserCompanyId = fetchedEmployeeData.companyId;
+      setEmployeeFullName(
+        `${fetchedEmployeeData.firstName || ""} ${fetchedEmployeeData.lastName || ""}`.trim() ||
+          t("employeesAgenda.pdf.unknownEmployee"),
+      );
+
+      if (!fetchedUserCompanyId) {
+        console.error(
+          `Employee document for ${user.email} is missing companyId.`,
+        );
+        Alert.alert(
+          t("errors.error"),
+          t(
+            "errors.employeeNotAssignedToCompany",
+            "No estás asignado a una compañía. Contacta a tu coordinador.",
+          ),
+        ); // Nueva traducción
+        // El empleado aún puede ver sus dosis si las tiene directamente bajo su UID (estructura antigua)
+        // O si la lógica es que SIN companyId no puede tener dosis, entonces return.
+        // Por ahora, intentaremos cargar sus dosis de la ruta nueva, y si no, mostramos vacío.
+        // Para ser estricto, si no tiene companyId, no debería poder ver/registrar dosis en la nueva estructura.
+        setCurrentUserCompanyId(null); // Asegurar que es null
+        setCurrentCompanyName(t("profile.noCompanyAssigned")); // Usar traducción de perfil
+      } else {
+        setCurrentUserCompanyId(fetchedUserCompanyId);
+        // Obtener nombre de la compañía del empleado actual
+        const companyRef = doc(db, "companies", fetchedUserCompanyId);
+        const companySnap = await getDoc(companyRef);
+        if (companySnap.exists()) {
+          setCurrentCompanyName(
+            companySnap.data().Name ||
+              companySnap.data().name ||
+              t("employeesAgenda.pdf.unknownCompany"),
+          );
+        } else {
+          console.warn(`Company with ID ${fetchedUserCompanyId} not found.`);
+          setCurrentCompanyName(t("employeesAgenda.pdf.unknownCompany"));
+        }
+      }
+
+      // 2. Obtener las dosis DEL EMPLEADO ACTUAL de su compañía
+      if (fetchedUserCompanyId) {
+        // Solo buscar dosis si tiene un companyId
+        const dosesRef = collection(
+          db,
+          "companies",
+          fetchedUserCompanyId,
+          "employees",
+          user.uid,
+          "doses",
+        );
+        console.log("Fetching doses from:", dosesRef.path);
+        const snapshot = await getDocs(dosesRef);
+
+        let doseDataObj = {}; // Objeto para agregar dosis por mes/año
+        let yearsSet = new Set();
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const yearValue =
+            typeof data.year === "number" ? data.year : parseInt(data.year, 10);
+          const monthValue =
+            typeof data.month === "number"
+              ? data.month
+              : parseInt(data.month, 10);
+          const doseValue =
+            typeof data.dose === "number"
+              ? data.dose
+              : parseFloat(data.dose || 0);
+
+          if (!isNaN(yearValue)) {
+            yearsSet.add(yearValue);
+            if (
+              !isNaN(monthValue) &&
+              monthValue >= 1 &&
+              monthValue <= 12 &&
+              !isNaN(doseValue)
+            ) {
+              const key = `${yearValue}-${monthValue}`;
+              if (!doseDataObj[key]) {
+                doseDataObj[key] = {
+                  totalDose: 0,
+                  month: monthValue,
+                  year: yearValue,
+                };
+              }
+              doseDataObj[key].totalDose += doseValue;
+            }
+          }
+        });
+        setMonthlyDoses(Object.values(doseDataObj));
+        const years = [...yearsSet].sort((a, b) => b - a);
+        setAvailableYears(years);
+
+        if (years.includes(previousSelectedYear)) {
+          setSelectedYear(previousSelectedYear);
+        } else if (years.length > 0) {
+          setSelectedYear(years[0]);
+        } else {
+          const currentYr = new Date().getFullYear();
+          if (!years.includes(currentYr)) years.push(currentYr); // Add current year if no data
+          setAvailableYears(
+            years.length > 0 ? years.sort((a, b) => b - a) : [currentYr],
+          );
+          setSelectedYear(currentYr);
+        }
+      } else {
+        // Si no hay companyId, no hay dosis que cargar de la nueva estructura
+        setMonthlyDoses([]);
+        const currentYr = new Date().getFullYear();
+        setAvailableYears([currentYr]);
+        setSelectedYear(currentYr);
+      }
     } catch (error) {
-      console.error("Error loading monthly doses:", error);
-      Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
+      console.error("Error in loadDataOnFocus (Employee Home):", error);
+      if (error.code === "failed-precondition") {
+        Alert.alert(t("errors.error"), t("errors.firestoreIndexRequired"));
+      } else {
+        Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
+      }
       const currentYear = new Date().getFullYear();
       setAvailableYears([currentYear]);
-      setSelectedYear(currentYear);
+      setSelectedYear(currentYear); // Fallback
     } finally {
       setIsLoading(false);
     }
@@ -175,9 +251,31 @@ export default function Home() {
 
   const calculateTotalAnnualDose = () => {
     const total = monthlyDoses
-      .filter((item) => item.year === selectedYear)
+      .filter((item) => item.year === selectedYear) // Ya se filtran por selectedYear al cargar monthlyDoses para un empleado
       .reduce((sum, item) => sum + (item.totalDose || 0), 0);
     setTotalAnnualDose(total);
+  };
+
+  const handleViewDetails = (month, year) => {
+    const user = auth.currentUser;
+    // Necesitamos currentUserCompanyId para la navegación
+    if (month && year && user && currentUserCompanyId) {
+      router.push({
+        pathname: "/employee/doseDetails/[doseDetails]", // Ruta del empleado
+        params: {
+          employeeId: user.uid, // El UID del empleado actual
+          companyId: currentUserCompanyId, // El companyId del empleado actual
+          month: month.toString(),
+          year: year.toString(),
+        },
+      });
+    } else {
+      console.warn(
+        "Attempted to view details with invalid params, user, or missing companyId.",
+        { month, year, user, currentUserCompanyId },
+      );
+      Alert.alert(t("errors.error"), t("errors.navigationParamsMissingOrAuth")); // Nueva traducción
+    }
   };
 
   // --- PDF Generation Function (Copied & Integrated) ---
@@ -194,43 +292,25 @@ export default function Home() {
     setIsGeneratingPdf(true);
 
     const user = auth.currentUser;
-    if (!user) {
-      Alert.alert(t("errors.error"), t("errors.notLoggedIn"));
+    // Necesitamos currentUserCompanyId para las rutas
+    if (!user || !currentUserCompanyId) {
+      Alert.alert(t("errors.error"), t("errors.notLoggedInOrNoCompany")); // Usar una traducción general
       setIsGeneratingPdf(false);
       return;
     }
+    setIsGeneratingPdf(true);
 
     try {
-      // 1. Get Employee Info
-      let employeeName = t("employeesAgenda.pdf.unknownEmployee");
-      let companyId = null;
-      let companyName = t("employeesAgenda.pdf.unknownCompany");
-
-      const empDocRef = doc(db, "employees", user.uid);
-      const empDocSnap = await getDoc(empDocRef);
-      if (empDocSnap.exists()) {
-        const empData = empDocSnap.data();
-        employeeName =
-          `${empData.firstName || ""} ${empData.lastName || ""}`.trim() ||
-          employeeName;
-        companyId = empData.companyId;
-      } else {
-        console.warn("Employee document not found for PDF generation.");
-      }
-
-      // 2. Get Company Name
-      if (companyId) {
-        const companyDocRef = doc(db, "companies", companyId);
-        const companyDocSnap = await getDoc(companyDocRef);
-        if (companyDocSnap.exists()) {
-          companyName = companyDocSnap.data().Name || companyName;
-        } else {
-          console.warn(`Company document not found for ID: ${companyId}`);
-        }
-      }
-
       // 3. Fetch DAILY Doses for the selected year
-      const dosesRef = collection(db, "employees", user.uid, "doses");
+      const dosesRef = collection(
+        db,
+        "companies",
+        currentUserCompanyId,
+        "employees",
+        user.uid,
+        "doses",
+      );
+
       const q = query(dosesRef, where("year", "==", selectedYear));
       const snapshot = await getDocs(q);
 
@@ -307,9 +387,9 @@ export default function Home() {
           </style>
         </head>
         <body>
-          <div class="header-title">${companyName}</div>
+          <div class="header-title">${currentCompanyName}</div>
           <div class="header-subtitle">
-            <span>${t("employeesAgenda.pdf.employeeTitle")}: ${employeeName}</span>
+            <span>${t("employeesAgenda.pdf.employeeTitle")}: ${employeeFullName}</span>
             <span>${t("employeesAgenda.pdf.year")}: ${selectedYear}</span>
           </div>
           <table>
@@ -332,7 +412,7 @@ export default function Home() {
       `;
 
       // 7. Configure PDF Options (A3 Landscape)
-      const fileName = `MyDoseReport_${selectedYear}_${employeeName.replace(/\s+/g, "_")}`;
+      const fileName = `MyDoseReport_${selectedYear}_${employeeFullName.replace(/\s+/g, "_")}`;
       const options = {
         html: htmlContent,
         fileName: fileName,

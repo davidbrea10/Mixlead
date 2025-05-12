@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,9 +12,16 @@ import {
   Platform, // Import Platform
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { db } from "../../../firebase/config";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  where,
+  query,
+} from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
@@ -23,143 +30,217 @@ import * as Sharing from "expo-sharing"; // Import Sharing
 export default function DoseDetails() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { uid, month, year } = useLocalSearchParams();
-  const parsedMonth = parseInt(month, 10);
-  const parsedYear = parseInt(year, 10);
-  const isValidParams = uid && !isNaN(parsedMonth) && !isNaN(parsedYear);
+  const params = useLocalSearchParams();
+
+  const viewedEmployeeId = params.employeeId; // UID del empleado cuyos detalles se están viendo
+  const viewedCompanyId = params.companyId; // CompanyID de la empresa de ese empleado
+  const monthFromParams = params.month;
+  const yearFromParams = params.year;
+
+  const parsedMonth = parseInt(monthFromParams, 10);
+  const parsedYear = parseInt(yearFromParams, 10);
+
+  // Validar parámetros al inicio del componente
+  const isValidParams =
+    viewedEmployeeId &&
+    viewedCompanyId &&
+    !isNaN(parsedMonth) &&
+    !isNaN(parsedYear);
+
   const [dailyDoses, setDailyDoses] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
-  const [employeeName, setEmployeeName] = useState("");
+  const [employeeName, setEmployeeName] = useState(
+    t("employeesAgenda.pdf.unknownEmployee"),
+  );
   const [companyName, setCompanyName] = useState(
     t("employeesAgenda.pdf.unknownCompany"),
-  ); // Add state for company name
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [error, setError] = useState(null); // Estado para errores de carga
 
   // Consistent month names array
   const monthNames = Array.from({ length: 12 }, (_, i) =>
     t(`doseDetails.months.${i + 1}`, { defaultValue: `Month ${i + 1}` }),
   );
 
-  useEffect(() => {
-    if (isValidParams) {
-      loadEmployeeDetails(); // Load name and company
-      loadDailyDoses();
-    } else {
-      console.error("Invalid parameters received for DoseDetails:", {
-        uid,
-        month,
-        year,
-      });
-      Alert.alert(t("errors.error"), t("errors.invalidParams"));
-      setIsLoading(false);
-      // Optionally navigate back
-      // router.back();
-    }
-  }, [uid, month, year]); // Rerun if any param changes
+  const loadEmployeeDetails = useCallback(
+    async (employeeId, companyId) => {
+      // No establece isLoading aquí, lo hace el orquestador
+      try {
+        const employeeRef = doc(
+          db,
+          "companies",
+          companyId,
+          "employees",
+          employeeId,
+        );
+        console.log("loadEmployeeDetails: Fetching from", employeeRef.path);
+        const docSnap = await getDoc(employeeRef);
 
-  const loadEmployeeDetails = async () => {
-    if (!uid) return;
-    try {
-      const employeeRef = doc(db, "employees", uid);
-      const docSnap = await getDoc(employeeRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const fullName =
-          `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
-          t("employeesAgenda.pdf.unknownEmployee");
-        setEmployeeName(fullName);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const fullName =
+            `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+            t("employeesAgenda.pdf.unknownEmployee");
+          setEmployeeName(fullName);
 
-        // Fetch company name if companyId exists
-        if (data.companyId) {
-          const companyRef = doc(db, "companies", data.companyId);
-          const companySnap = await getDoc(companyRef);
-          if (companySnap.exists()) {
+          const companyRefInner = doc(db, "companies", companyId); // Usa el companyId pasado
+          const companySnapInner = await getDoc(companyRefInner);
+          if (companySnapInner.exists()) {
             setCompanyName(
-              companySnap.data().Name ||
+              companySnapInner.data().Name ||
+                companySnapInner.data().name ||
                 t("employeesAgenda.pdf.unknownCompany"),
             );
+          } else {
+            console.warn(`Company doc not found for ID: ${companyId}`);
+            setCompanyName(t("employeesAgenda.pdf.unknownCompany"));
           }
+        } else {
+          console.warn(`Employee doc not found at ${employeeRef.path}`);
+          setEmployeeName(t("employeesAgenda.pdf.unknownEmployee"));
+          setCompanyName(t("employeesAgenda.pdf.unknownCompany"));
+          setError((prevErr) => prevErr || t("errors.employeeDataNotFound"));
         }
-      } else {
+      } catch (err) {
+        console.error("Error in loadEmployeeDetails:", err);
         setEmployeeName(t("employeesAgenda.pdf.unknownEmployee"));
+        setCompanyName(t("employeesAgenda.pdf.unknownCompany"));
+        setError((prevErr) => prevErr || t("errors.loadEmployeeDetailsFailed"));
       }
-    } catch (error) {
-      console.error("Error loading employee details:", error);
-      // Set default name on error
-      setEmployeeName(t("employeesAgenda.pdf.unknownEmployee"));
-    }
-  };
+    },
+    [t],
+  ); // Solo 't' es una dependencia externa que podría cambiar y afectar la función
 
-  const loadDailyDoses = async () => {
-    if (!isValidParams) return; // Already checked in useEffect, but good practice
+  const loadDailyDoses = useCallback(
+    async (employeeId, companyId, monthToLoad, yearToLoad) => {
+      setDailyDoses([]); // Limpiar antes de cargar
+      try {
+        const dosesCollectionPath = `companies/${companyId}/employees/${employeeId}/doses`;
+        const dosesRef = collection(db, dosesCollectionPath);
+        const q = query(
+          dosesRef,
+          where("month", "==", monthToLoad),
+          where("year", "==", yearToLoad),
+        );
+        const snapshot = await getDocs(q);
+        let doseData = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (
+            data.dose != null &&
+            typeof data.dose === "number" &&
+            !isNaN(data.dose) &&
+            data.day
+          ) {
+            doseData.push({
+              id: docSnap.id,
+              dose: data.dose,
+              day: parseInt(data.day, 10),
+              month: parseInt(data.month, 10),
+              year: parseInt(data.year, 10),
+              totalTime: data.totalTime || 0,
+              totalExposures: data.totalExposures || 0,
+              startTime: data.startTime || "--:--",
+            });
+          }
+        });
+        doseData.sort((a, b) => {
+          if (a.day !== b.day) return a.day - b.day;
+          const timeA = a.startTime === "--:--" ? "00:00" : a.startTime;
+          const timeB = b.startTime === "--:--" ? "00:00" : b.startTime;
+          return timeA.localeCompare(timeB);
+        });
+        setDailyDoses(doseData);
+      } catch (err) {
+        console.error("Error in loadDailyDoses:", err);
+        if (err.code === "failed-precondition") {
+          setError(
+            (prevErr) => prevErr || t("errors.firestoreIndexRequiredDoses"),
+          );
+        } else {
+          setError((prevErr) => prevErr || t("errors.loadDosesFailed"));
+        }
+      }
+    },
+    [t],
+  ); // Solo 't' es una dependencia externa
+
+  // --- Función orquestadora que será llamada por useFocusEffect ---
+  const fetchDataOnFocus = useCallback(async () => {
+    // Validar los parámetros usando las constantes desestructuradas del scope del componente
+    const localIsValid =
+      viewedEmployeeId &&
+      typeof viewedEmployeeId === "string" &&
+      viewedEmployeeId.trim() !== "" &&
+      viewedCompanyId &&
+      typeof viewedCompanyId === "string" &&
+      viewedCompanyId.trim() !== "" &&
+      !isNaN(parsedMonth) &&
+      parsedMonth >= 1 &&
+      parsedMonth <= 12 &&
+      !isNaN(parsedYear);
+
+    console.log(
+      "DoseDetails fetchDataOnFocus. Current Params (desestructurados):",
+      { viewedEmployeeId, viewedCompanyId, monthFromParams, yearFromParams },
+      "Evaluated isValid:",
+      localIsValid,
+    );
+
+    if (!localIsValid) {
+      console.error(
+        "DoseDetails: Invalid or missing navigation parameters during actual fetchDataOnFocus execution.",
+        { viewedEmployeeId, viewedCompanyId, monthFromParams, yearFromParams },
+      );
+      setError(t("errors.invalidNavParams"));
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
-    setDailyDoses([]); // Clear previous data
+    setError(null);
 
     try {
-      // Construct the path using the uid from params
-      const dosesRef = collection(db, "employees", uid, "doses");
-      // OPTIONAL: Add query for efficiency if needed, but client filtering is fine
-      // const q = query(dosesRef, where("year", "==", parsedYear), where("month", "==", parsedMonth));
-      // const snapshot = await getDocs(q);
-      const snapshot = await getDocs(dosesRef); // Fetch all then filter
-
-      let doseData = [];
-
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (
-          data.dose != null &&
-          typeof data.dose === "number" &&
-          !isNaN(data.dose) &&
-          data.day &&
-          parseInt(data.month, 10) === parsedMonth &&
-          parseInt(data.year, 10) === parsedYear
-        ) {
-          doseData.push({
-            id: docSnap.id,
-            dose: data.dose,
-            day: parseInt(data.day, 10),
-            month: parseInt(data.month, 10),
-            year: parseInt(data.year, 10),
-            totalTime: data.totalTime || 0,
-            totalExposures: data.totalExposures || 0,
-            startTime: data.startTime || "--:--",
-          });
-        }
-      });
-
-      doseData.sort((a, b) => {
-        // 1. Criterio Principal: Ordenar por día
-        if (a.day !== b.day) {
-          return a.day - b.day; // Orden ascendente por día
-        }
-
-        // 2. Criterio Secundario: Si el día es el mismo, ordenar por hora de inicio
-        // Comparamos los strings "HH:mm". Si falta startTime, se trata como el inicio del día.
-        const timeA = a.startTime || "00:00";
-        const timeB = b.startTime || "00:00";
-
-        if (timeA < timeB) {
-          return -1; // a viene antes que b
-        }
-        if (timeA > timeB) {
-          return 1; // a viene después que b
-        }
-
-        // Si el día y la hora son iguales, mantener el orden relativo (o devolver 0)
-        return 0;
-      });
-
-      setDailyDoses(doseData);
-    } catch (error) {
-      console.error("Error loading daily doses for employee:", uid, error);
-      Alert.alert(t("errors.error"), t("errors.loadDosesFailed"));
+      await Promise.all([
+        loadEmployeeDetails(viewedEmployeeId, viewedCompanyId),
+        loadDailyDoses(
+          viewedEmployeeId,
+          viewedCompanyId,
+          parsedMonth,
+          parsedYear,
+        ),
+      ]);
+    } catch (generalError) {
+      console.error(
+        "DoseDetails: Error during parallel data fetch on focus:",
+        generalError,
+      );
+      setError((prevErr) => prevErr || t("errors.loadDataFailed"));
     } finally {
       setIsLoading(false);
     }
-  };
+    // Dependencias de fetchDataOnFocus: ahora son los valores primitivos desestructurados
+    // y las funciones memoizadas.
+  }, [
+    viewedEmployeeId,
+    viewedCompanyId,
+    parsedMonth, // Ya está parseado y se deriva de monthFromParams
+    parsedYear, // Ya está parseado y se deriva de yearFromParams
+    loadEmployeeDetails,
+    loadDailyDoses,
+    t,
+    // No necesitamos `params` aquí si usamos los valores desestructurados/parseados
+  ]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDataOnFocus();
+      // Opcional: función de limpieza
+      // return () => { /* ... */ };
+    }, [fetchDataOnFocus]), // La dependencia es la función orquestadora memoizada
+  );
 
   const handleExpandRow = (index) => {
     setExpandedRows((prev) => ({
