@@ -6,7 +6,6 @@ import {
   Pressable,
   ActivityIndicator,
   Image,
-  Alert, // Keep Alert for confirmation dialog
   ScrollView,
   Platform,
   StyleSheet, // Import StyleSheet
@@ -507,6 +506,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
+    textAlign: "center",
   },
   buttonSpinner: {
     // No extra style needed if centered by button's justifyContent

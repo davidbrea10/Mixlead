@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "Mixlead",
+    "name": "RadRisk",
     "slug": "mixlead",
-    "version": "0.7.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/adaptive-icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "mixlead",
+    "scheme": "radrisk",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash.png",
@@ -29,7 +29,7 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
-      "package": "com.davidbrea_10.mixlead",
+      "package": "com.davidbrea_10.radrisk",
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {

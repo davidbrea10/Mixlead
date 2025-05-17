@@ -11,7 +11,6 @@ module.exports = (async () => {
     config.resolver.unstable_enableSymlinks,
   );
 
-  // Apply your customizations if needed after checking defaults
   config.resolver.unstable_enablePackageExports = false;
   // config.resolver.unstable_enableSymlinks = false;
 

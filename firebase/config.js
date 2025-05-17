@@ -44,8 +44,7 @@ if (Platform.OS === "web") {
   // En la web, usa persistencia web (IndexedDB es preferible)
   console.log("Initializing Firebase Auth for Web with IndexedDB persistence");
   auth = initializeAuth(app, {
-    persistence: indexedDBLocalPersistence, // O browserLocalPersistence
-    // popupRedirectResolver: browserPopupRedirectResolver, // Puede ser necesario si usas popups/redirects
+    persistence: indexedDBLocalPersistence,
   });
 } else {
   // En móvil (Android/iOS), usa persistencia de React Native

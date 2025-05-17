@@ -1,13 +1,13 @@
 // components/CustomToastConfig.js
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // Assuming you use Expo icons
+import { Ionicons } from "@expo/vector-icons";
 
 // Base styles for reusability
 const baseStyles = StyleSheet.create({
   container: {
-    height: "auto", // Auto height based on content
-    minHeight: 70, // Minimum height
+    height: "auto",
+    minHeight: 70,
     width: "90%",
     borderRadius: 15,
     paddingVertical: 10,
@@ -19,7 +19,7 @@ const baseStyles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    marginHorizontal: "5%", // Center it
+    marginHorizontal: "5%",
   },
   iconContainer: {
     width: 40,
@@ -42,13 +42,13 @@ const baseStyles = StyleSheet.create({
   text2: {
     fontSize: 15,
     color: "white",
-    flexWrap: "wrap", // Allow text wrapping
+    flexWrap: "wrap",
   },
   closeButton: {
-    paddingLeft: 10, // Add padding to make it easier to tap
+    paddingLeft: 10,
     justifyContent: "center",
     alignItems: "center",
-    height: "100%", // Make button height match container
+    height: "100%",
   },
 });
 
@@ -68,7 +68,6 @@ const SuccessToast = ({ text1, text2, hide }) => (
   </View>
 );
 
-// Custom Error Toast
 const ErrorToast = ({ text1, text2, hide }) => (
   <View style={[baseStyles.container, styles.errorContainer]}>
     <View style={[baseStyles.iconContainer, styles.errorIconBg]}>
@@ -84,41 +83,24 @@ const ErrorToast = ({ text1, text2, hide }) => (
   </View>
 );
 
-// Specific styles for success and error
 const styles = StyleSheet.create({
   successContainer: {
-    backgroundColor: "#2E7D32", // Darker green (adjust as needed)
+    backgroundColor: "#2E7D32",
   },
   successIconBg: {
-    backgroundColor: "#1B5E20", // Even darker green for icon background
+    backgroundColor: "#1B5E20",
   },
   errorContainer: {
-    backgroundColor: "#C62828", // Darker red (adjust as needed - like crimson)
+    backgroundColor: "#C62828",
   },
   errorIconBg: {
-    backgroundColor: "#B71C1C", // Even darker red for icon background
+    backgroundColor: "#B71C1C",
   },
 });
 
 // Configuration object for react-native-toast-message
 export const toastConfig = {
-  /*
-    Overwrite 'success' type, by modifying the existing `BaseToast` component
-  */
   success: (props) => <SuccessToast {...props} />,
-  /*
-    Overwrite 'error' type
-  */
+
   error: (props) => <ErrorToast {...props} />,
-
-  /*
-    Or create new types e.g. 'tomatoToast':
-
-  tomatoToast: ({ text1, props }) => (
-    <View style={{ height: 60, width: '100%', backgroundColor: 'tomato' }}>
-      <Text>{text1}</Text>
-      <Text>{props.uuid}</Text>
-    </View>
-  )
-  */
 };

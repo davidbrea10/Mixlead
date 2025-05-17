@@ -170,7 +170,7 @@
     "placeholder_telephone": "Introduce el teléfono",
     "placeholder_contactPerson": "Introduce la persona de contacto",
     "placeholder_securityNumber": "Introduce el número de seguridad social",
-    "addButton": "Añadir Empresa",
+    "registerButton": "Añadir Empresa",
     "errorIncomplete": "Por favor, rellena todos los campos",
     "success": "Empresa registrada con éxito"
   },

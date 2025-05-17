@@ -170,7 +170,7 @@
     "placeholder_telephone": "Enter telephone",
     "placeholder_contactPerson": "Enter contact person",
     "placeholder_securityNumber": "Enter social security number",
-    "addButton": "Add Company",
+    "registerButton": "Add Company",
     "errorIncomplete": "Please fill in all fields",
     "success": "Company Registered Successfully"
   },
@@ -351,7 +351,7 @@
   },
 
   "radiographyCalculator": {
-    "buttonTitle": "Calculation of Neccessaty Distance/Thickness",
+    "buttonTitle": "Calculation of Neccessary Distance/Thickness",
     "title": "Radiography Shielding Calculator",
     "isotope": "Isotope:",
     "activity": "Activity:",

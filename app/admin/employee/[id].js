@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -21,6 +21,8 @@ import {
   deleteDoc,
   collectionGroup,
   getDocs,
+  collection,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../../../firebase/config";
 import { LinearGradient } from "expo-linear-gradient";
@@ -44,103 +46,125 @@ export default function EmployeeDetail() {
   const [originalEmployeeData, setOriginalEmployeeData] = useState(null);
   const [error, setError] = useState(null); // Estado para manejar errores de carga
 
-  useEffect(() => {
-    const fetchEmployee = async () => {
-      setLoading(true);
-      setEmployee(null); // Resetear datos previos
-      setEmployeeDocRef(null); // Resetear ref previa
-      setError(null); // Resetear error previo
+  const [companiesList, setCompaniesList] = useState([]);
+  const [isCompanyModalVisible, setIsCompanyModalVisible] = useState(false);
+  const [currentCompanyName, setCurrentCompanyName] = useState("");
 
-      if (!employeeId) {
-        console.error("Error: Missing employeeId");
+  const EMPLOYEE_SUBCOLLECTIONS = ["doses", "materials"];
+
+  const fetchEmployeeAndCompanyDetails = useCallback(async () => {
+    setLoading(true);
+    setEmployee(null);
+    setEmployeeDocRef(null);
+    setError(null);
+    setCurrentCompanyName("");
+
+    if (!employeeId) {
+      console.error("Error: Falta employeeId");
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t("employee_details.errors.invalid_id"),
+      });
+      setError(t("employee_details.errors.invalid_id"));
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log(
+        `Intentando consulta collectionGroup para employeeId: ${employeeId}`,
+      );
+      const employeesGroupRef = collectionGroup(db, "employees");
+      const employeesSnapshot = await getDocs(employeesGroupRef);
+      const foundDoc = employeesSnapshot.docs.find((d) => d.id === employeeId);
+
+      if (foundDoc) {
+        const data = { id: foundDoc.id, ...foundDoc.data() };
+        setEmployee(data);
+        // Clonación profunda para originalEmployeeData
+        setOriginalEmployeeData(JSON.parse(JSON.stringify(data)));
+        setEmployeeDocRef(foundDoc.ref);
+        console.log("Datos del empleado obtenidos:", data);
+        console.log(
+          "Ruta de Document Reference almacenada:",
+          foundDoc.ref.path,
+        );
+
+        // Obtener el nombre de la empresa actual
+        if (data.companyId) {
+          const companyDocRef = doc(db, "companies", data.companyId);
+          const companyDocSnap = await getDoc(companyDocRef);
+          if (companyDocSnap.exists()) {
+            setCurrentCompanyName(
+              companyDocSnap.data().Name ||
+                t("employee_details.unknownCompany", "Empresa Desconocida"),
+            );
+          } else {
+            setCurrentCompanyName(
+              t("employee_details.unknownCompany", "Empresa Desconocida"),
+            );
+            console.warn(
+              `Empresa con ID ${data.companyId} no encontrada para el empleado.`,
+            );
+          }
+        } else {
+          setCurrentCompanyName(
+            t("employee_details.noCompanyAssigned", "Sin Empresa Asignada"),
+          );
+        }
+      } else {
+        console.error(
+          `Documento de empleado con ID ${employeeId} no encontrado.`,
+        );
         Toast.show({
           type: "error",
           text1: t("errors.errorTitle"),
-          text2: t("employee_details.errors.invalid_id"),
+          text2: t("employee_details.errors.not_found"),
         });
-        setError(t("employee_details.errors.invalid_id"));
-        setLoading(false);
-        // router.back(); // Opcional
-        return;
+        setError(t("employee_details.errors.not_found"));
       }
+    } catch (err) {
+      console.error("Error obteniendo empleado:", err);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t("employee_details.errors.fetch_error"),
+      });
+      setError(t("employee_details.errors.fetch_error"));
+    } finally {
+      setLoading(false);
+    }
+  }, [employeeId, t]);
 
-      try {
-        // --- Buscar usando Collection Group y filtrar por ID ---
-        console.log(
-          `Attempting collectionGroup query for employeeId: ${employeeId}`,
-        );
-        const employeesGroupRef = collectionGroup(db, "employees");
+  const fetchCompanies = useCallback(async () => {
+    try {
+      const companiesColRef = collection(db, "companies");
+      const companiesSnapshot = await getDocs(companiesColRef);
+      const companies = companiesSnapshot.docs.map((d) => ({
+        id: d.id,
+        name: d.data().Name, // Asumiendo que el documento de empresa tiene un campo 'name'
+      }));
+      setCompaniesList(companies);
+      console.log("Empresas obtenidas:", companies);
+    } catch (err) {
+      console.error("Error obteniendo empresas:", err);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t(
+          "employee_details.errors.fetch_companies_error",
+          "Fallo al cargar empresas",
+        ),
+      });
+    }
+  }, [t]);
 
-        // *** Estrategia 1: Filtrar directamente en la query (Puede requerir índice y sintaxis exacta) ***
-        // const q = query(employeesGroupRef, where(documentId(), '==', employeeId)); // Intentar con documentId() si está disponible y funciona
-        // const employeesSnapshot = await getDocs(q);
-        // let foundDoc = employeesSnapshot.empty ? null : employeesSnapshot.docs[0];
-        // console.log(`Found via query filter: ${foundDoc ? foundDoc.id : 'None'}`);
+  useEffect(() => {
+    fetchEmployeeAndCompanyDetails();
+    fetchCompanies();
+  }, [fetchEmployeeAndCompanyDetails, fetchCompanies]); // MODIFICADO: dependencias
 
-        // *** Estrategia 2: Obtener todos y filtrar cliente (Menos eficiente, pero funciona sin índices específicos) ***
-        const employeesSnapshot = await getDocs(employeesGroupRef);
-        console.log(
-          `Workspaceed ${employeesSnapshot.size} total employee docs to filter.`,
-        );
-        const foundDoc = employeesSnapshot.docs.find(
-          (doc) => doc.id === employeeId,
-        );
-        console.log(
-          `Found via client filter: ${foundDoc ? foundDoc.id : "None"}`,
-        );
-        // ****************************************************************
-
-        if (foundDoc) {
-          const data = { id: foundDoc.id, ...foundDoc.data() };
-          setEmployee(data);
-          setOriginalEmployeeData(data);
-          setEmployeeDocRef(foundDoc.ref); // <-- Guardar la REFERENCIA completa
-          console.log("Employee data fetched:", data);
-          console.log("Stored Document Reference Path:", foundDoc.ref.path);
-        } else {
-          console.error(
-            `Employee document with ID ${employeeId} not found in any 'employees' subcollection.`,
-          );
-          Toast.show({
-            type: "error",
-            text1: t("errors.errorTitle"),
-            text2: t("employee_details.errors.not_found"),
-          });
-          setError(t("employee_details.errors.not_found"));
-          // router.back(); // Opcional
-        }
-      } catch (error) {
-        console.error("Error fetching employee via collectionGroup:", error);
-        // Verificar si el error es por índice faltante (si usaste Estrategia 1)
-        if (error.code === "failed-precondition") {
-          console.error(
-            "Query failed likely due to missing Firestore index. Check console/Firebase for index creation link.",
-          );
-          Toast.show({
-            type: "error",
-            text1: t("errors.errorTitle"),
-            text2: t("errors.firestoreIndexRequired"),
-            visibilityTime: 5000,
-          }); // Añadir traducción
-          setError(t("errors.firestoreIndexRequired"));
-        } else {
-          Toast.show({
-            type: "error",
-            text1: t("errors.errorTitle"),
-            text2: t("employee_details.errors.fetch_error"),
-          });
-          setError(t("employee_details.errors.fetch_error"));
-        }
-        // router.back(); // Opcional
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEmployee();
-  }, [employeeId, t, router]); // Depender solo de employeeId
-
-  // Define los campos editables
   const fields = [
     { key: "firstName", label: "employee_details.firstName", editable: true },
     { key: "lastName", label: "employee_details.lastName", editable: true },
@@ -153,7 +177,7 @@ export default function EmployeeDetail() {
       keyboardType: "phone-pad",
     },
     { key: "birthDate", label: "employee_details.birthDate", editable: false },
-    // { key: "companyId", label: "employee_details.companyId", editable: false }, // CompanyID no editable aquí
+    // Company será un selector aparte
   ];
 
   const handleInputChange = (field, value) => {
@@ -167,57 +191,208 @@ export default function EmployeeDetail() {
     setRoleModalVisible(false);
   };
 
-  // --- GUARDAR CAMBIOS ---
+  const handleCompanySelect = async (companyId, companyName) => {
+    if (employee && employee.companyId !== companyId) {
+      setEmployee((prev) => (prev ? { ...prev, companyId: companyId } : null));
+      // Actualizar el nombre de la empresa mostrada inmediatamente
+      const selectedCompany = companiesList.find((c) => c.id === companyId);
+      setCurrentCompanyName(
+        companyName ||
+          t("employee_details.unknownCompany", "Empresa Desconocida"),
+      );
+    }
+    setIsCompanyModalVisible(false);
+  };
+
+  const moveEmployeeToNewCompany = async (
+    currentEmployeeRef,
+    newCompanyId,
+    employeeDataToMove,
+  ) => {
+    const batch = writeBatch(db);
+    const employeeDocId = currentEmployeeRef.id; // El ID del empleado no cambia
+
+    // 1. Define la nueva ruta del documento del empleado
+    const newEmployeeRef = doc(
+      db,
+      "companies",
+      newCompanyId,
+      "employees",
+      employeeDocId,
+    );
+
+    // 2. Prepara los datos principales del empleado para la nueva ubicación
+    // Asegúrate de que companyId se actualiza en los datos a mover.
+    const newEmployeeData = { ...employeeDataToMove, companyId: newCompanyId };
+    delete newEmployeeData.id; // No almacenes el ID como un campo si es el ID del documento
+
+    batch.set(newEmployeeRef, newEmployeeData);
+    console.log(
+      `Batch: SET nuevo documento de empleado en ${newEmployeeRef.path}`,
+    );
+
+    // 3. Mover subcolecciones
+    for (const subcollectionName of EMPLOYEE_SUBCOLLECTIONS) {
+      const oldSubcollectionRef = collection(
+        currentEmployeeRef,
+        subcollectionName,
+      );
+      const oldSubcollectionSnapshot = await getDocs(oldSubcollectionRef);
+
+      if (!oldSubcollectionSnapshot.empty) {
+        console.log(
+          `Migrando subcolección: ${subcollectionName} con ${oldSubcollectionSnapshot.size} documentos.`,
+        );
+        oldSubcollectionSnapshot.forEach((subDoc) => {
+          // Usar el mismo ID para el sub-documento en la nueva ubicación
+          const newSubDocRef = doc(
+            newEmployeeRef,
+            subcollectionName,
+            subDoc.id,
+          );
+          batch.set(newSubDocRef, subDoc.data());
+          console.log(
+            `Batch: SET nuevo sub-doc ${subDoc.id} en ${subcollectionName} en ${newSubDocRef.path}`,
+          );
+          batch.delete(subDoc.ref); // Eliminar el antiguo sub-documento
+          console.log(
+            `Batch: DELETE antiguo sub-doc ${subDoc.id} de ${subDoc.ref.path}`,
+          );
+        });
+      } else {
+        console.log(
+          `Subcolección ${subcollectionName} está vacía o no existe para el antiguo empleado.`,
+        );
+      }
+    }
+
+    // 4. Eliminar el antiguo documento del empleado
+    batch.delete(currentEmployeeRef);
+    console.log(
+      `Batch: DELETE antiguo documento de empleado en ${currentEmployeeRef.path}`,
+    );
+
+    // 5. Ejecutar el batch
+    await batch.commit();
+    console.log("Batch de movimiento de empleado ejecutado con éxito.");
+    return newEmployeeRef; // Devolver la nueva referencia
+  };
+
   const handleSave = async () => {
-    // 6. Usar la referencia guardada 'employeeDocRef'
-    if (!employeeDocRef || !employee) {
-      // Verificar si la referencia existe
+    if (!employeeDocRef || !employee || !originalEmployeeData) {
       Toast.show({
         type: "error",
         text1: t("errors.errorTitle"),
         text2: t(
           "errors.cannotSaveMissingRef",
-          "Cannot save, employee reference not found.",
+          "No se puede guardar, referencia del empleado no encontrada.",
         ),
-      }); // Nueva traducción
+      });
       return;
     }
 
-    // Preparar datos a actualizar (excluir ID y companyId si no se debe cambiar)
-    const dataToUpdate = {
-      firstName: employee.firstName,
-      lastName: employee.lastName,
-      dni: employee.dni,
-      phone: employee.phone,
-      role: employee.role,
-      // NO actualizamos companyId aquí
-    };
-
-    console.log("Attempting to update docRef:", employeeDocRef.path);
-    console.log("Data to update:", dataToUpdate);
-
     setIsSaving(true);
-    try {
-      // Usar la referencia guardada directamente
-      await updateDoc(employeeDocRef, dataToUpdate);
 
-      Toast.show({
-        type: "success",
-        text1: t("success.title"),
-        text2: t("success.message"),
-      });
-      setOriginalEmployeeData(employee); // Actualizar original tras guardar
-      router.replace({
-        pathname: "/admin/employees",
-        params: { refresh: Date.now() },
-      });
+    try {
+      const newCompanyId = employee.companyId;
+      const oldCompanyId = originalEmployeeData.companyId;
+
+      // Determinar si algún dato, incluida la companyId, ha cambiado
+      // Clonamos para no modificar el estado directamente antes de tiempo
+      const currentEmployeeStateForCompare = { ...employee };
+      const originalEmployeeStateForCompare = { ...originalEmployeeData };
+
+      // Normalizar: asegurarse de que companyId existe en ambos para una comparación justa si uno es null/undefined
+      if (currentEmployeeStateForCompare.companyId === undefined)
+        currentEmployeeStateForCompare.companyId = null;
+      if (originalEmployeeStateForCompare.companyId === undefined)
+        originalEmployeeStateForCompare.companyId = null;
+
+      const employeeDataHasChanged =
+        JSON.stringify(currentEmployeeStateForCompare) !==
+        JSON.stringify(originalEmployeeStateForCompare);
+      const companyHasChanged = newCompanyId !== oldCompanyId && newCompanyId; // newCompanyId debe ser válido
+
+      if (companyHasChanged) {
+        console.log(
+          `La empresa ha cambiado de ${oldCompanyId || "ninguna"} a ${newCompanyId}. Iniciando movimiento.`,
+        );
+
+        // Prepara todos los datos del empleado para mover.
+        // Esto debe ser el estado actual de 'employee' que contiene todos los campos.
+        const fullEmployeeDataForMove = { ...employee };
+        // No es necesario eliminar 'id' aquí ya que 'moveEmployeeToNewCompany' lo maneja.
+
+        const newRef = await moveEmployeeToNewCompany(
+          employeeDocRef,
+          newCompanyId,
+          fullEmployeeDataForMove,
+        );
+        setEmployeeDocRef(newRef); // Actualizar la referencia del documento al nuevo path
+
+        Toast.show({
+          type: "success",
+          text1: t("success.title"),
+          text2: t(
+            "employee_details.success.employeeMoved",
+            "Empleado movido con éxito.",
+          ),
+        });
+        // Actualizar datos originales para reflejar el movimiento y el nuevo estado
+        setOriginalEmployeeData(JSON.parse(JSON.stringify(employee))); // Clonación profunda
+      } else if (employeeDataHasChanged) {
+        // La empresa no ha cambiado (o no hay nueva companyId), pero otros datos podrían haberlo hecho
+        console.log(
+          "La empresa no ha cambiado o no hay nueva empresa, actualizando en el lugar.",
+        );
+        const dataToUpdate = { ...employee };
+        delete dataToUpdate.id; // No intentes actualizar el campo ID
+        // companyId no debería actualizarse aquí si no fue un movimiento.
+        // Si companyId es el mismo o nulo, no lo incluyas a menos que explícitamente lo estés borrando.
+        if (
+          dataToUpdate.companyId === oldCompanyId ||
+          !dataToUpdate.companyId
+        ) {
+          // Si la intención es desasignar, companyId sería null y diferente de oldCompanyId (si tenía una)
+          // Este caso debería ser manejado por la lógica de 'companyHasChanged' si oldCompanyId no era null.
+          // Si oldCompanyId era null y newCompanyId es null, no hay cambio.
+          // Si solo se están actualizando otros campos, no se toca companyId.
+        }
+
+        await updateDoc(employeeDocRef, dataToUpdate);
+        Toast.show({
+          type: "success",
+          text1: t("success.title"),
+          text2: t("success.message"), // "Cambios guardados con éxito"
+        });
+        setOriginalEmployeeData(JSON.parse(JSON.stringify(employee))); // Clonación profunda
+      } else {
+        Toast.show({
+          type: "info",
+          text1: t("employee_details.noChangesTitle", "Sin Cambios"),
+          text2: t(
+            "employee_details.noChangesMessage",
+            "No se realizaron cambios.",
+          ),
+        });
+      }
+
+      // Refrescar la pantalla anterior
+      if (employeeDataHasChanged || companyHasChanged) {
+        router.replace({
+          pathname: "/admin/employees", // Ajusta esta ruta si es necesario
+          params: { refresh: Date.now().toString() }, // Asegura que el parámetro es string
+        });
+      }
     } catch (error) {
-      console.error("Error updating employee:", error);
+      console.error("Error guardando/moviendo empleado:", error);
       Toast.show({
         type: "error",
         text1: t("errors.errorTitle"),
-        text2: t("errors.updateError", "Error saving changes."),
-      }); // Añadir traducción
+        text2:
+          t("errors.updateError", "Error guardando cambios.") +
+          ` ${error.message}`,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -229,29 +404,46 @@ export default function EmployeeDetail() {
   };
 
   const handleConfirmDelete = async () => {
-    // 7. Usar la referencia guardada 'employeeDocRef'
     if (!employeeDocRef) {
-      // Verificar si la referencia existe
       Toast.show({
         type: "error",
         text1: t("errors.errorTitle"),
         text2: t(
           "errors.cannotDeleteMissingRef",
-          "Cannot delete, employee reference not found.",
+          "No se puede eliminar, referencia del empleado no encontrada.",
         ),
-      }); // Nueva traducción
+      });
       setIsDeleteModalVisible(false);
       return;
     }
-
     setIsDeleteModalVisible(false);
     setIsDeleting(true);
 
-    console.log("Attempting to delete docRef:", employeeDocRef.path);
-
     try {
-      // Usar la referencia guardada directamente
-      await deleteDoc(employeeDocRef);
+      // NUEVO: Borrado completo incluyendo subcolecciones usando un batch
+      const batch = writeBatch(db);
+
+      // 1. Eliminar subcolecciones
+      for (const subcollectionName of EMPLOYEE_SUBCOLLECTIONS) {
+        const subcollectionRef = collection(employeeDocRef, subcollectionName);
+        const subcollectionSnapshot = await getDocs(subcollectionRef);
+        if (!subcollectionSnapshot.empty) {
+          console.log(
+            `Eliminando subcolección: ${subcollectionName} con ${subcollectionSnapshot.size} documentos.`,
+          );
+          subcollectionSnapshot.forEach((subDoc) => {
+            batch.delete(subDoc.ref);
+          });
+        }
+      }
+      // 2. Eliminar el documento principal del empleado
+      batch.delete(employeeDocRef);
+      console.log(
+        `Batch: DELETE documento de empleado en ${employeeDocRef.path} y sus subcolecciones.`,
+      );
+
+      await batch.commit();
+      // FIN NUEVO
 
       Toast.show({
         type: "success",
@@ -259,29 +451,77 @@ export default function EmployeeDetail() {
         text2: t("employee_details.success.delete"),
       });
       router.replace({
-        pathname: "/admin/employees",
-        params: { refresh: Date.now() },
+        pathname: "/admin/employees", // Ajusta esta ruta
+        params: { refresh: Date.now().toString() },
       });
     } catch (error) {
-      console.error("Error deleting employee:", error);
+      console.error("Error eliminando empleado y subcolecciones:", error); // MODIFICADO
       Toast.show({
         type: "error",
         text1: t("errors.errorTitle"),
-        text2: t("employee_details.errors.delete_error"),
+        text2: t("employee_details.errors.delete_error") + ` ${error.message}`, // MODIFICADO
       });
     } finally {
       setIsDeleting(false);
     }
   };
 
-  if (loading) {
-    // Centered Loading Indicator
+  if (loading && !employee) {
+    // MODIFICADO: Mostrar carga completa solo si el empleado aún no está configurado
     return (
       <LinearGradient
         colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
         style={styles.loadingContainer}
       >
         <ActivityIndicator size="large" color="#FF8C00" />
+      </LinearGradient>
+    );
+  }
+
+  if (error && !employee) {
+    return (
+      <LinearGradient
+        colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
+        style={styles.loadingContainer}
+      >
+        <Text style={styles.errorText}>
+          {t("errors.loadingFailed", "Carga Fallida")}: {error}
+        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          style={[
+            styles.button,
+            { backgroundColor: "#FF9300", minWidth: 150, marginTop: 20 },
+          ]}
+        >
+          <Text style={styles.buttonText}>{t("common.goBack", "Volver")}</Text>
+        </Pressable>
+      </LinearGradient>
+    );
+  }
+
+  // Fallback si el empleado no está cargado por alguna razón (debería ser capturado por los estados anteriores)
+  if (!employee) {
+    return (
+      <LinearGradient
+        colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
+        style={styles.loadingContainer}
+      >
+        <Text style={styles.errorText}>
+          {t(
+            "employee_details.errors.no_employee_data",
+            "Datos del empleado no disponibles.",
+          )}
+        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          style={[
+            styles.button,
+            { backgroundColor: "#FF9300", minWidth: 150, marginTop: 20 },
+          ]}
+        >
+          <Text style={styles.buttonText}>{t("common.goBack", "Volver")}</Text>
+        </Pressable>
       </LinearGradient>
     );
   }
@@ -321,32 +561,55 @@ export default function EmployeeDetail() {
       {/* Content */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.content}>
-          {/* Map through defined fields */}
           {fields.map(({ key, label, editable, keyboardType }) => (
             <View key={key} style={styles.fieldContainer}>
               <Text style={styles.label}>{t(label)}</Text>
               <TextInput
-                value={employee[key]}
+                value={employee[key] || ""} // Asegurar que el valor no sea undefined
                 onChangeText={(text) => handleInputChange(key, text)}
-                style={[styles.input, !editable && styles.inputDisabled]} // Style disabled fields
-                editable={editable} // Set editability
+                style={[styles.input, !editable && styles.inputDisabled]}
+                editable={editable}
                 keyboardType={keyboardType || "default"}
                 placeholder={
                   !editable
-                    ? t("employee_details.not_editable", "Not Editable")
+                    ? t("employee_details.not_editable", "No editable")
                     : ""
-                } // Placeholder for non-editable
+                }
                 placeholderTextColor={"gray"}
               />
             </View>
           ))}
 
-          {/* Role Selection */}
+          {/* NUEVO: Campo de Selección de Empresa */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>
+              {t("employee_details.company", "Empresa")}
+            </Text>
+            <Pressable
+              onPress={() => setIsCompanyModalVisible(true)}
+              style={styles.pickerButton}
+              disabled={isSaving || isDeleting || loading} // Deshabilitar si está guardando, borrando o cargando
+            >
+              <Text
+                style={[
+                  styles.pickerButtonText,
+                  !currentCompanyName && styles.pickerButtonPlaceholder,
+                ]}
+              >
+                {currentCompanyName ||
+                  t("employee_details.selectCompany", "Seleccionar Empresa")}
+              </Text>
+              <Ionicons name="chevron-down" size={24} color="gray" />
+            </Pressable>
+          </View>
+
+          {/* Selección de Rol */}
           <View style={styles.fieldContainer}>
             <Text style={styles.label}>{t("employee_details.role")}</Text>
             <Pressable
               onPress={() => setRoleModalVisible(true)}
               style={styles.pickerButton}
+              disabled={isSaving || isDeleting || loading} // Deshabilitar consistentemente
             >
               <Text
                 style={[
@@ -354,21 +617,78 @@ export default function EmployeeDetail() {
                   !employee.role && styles.pickerButtonPlaceholder,
                 ]}
               >
-                {employee.role || t("employee_details.selectRole")}
+                {employee.role
+                  ? t(`roles.${employee.role}`, employee.role)
+                  : t("employee_details.selectRole")}
               </Text>
               <Ionicons name="chevron-down" size={24} color="gray" />
             </Pressable>
           </View>
 
-          {/* Role Modal */}
+          {/* NUEVO: Modal de Empresa */}
+          <Modal
+            visible={isCompanyModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setIsCompanyModalVisible(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPressOut={() => setIsCompanyModalVisible(false)} // Cerrar al tocar fuera
+            >
+              <View
+                style={styles.modalContent}
+                onStartShouldSetResponder={() => true} // Evita que el clic en el overlay pase a través
+              >
+                <ScrollView>
+                  {companiesList.length > 0 ? (
+                    companiesList.map((company) => (
+                      <TouchableOpacity
+                        key={company.id}
+                        onPress={() =>
+                          handleCompanySelect(company.id, company.name)
+                        }
+                        style={[
+                          styles.modalItem,
+                          // Resaltar la empresa seleccionada actualmente en el estado del empleado
+                          employee?.companyId === company.id &&
+                            styles.modalItemSelected,
+                        ]}
+                      >
+                        <Text style={styles.modalItemText}>{company.name}</Text>
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <Text style={styles.modalItemText}>
+                      {t(
+                        "employee_details.noCompaniesAvailable",
+                        "No hay empresas disponibles",
+                      )}
+                    </Text>
+                  )}
+                </ScrollView>
+                <Pressable
+                  onPress={() => setIsCompanyModalVisible(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <Text style={styles.modalCloseButtonText}>
+                    {t("employee_details.close", "Cerrar")}
+                  </Text>
+                </Pressable>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          {/* Modal de Rol (existente) */}
           <Modal
             visible={isRoleModalVisible}
             animationType="slide"
             transparent={true}
-            onRequestClose={() => setRoleModalVisible(false)} // Handle back button on Android
+            onRequestClose={() => setRoleModalVisible(false)}
           >
             <TouchableOpacity
-              style={styles.modalOverlay} // Added overlay press to close
+              style={styles.modalOverlay}
               activeOpacity={1}
               onPressOut={() => setRoleModalVisible(false)}
             >
@@ -376,36 +696,43 @@ export default function EmployeeDetail() {
                 style={styles.modalContent}
                 onStartShouldSetResponder={() => true}
               >
-                {roles.map((role) => (
-                  <TouchableOpacity
-                    key={role}
-                    onPress={() => handleRoleSelect(role)}
-                    style={styles.modalItem}
-                  >
-                    <Text style={styles.modalItemText}>{role}</Text>
-                  </TouchableOpacity>
-                ))}
+                <ScrollView>
+                  {roles.map((role) => (
+                    <TouchableOpacity
+                      key={role}
+                      onPress={() => handleRoleSelect(role)}
+                      style={[
+                        styles.modalItem,
+                        employee?.role === role && styles.modalItemSelected, // Resaltar rol seleccionado
+                      ]}
+                    >
+                      <Text style={styles.modalItemText}>
+                        {t(`roles.${role}`, role)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
                 <Pressable
                   onPress={() => setRoleModalVisible(false)}
                   style={styles.modalCloseButton}
                 >
                   <Text style={styles.modalCloseButtonText}>
-                    {t("employee_details.close")}
+                    {t("employee_details.close", "Cerrar")}
                   </Text>
                 </Pressable>
               </View>
             </TouchableOpacity>
           </Modal>
 
-          {/* Action Buttons */}
+          {/* Botones de Acción */}
           <View style={styles.buttonContainer}>
             <Pressable
               onPress={handleSave}
-              disabled={isSaving || isDeleting}
+              disabled={isSaving || isDeleting || loading} // MODIFICADO: deshabilitar si está cargando también
               style={[
                 styles.button,
                 styles.saveButton,
-                (isSaving || isDeleting) && styles.buttonDisabled,
+                (isSaving || isDeleting || loading) && styles.buttonDisabled,
               ]}
             >
               {isSaving ? (
@@ -422,16 +749,24 @@ export default function EmployeeDetail() {
             </Pressable>
             <Pressable
               onPress={handleDelete}
-              disabled={isSaving || isDeleting}
+              disabled={isSaving || isDeleting || loading} // MODIFICADO
               style={[
                 styles.button,
                 styles.deleteButton,
-                (isSaving || isDeleting) && styles.buttonDisabled,
+                (isSaving || isDeleting || loading) && styles.buttonDisabled,
               ]}
             >
-              <Text style={styles.buttonText}>
-                {t("employee_details.delete")}
-              </Text>
+              {isDeleting ? ( // NUEVO: Spinner para el botón de borrar
+                <ActivityIndicator
+                  size="small"
+                  color="#fff"
+                  style={styles.buttonSpinner}
+                />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {t("employee_details.delete")}
+                </Text>
+              )}
             </Pressable>
           </View>
         </View>
@@ -636,7 +971,12 @@ const styles = StyleSheet.create({
     elevation: 0,
     shadowOpacity: 0,
   },
-  buttonText: { color: "white", fontSize: 18, fontWeight: "bold" },
+  buttonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
   buttonSpinner: {
     /* marginRight: 5 */
   }, // Optional margin

@@ -20,8 +20,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
   createUserWithEmailAndPassword,
-  signInWithCredential,
-  EmailAuthProvider,
+  sendEmailVerification,
 } from "firebase/auth"; // Import necessary auth methods
 import { db, auth } from "../../firebase/config";
 import { collection, getDocs, doc, setDoc } from "firebase/firestore";
@@ -174,29 +173,15 @@ export default function AddEmployee() {
         password,
       );
       const userId = userCredential.user.uid;
+      const user = userCredential.user;
 
-      // --- IMPORTANT: Workaround to sign the Admin back in ---
-      // Re-authenticate the *original* admin user immediately after creating the new user.
-      // This requires the admin's credentials (usually email/password).
-      // **SECURITY NOTE:** Storing admin credentials directly is insecure.
-      // This example assumes the admin's session is still valid, but re-authentication
-      // might be needed depending on session duration and security rules.
-      // A robust solution uses a backend with Admin SDK.
-      // Simplified re-auth using current user object (might not always work if session expired mid-process)
       if (auth.currentUser?.uid !== adminUser.uid) {
-        // If the signed-in user changed
-        // Attempt to sign the original admin back in. This part is tricky client-side.
-        // The most reliable way requires getting the admin's password again securely
-        // or relying on the existing session token if still valid.
-        // For simplicity here, we'll just log a warning if the user changed.
         console.warn(
           "User context switched after employee creation. Admin might need to re-login manually.",
         );
-        // Ideally, you'd trigger a secure re-authentication flow here.
-        // Example (requires admin password securely obtained):
-        // const credential = EmailAuthProvider.credential(adminUser.email, adminPassword);
-        // await signInWithCredential(auth, credential);
       }
+
+      await sendEmailVerification(user);
 
       // Prepare data for Firestore (exclude password)
       const { password: _, ...employeeData } = form;

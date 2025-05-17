@@ -479,6 +479,7 @@ export default function Graph() {
                   if (exclusionCircleProhibited) { map.removeLayer(exclusionCircleProhibited); exclusionCircleProhibited = null; }
                   if (exclusionCircleLimited) { map.removeLayer(exclusionCircleLimited); exclusionCircleLimited = null; }
                   if (exclusionCircleControlled) { map.removeLayer(exclusionCircleControlled); exclusionCircleControlled = null; }
+                  if (exclusionCircleRemoteControl) {map.removeLayer(exclusionCircleRemoteControl); exclusionCircleRemoteControl = null; }
                   console.log('WebView: Fixed marker and all circles removed.');
                   // Opcional: notificar a RN
                   // if (window.ReactNativeWebView) {
