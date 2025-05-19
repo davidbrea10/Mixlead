@@ -72,7 +72,21 @@ export default function CalculationSummary() {
   };
 
   const handleTable = () => {
-    router.push("/employee/tables");
+    // Extraemos los parámetros necesarios de 'params' que vienen de calculation.js
+    // y los pasamos a la pantalla de tablas.
+    router.push({
+      pathname: "/employee/tables", // Ruta a tu pantalla de tablas
+      params: {
+        activityCi: params.activity, // Actividad en Ci (string)
+        isotope: params.isotope, // Nombre del isótopo (string, ej: "192Ir")
+        collimatorDisplayName: params.collimator, // Nombre de visualización del colimador
+        materialDisplayName: params.material, // Nombre de visualización del material
+        // 'attenuationCoefficientUsed' es el µ que se usó en el cálculo individual,
+        // formateado como string (ej: "0.292"). La pantalla de tablas lo parseará.
+        // Es crucial saber la unidad original de este µ (probablemente cm⁻¹).
+        muUsedInCalculation: params.attenuationCoefficientUsed,
+      },
+    });
   };
 
   const handleSaveDose = async () => {

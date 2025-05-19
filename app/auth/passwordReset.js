@@ -93,16 +93,30 @@ export default function PasswordResetScreen() {
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
       style={styles.gradient}
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          {/* Header content... */}
-          <View style={styles.headerIconsContainer}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.headerButton}
-            >
+      <View style={{ flex: 1 }}>
+        <View
+          style={{
+            backgroundColor: "#FF9300",
+            paddingHorizontal: 16,
+            paddingTop: Platform.OS === "android" ? 20 : 50, // Espacio para status bar, ajusta según sea necesario
+            paddingBottom: 20, // Espacio inferior en el header
+            borderBottomStartRadius: 35, // Curvatura más suave
+            borderBottomEndRadius: 35, // Curvatura más suave
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2, // Sombra más sutil
+            shadowRadius: 5,
+            elevation: 7,
+          }}
+        >
+          {/* Header with Back and Language Buttons */}
+          <View style={styles.headerIcons}>
+            {/* Back Button */}
+            <TouchableOpacity onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={28} color="black" />
             </TouchableOpacity>
+
+            {/* Language Selector */}
             <TouchableOpacity
               onPress={handleLanguageChange}
               style={styles.languageSelector}
@@ -115,7 +129,22 @@ export default function PasswordResetScreen() {
               <Text style={styles.languageText}>{t("change_language")}</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.headerTitle}>{t("passwordReset.title")}</Text>
+
+          <Text
+            style={{
+              marginTop: 20,
+              paddingTop: 60,
+              fontSize: 30,
+              fontWeight: "bold",
+              textAlign: "center",
+              color: "#FFFFFF",
+              textShadowColor: "black",
+              textShadowOffset: { width: 0, height: 0 },
+              textShadowRadius: 2,
+            }}
+          >
+            {t("passwordReset.title")}
+          </Text>
         </View>
         <View style={styles.content}>
           <Text style={styles.instructions}>
@@ -183,24 +212,22 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     backgroundColor: "#FF9300",
-    paddingTop: Platform.OS === "android" ? 40 : 60, // Base padding for the whole header
-    paddingBottom: 30, // Bottom padding remains the same
     paddingHorizontal: 16,
-    borderBottomStartRadius: 40,
-    borderBottomEndRadius: 40,
+    paddingTop: Platform.OS === "android" ? 20 : 50, // Espacio para status bar, ajusta según sea necesario
+    paddingBottom: 20, // Espacio inferior en el header
+    borderBottomStartRadius: 35, // Curvatura más suave
+    borderBottomEndRadius: 35, // Curvatura más suave
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10,
-    minHeight: 180, // Keep minimum height
-    justifyContent: "flex-end", // Keep aligning title towards bottom padding
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, // Sombra más sutil
+    shadowRadius: 5,
+    elevation: 7,
   },
-  headerIconsContainer: {
+  headerIcons: {
     position: "absolute",
-    top: Platform.OS === "android" ? 20 : 55, // Position icons below status bar
-    left: 16,
-    right: 16,
+    top: Platform.OS === "android" ? 20 : 55, // Adjust based on your header style
+    left: 20,
+    right: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",

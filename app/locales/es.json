@@ -688,6 +688,40 @@
 
   "tables": {
     "header.title": "Tablas"
+  },
+
+  "settings": {
+    "loadingDetails": "Cargando detalles...",
+    "deleteAccount": {
+      "button": "Eliminar Cuenta",
+      "confirmTitle": "Confirmar Eliminación de Cuenta",
+      "confirmMessage": "¿Estás seguro de que quieres eliminar tu cuenta? Todos tus datos personales, incluyendo los registros de materiales, dosis y aplicaciones, serán eliminados permanentemente. Esta acción no se puede deshacer.",
+      "successTitle": "Cuenta Eliminada",
+      "successMessage": "Tu cuenta ha sido eliminada correctamente."
+    },
+    "errors": {
+      "userDataMissing": "Datos de usuario no disponibles. Por favor, inténtalo más tarde.",
+      "companyDataMissing": "No se pudo recuperar la información de la empresa para tu cuenta.",
+      "fetchCompanyError": "Error al obtener los detalles de la empresa.",
+      "deleteFailed": "Error al eliminar la cuenta. Por favor, inténtalo de nuevo o contacta con soporte.",
+      "reLoginTitle": "Reinicio de Sesión Necesario",
+      "reLoginMessage": "Esta operación es sensible y requiere autenticación reciente. Por favor, cierra sesión y vuelve a iniciarla para eliminar tu cuenta.",
+      "userMismatch": "Error de usuario o no has iniciado sesión. Por favor, vuelve a iniciar sesión.",
+      "permissionDenied": "No tienes permiso para eliminar estos datos. Contacta con soporte."
+    }
+  },
+
+  "common": {
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "close": "Cerrar",
+    "save": "Guardar",
+    "confirm": "Confirmar",
+    "errorTitle": "Error",
+    "successTitle": "Éxito",
+    "warningTitle": "Advertencia",
+    "goBack": "Volver",
+    "loading": "Cargando..."
   }
 }
   

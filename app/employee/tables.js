@@ -1,3 +1,5 @@
+// Archivo: employee/tables.js
+
 import {
   View,
   Text,
@@ -5,15 +7,303 @@ import {
   Image,
   StyleSheet,
   Platform,
+  ScrollView,
+  TouchableOpacity, // Añadido para los botones de cambio de tabla
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useState, useMemo } from "react"; // Añadido useState
+
+// --- Constantes ---
+const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
+const COLLIMATOR_EFFECT = {
+  Yes: { "192Ir": 3, "75Se": 12.5 },
+  No: { "192Ir": 0, "75Se": 0 },
+};
+const DISTANCES_M_FOR_DOSE_RATE_TABLE = [
+  1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 100,
+];
+const SHIELDING_LAYERS_N = [0, 1, 2, 3, 4, 6, 8, 10];
+const THICKNESS_PER_LAYER_M = 0.01;
+
+// Nuevas constantes para la tabla de distancias (basadas en la imagen image_48af0c.png)
+const TARGET_DOSE_RATES_uSv_h = [
+  1000, 500, 250, 100, 50, 25, 20, 15, 10, 5, 1, 0.12, 0.01,
+];
 
 export default function Tables() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
+
+  const [currentView, setCurrentView] = useState("doseRate"); // 'doseRate' o 'distance'
+
+  const collimatorMapForY = useMemo(
+    () => ({
+      [t("radiographyCalculator.options.collimator.Yes")]: "Yes",
+      [t("radiographyCalculator.options.collimator.No")]: "No",
+      Sí: "Yes",
+      No: "No",
+    }),
+    [t],
+  );
+
+  // Memo para los parámetros base del cálculo
+  const baseCalcParams = useMemo(() => {
+    if (
+      !params.isotope ||
+      !params.activityCi ||
+      !params.collimatorDisplayName ||
+      !params.muUsedInCalculation
+    ) {
+      return null;
+    }
+    try {
+      const activity_GBq =
+        parseFloat(String(params.activityCi).replace(",", ".")) * 37;
+      const G = GAMMA_FACTOR[params.isotope];
+      const collimatorKey =
+        collimatorMapForY[params.collimatorDisplayName] || "No";
+      const Y = COLLIMATOR_EFFECT[collimatorKey]?.[params.isotope] ?? 0;
+      const mu_cm_inv = parseFloat(
+        String(params.muUsedInCalculation).replace(",", "."),
+      );
+      const mu_m_inv = mu_cm_inv * 100;
+
+      if (
+        isNaN(activity_GBq) ||
+        G === undefined ||
+        isNaN(Y) ||
+        isNaN(mu_m_inv)
+      ) {
+        console.error("Error en parsing de parámetros base:", {
+          activity_GBq,
+          G,
+          Y,
+          mu_m_inv,
+        });
+        return null;
+      }
+      return {
+        activity_GBq,
+        G,
+        Y,
+        mu_m_inv,
+        mu_m_inv_display: mu_m_inv.toFixed(1),
+      };
+    } catch (error) {
+      console.error("Error procesando parámetros base:", error);
+      return null;
+    }
+  }, [params, t, collimatorMapForY]);
+
+  // --- Datos para la Tabla de Tasa de Dosis ---
+  const doseRateTableData = useMemo(() => {
+    if (!baseCalcParams) return null;
+    const { activity_GBq, G, Y, mu_m_inv } = baseCalcParams;
+
+    const S_eff_numerator = activity_GBq * G;
+    const denominator_2_pow_Y = Math.pow(2, Y);
+
+    return DISTANCES_M_FOR_DOSE_RATE_TABLE.map((distance_m) => {
+      const doseRates = SHIELDING_LAYERS_N.map((num_layers) => {
+        const total_shield_thickness_m = num_layers * THICKNESS_PER_LAYER_M;
+        const dr_unshielded_at_d =
+          S_eff_numerator / (Math.pow(distance_m, 2) * denominator_2_pow_Y);
+        const attenuation_factor = Math.exp(
+          -mu_m_inv * total_shield_thickness_m,
+        );
+        const doseRate = dr_unshielded_at_d * attenuation_factor;
+        return doseRate.toFixed(2);
+      });
+      return { rowTitle: distance_m, values: doseRates }; // 'rowTitle' para generalizar
+    });
+  }, [baseCalcParams]);
+
+  // --- Datos para la Tabla de Distancias ---
+  const distanceTableData = useMemo(() => {
+    if (!baseCalcParams) return null;
+    const { activity_GBq, G, Y, mu_m_inv } = baseCalcParams;
+
+    const S_eff_numerator = activity_GBq * G;
+    const denominator_2_pow_Y = Math.pow(2, Y);
+
+    return TARGET_DOSE_RATES_uSv_h.map((target_dose_rate_uSv_h) => {
+      if (target_dose_rate_uSv_h <= 0) {
+        // Evitar división por cero o log de no positivos
+        return {
+          rowTitle: target_dose_rate_uSv_h,
+          values: SHIELDING_LAYERS_N.map(() => "N/A"),
+        };
+      }
+      const distances_m = SHIELDING_LAYERS_N.map((num_layers) => {
+        const total_shield_thickness_m = num_layers * THICKNESS_PER_LAYER_M;
+        const term_A_Gamma_exp =
+          S_eff_numerator * Math.exp(-mu_m_inv * total_shield_thickness_m);
+        const term_T_2Y = target_dose_rate_uSv_h * denominator_2_pow_Y;
+
+        if (term_T_2Y <= 0 || term_A_Gamma_exp < 0) return "Error"; // o Inf, N/A
+
+        const distance_sq = term_A_Gamma_exp / term_T_2Y;
+        if (distance_sq < 0) return "-"; // No es posible físicamente
+
+        const distance = Math.sqrt(distance_sq);
+        return distance.toFixed(2);
+      });
+      return { rowTitle: target_dose_rate_uSv_h, values: distances_m };
+    });
+  }, [baseCalcParams]);
+
+  // --- Funciones de Renderizado de Cabeceras y Filas ---
+  const renderDoseRateTableHeader = () => (
+    <View>
+      <View style={[styles.tableRow, styles.firstHeaderRow]}>
+        <Text
+          style={[
+            styles.tableHeaderCell,
+            styles.tableDistanceCell,
+            SHIELDING_LAYERS_N.length === 0 && styles.lastHeaderCell,
+          ]}
+        >
+          {t("tables.distance", "Dist (m)")}
+        </Text>
+        {SHIELDING_LAYERS_N.map((num_layers, index) => (
+          <Text
+            key={`header-num-${num_layers}`}
+            style={[
+              styles.tableHeaderCell,
+              styles.layerNumHeaderCell,
+              index === SHIELDING_LAYERS_N.length - 1 && styles.lastHeaderCell,
+            ]}
+          >
+            {`${num_layers}`}
+          </Text>
+        ))}
+      </View>
+      <View style={styles.tableRow}>
+        <Text
+          style={[
+            styles.tableHeaderCell,
+            styles.tableDistanceCell,
+            styles.unitHeaderCellPlaceholder,
+            SHIELDING_LAYERS_N.length === 0 && styles.lastHeaderCell,
+          ]}
+        />
+        {SHIELDING_LAYERS_N.map((num_layers_key, index) => (
+          <Text
+            key={`header-unit-${num_layers_key}`}
+            style={[
+              styles.tableHeaderCell,
+              styles.unitHeaderCell,
+              index === SHIELDING_LAYERS_N.length - 1 && styles.lastHeaderCell,
+            ]}
+          >
+            ({t("tables.doseRateUnit", "µSv/h")})
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderDistanceTableHeader = () => (
+    <View>
+      <View style={[styles.tableRow, styles.firstHeaderRow]}>
+        <Text
+          style={[
+            styles.tableHeaderCell,
+            styles.tableRateCell,
+            SHIELDING_LAYERS_N.length === 0 && styles.lastHeaderCell,
+          ]}
+        >
+          {t("tables.targetDoseRate", "Tasa (µSv/h)")}
+        </Text>
+        {SHIELDING_LAYERS_N.map((num_layers, index) => (
+          <Text
+            key={`header-num-dist-${num_layers}`}
+            style={[
+              styles.tableHeaderCell,
+              styles.layerNumHeaderCell,
+              index === SHIELDING_LAYERS_N.length - 1 && styles.lastHeaderCell,
+            ]}
+          >
+            {`${num_layers}`}
+          </Text>
+        ))}
+      </View>
+      <View style={styles.tableRow}>
+        <Text
+          style={[
+            styles.tableHeaderCell,
+            styles.tableRateCell,
+            styles.unitHeaderCellPlaceholder,
+            SHIELDING_LAYERS_N.length === 0 && styles.lastHeaderCell,
+          ]}
+        />
+        {SHIELDING_LAYERS_N.map((num_layers_key, index) => (
+          <Text
+            key={`header-unit-dist-${num_layers_key}`}
+            style={[
+              styles.tableHeaderCell,
+              styles.unitHeaderCell,
+              index === SHIELDING_LAYERS_N.length - 1 && styles.lastHeaderCell,
+            ]}
+          >
+            ({t("tables.distanceUnitShort", "m")})
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderTableRow = (rowData, rowIndex, isDistanceTable = false) => (
+    <View
+      key={`row-${rowIndex}`}
+      style={[
+        styles.tableRow,
+        rowIndex % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd,
+      ]}
+    >
+      <Text
+        style={[
+          styles.tableCell,
+          isDistanceTable ? styles.tableRateCell : styles.tableDistanceCell,
+          SHIELDING_LAYERS_N.length === 0 && styles.lastDataCell,
+        ]}
+      >
+        {rowData.rowTitle}
+      </Text>
+      {rowData.values.map((value, cellIndex) => (
+        <Text
+          key={`cell-${rowIndex}-${cellIndex}`}
+          style={[
+            styles.tableCell,
+            cellIndex === rowData.values.length - 1 && styles.lastDataCell,
+          ]}
+        >
+          {value}
+        </Text>
+      ))}
+    </View>
+  );
+
+  if (!baseCalcParams) {
+    return (
+      <LinearGradient
+        colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>
+            {t(
+              "tables.loadingErrorParams",
+              "Error cargando parámetros para la tabla.",
+            )}
+          </Text>
+        </View>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -21,7 +311,6 @@ export default function Tables() {
       style={{ flex: 1 }}
     >
       <View style={{ flex: 1 }}>
-        {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={() => router.back()}>
             <Image
@@ -29,7 +318,9 @@ export default function Tables() {
               style={styles.icon}
             />
           </Pressable>
-          <Text style={styles.title}>{t("tables.header.title")}</Text>
+          <Text style={styles.title}>
+            {t("tables.header.titleTables", "Tablas de Cálculo")}
+          </Text>
           <Pressable onPress={() => router.replace("/employee/home")}>
             <Image
               source={require("../../assets/icon.png")}
@@ -38,41 +329,144 @@ export default function Tables() {
           </Pressable>
         </View>
 
-        <View style={styles.mainContainer}></View>
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>
+              {t("tables.isotope", "Isótopo")}:
+            </Text>
+            <Text style={styles.summaryValue}>{params.isotope}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>
+              {t("tables.activity", "Actividad")}:
+            </Text>
+            <Text style={styles.summaryValue}>{params.activityCi} Ci</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>
+              {t("tables.material", "Material")}:
+            </Text>
+            <Text style={styles.summaryValue}>
+              {params.materialDisplayName}
+            </Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>
+              {t("tables.collimator", "Colimador")}:
+            </Text>
+            <Text style={styles.summaryValue}>
+              {params.collimatorDisplayName}
+            </Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>
+              µ ({t("tables.used_mu_unit_m_inv", "m⁻¹")}):
+            </Text>
+            <Text style={styles.summaryValue}>
+              {baseCalcParams.mu_m_inv_display}
+            </Text>
+          </View>
+        </View>
 
-        {/* Footer */}
+        {/* Botones de cambio de tabla */}
+        <View style={styles.toggleButtonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              currentView === "doseRate" && styles.toggleButtonActive,
+            ]}
+            onPress={() => setCurrentView("doseRate")}
+          >
+            <Text
+              style={[
+                styles.toggleButtonText,
+                currentView === "doseRate" && styles.toggleButtonTextActive,
+              ]}
+            >
+              {t("tables.doseRateView", "Ver Tasa Dosis")}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              currentView === "distance" && styles.toggleButtonActive,
+            ]}
+            onPress={() => setCurrentView("distance")}
+          >
+            <Text
+              style={[
+                styles.toggleButtonText,
+                currentView === "distance" && styles.toggleButtonTextActive,
+              ]}
+            >
+              {t("tables.distanceView", "Ver Distancias")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {currentView === "doseRate" && !doseRateTableData && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.errorText}>
+              {t(
+                "tables.errorGeneratingDR",
+                "Error generando tabla de Tasa de Dosis.",
+              )}
+            </Text>
+          </View>
+        )}
+        {currentView === "distance" && !distanceTableData && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.errorText}>
+              {t(
+                "tables.errorGeneratingDist",
+                "Error generando tabla de Distancias.",
+              )}
+            </Text>
+          </View>
+        )}
+
+        {currentView === "doseRate" && doseRateTableData && (
+          <ScrollView
+            horizontal
+            contentContainerStyle={styles.tableOuterContainer}
+          >
+            <ScrollView
+              vertical
+              contentContainerStyle={styles.tableInnerContainer}
+            >
+              {renderDoseRateTableHeader()}
+              {doseRateTableData.map((rowData, index) =>
+                renderTableRow(rowData, index, false),
+              )}
+            </ScrollView>
+          </ScrollView>
+        )}
+
+        {currentView === "distance" && distanceTableData && (
+          <ScrollView
+            horizontal
+            contentContainerStyle={styles.tableOuterContainer}
+          >
+            <ScrollView
+              vertical
+              contentContainerStyle={styles.tableInnerContainer}
+            >
+              {renderDistanceTableHeader()}
+              {distanceTableData.map((rowData, index) =>
+                renderTableRow(rowData, index, true),
+              )}
+            </ScrollView>
+          </ScrollView>
+        )}
+
         <View style={styles.footer}></View>
       </View>
     </LinearGradient>
   );
 }
 
-// --- Styles --- (Keep the existing styles, maybe adjust padding/margins if needed)
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#555",
-    textAlign: "center", // Center text
-  },
-
-  mainContainer: {
-    flex: 1,
-    position: "relative",
-    backgroundColor: "#e0e0e0",
-  },
-
-  errorText: {
-    fontSize: 16,
-    color: "red",
-    textAlign: "center",
-  },
+  // ... (Estilos de header, icon, title, summary* que ya tenías y fueron mejorados) ...
   header: {
     paddingTop: Platform.select({
       ios: 60,
@@ -105,19 +499,170 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     flexShrink: 1, // Allow title to shrink if needed
   },
-
+  summaryContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    marginHorizontal: 12,
+    marginTop: 15,
+    // marginBottom: 15, // Eliminado para que el toggleButtonContainer esté más cerca
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    alignItems: "center",
+  },
+  summaryLabel: {
+    fontSize: 15,
+    color: "#005A85",
+    fontWeight: "600",
+    marginRight: 8,
+  },
+  summaryValue: {
+    fontSize: 15,
+    color: "#333",
+    flexShrink: 1,
+    textAlign: "right",
+  },
+  // --- Estilos para Botones de Cambio de Tabla ---
+  toggleButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginVertical: 15, // Espacio vertical para los botones
+    marginHorizontal: 12,
+    backgroundColor: "rgba(0, 92, 146, 0.1)", // Fondo sutil para el contenedor de botones
+    borderRadius: 8,
+  },
+  toggleButton: {
+    flex: 1, // Para que los botones compartan el espacio
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    borderRadius: 8, // Para que el botón activo tenga bordes redondeados
+  },
+  toggleButtonActive: {
+    backgroundColor: "#006892", // Azul del footer para el botón activo
+  },
+  toggleButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#006892", // Azul para texto inactivo
+  },
+  toggleButtonTextActive: {
+    color: "white", // Texto blanco para botón activo
+  },
+  // --- Estilos de Tabla (pueden requerir pequeños ajustes) ---
+  tableOuterContainer: {
+    marginTop: 0, // Reducido porque los botones de toggle ya tienen margen
+    marginBottom: 20,
+    borderColor: "#C8D1DC",
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
+  },
+  tableInnerContainer: {
+    // sin cambios
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#D8E0E8",
+  },
+  firstHeaderRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#B0BCCD",
+  },
+  tableHeaderCell: {
+    paddingVertical: 10, // Reducido ligeramente
+    paddingHorizontal: 5,
+    fontWeight: "bold",
+    fontSize: 12, // Ligeramente más pequeño para cabeceras
+    textAlign: "center",
+    minWidth: 65, // Ajustado para caber más contenido si es necesario
+    borderRightWidth: 1,
+    borderRightColor: "#D8E0E8",
+    backgroundColor: "#F0F5FA",
+    color: "#1C3D5D",
+  },
+  tableDistanceCell: {
+    // Para la columna de "Dist (m)"
+    minWidth: 75,
+    backgroundColor: "#E4EBF3",
+  },
+  tableRateCell: {
+    // Para la columna de "Tasa (µSv/h)" en la tabla de distancias
+    minWidth: 90, // Podría necesitar más ancho para "1000,00"
+    backgroundColor: "#E4EBF3",
+    fontSize: 12, // Para consistencia con la otra cabecera de fila
+  },
+  layerNumHeaderCell: {
+    // sin cambios
+  },
+  unitHeaderCellPlaceholder: {
+    backgroundColor: "#E4EBF3", // Mismo que la celda de Distancia/Tasa
+    paddingVertical: 5, // Ajustado
+    fontSize: 10, // Ajustado
+    borderRightColor: "#D8E0E8",
+  },
+  unitHeaderCell: {
+    paddingVertical: 5, // Ajustado
+    fontSize: 10, // Ajustado
+    fontWeight: "600",
+    color: "#3E6A94",
+    backgroundColor: "#F0F5FA",
+  },
+  tableRowEven: {
+    backgroundColor: "#FFFFFF",
+  },
+  tableRowOdd: {
+    backgroundColor: "#F7F9FC",
+  },
+  tableCell: {
+    paddingVertical: 9, // Ajustado
+    paddingHorizontal: 5, // Ajustado
+    fontSize: 12, // Ajustado
+    textAlign: "right",
+    minWidth: 65, // Ajustado
+    borderRightWidth: 1,
+    borderRightColor: "#E8EEF3",
+    color: "#212529",
+  },
+  lastHeaderCell: {
+    borderRightWidth: 0,
+  },
+  lastDataCell: {
+    borderRightWidth: 0,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "red",
+    textAlign: "center",
+  },
   footer: {
     backgroundColor: "#006892",
     paddingVertical: 15,
-    paddingHorizontal: 20,
-    alignItems: "flex-end",
     borderTopEndRadius: 40,
+    minHeight: 50,
+    alignItems: "stretch",
+    padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 8,
-    zIndex: 10,
-    minHeight: 50, // Ensure footer has some height
   },
 });

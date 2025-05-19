@@ -606,7 +606,7 @@ export default function Calculation() {
       Toast.show({
         type: "error",
         text1: t("radiographyCalculator.alerts.errorTitle"),
-        text2: t("radiographyCalculator.alerts.valueRequired", {
+        text2: t("radiographyCalculator.alerts.allFieldsRequired", {
           fieldName: t("radiographyCalculator.labels.thickness"),
         }),
         position: "bottom",

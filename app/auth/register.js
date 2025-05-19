@@ -30,7 +30,6 @@ import {
   query, // <-- Necesario
   where, // <-- Necesario
   getDocs, // <-- Necesario
-  getFirestore, // <-- Necesario si no usas 'db' directamente
 } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import i18n from "../locales/i18n"; // Importa la configuración de i18next
@@ -407,13 +406,16 @@ export default function Register() {
         <View
           style={{
             backgroundColor: "#FF9300",
-            padding: 16,
-            borderBottomStartRadius: 40,
+            paddingHorizontal: 16,
+            paddingTop: Platform.OS === "android" ? 20 : 50, // Espacio para status bar, ajusta según sea necesario
+            paddingBottom: 20, // Espacio inferior en el header
+            borderBottomStartRadius: 35, // Curvatura más suave
+            borderBottomEndRadius: 35, // Curvatura más suave
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.3,
-            shadowRadius: 10,
-            elevation: 10,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2, // Sombra más sutil
+            shadowRadius: 5,
+            elevation: 7,
           }}
         >
           {/* Header with Back and Language Buttons */}
@@ -440,11 +442,14 @@ export default function Register() {
           <Text
             style={{
               marginTop: 20,
-              fontSize: 32,
+              paddingTop: 60,
+              fontSize: 30,
               fontWeight: "bold",
               textAlign: "center",
-              paddingTop: 60,
-              color: "#000000",
+              color: "#FFFFFF",
+              textShadowColor: "black",
+              textShadowOffset: { width: 0, height: 0 },
+              textShadowRadius: 2,
             }}
           >
             {t("register.title")}

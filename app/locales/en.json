@@ -703,6 +703,40 @@
 
   "tables": {
     "header.title": "Tables"
+  },
+
+  "settings": {
+    "loadingDetails": "Loading details...",
+    "deleteAccount": {
+      "button": "Delete Account",
+      "confirmTitle": "Confirm Account Deletion",
+      "confirmMessage": "Are you sure you want to delete your account? All your personal data, including materials, doses, and applications records, will be permanently removed. This action cannot be undone.",
+      "successTitle": "Account Deleted",
+      "successMessage": "Your account has been successfully deleted."
+    },
+    "errors": {
+      "userDataMissing": "User data not available. Please try again later.",
+      "companyDataMissing": "Could not retrieve company information for your account.",
+      "fetchCompanyError": "Failed to fetch company details.",
+      "deleteFailed": "Failed to delete account. Please try again or contact support.",
+      "reLoginTitle": "Re-login Required",
+      "reLoginMessage": "This operation is sensitive and requires recent authentication. Please log out and log back in to delete your account.",
+      "userMismatch": "User mismatch or not signed in. Please re-login.",
+      "permissionDenied": "You do not have permission to delete this data. Contact support."
+    }
+  },
+
+  "common": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "close": "Close",
+    "save": "Save",
+    "confirm": "Confirm",
+    "errorTitle": "Error",
+    "successTitle": "Success",
+    "warningTitle": "Warning",
+    "goBack": "Go Back",
+    "loading": "Loading..."
   }
   
 }
