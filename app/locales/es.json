@@ -687,7 +687,12 @@
   },
 
   "tables": {
-    "header.title": "Tablas"
+    "header.title": "Tablas",
+    "doseRateView": "Ver Tasa Dosis",
+    "distanceView": "Ver Distancias",
+    "header": {
+      "titleTables": "Tablas de Cálculos" 
+    }
   },
 
   "settings": {

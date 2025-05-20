@@ -702,7 +702,12 @@
   },
 
   "tables": {
-    "header.title": "Tables"
+    "header.title": "Tables",
+    "doseRateView": "View Dose Rate",
+    "distanceView": "View Distance",
+    "header": {
+      "titleTables": "Calculation tables" 
+    }
   },
 
   "settings": {
