@@ -14,7 +14,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next"; // Importar el hook de traducción
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   collection,
   addDoc,
@@ -47,13 +47,142 @@ export default function CalculationSummary() {
   const [formattedStartTime, setFormattedStartTime] = useState("");
   const [showTimePicker, setShowTimePicker] = useState(false);
 
+  // Inside your CalculationSummary component, typically after other hooks
+  const _fetchActiveUserData = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log("No user authenticated for _fetchActiveUserData.");
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.userNotLoggedIn", {
+          defaultValue: "User not logged in.",
+        }),
+        position: "bottom",
+      });
+      return null;
+    }
+
+    try {
+      const employeesQueryRef = collectionGroup(db, "employees");
+      // Query by email, ensure your Firestore 'employees' documents contain 'email' and 'role' fields.
+      // Adjust if you query by user.uid directly (e.g., if 'uid' is a field in those documents).
+      const q = query(employeesQueryRef, where("email", "==", user.email));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userDocSnap = querySnapshot.docs[0];
+        const userData = userDocSnap.data();
+        const result = { companyId: null, role: null };
+
+        if (userData.companyId) {
+          result.companyId = userData.companyId;
+        } else {
+          console.warn(
+            `User (email: ${user.email}) document is missing companyId.`,
+          );
+        }
+
+        if (userData.role) {
+          // Assuming the role is stored under a field named 'role'
+          result.role = userData.role;
+        } else {
+          console.warn(`User (email: ${user.email}) document is missing role.`);
+        }
+
+        if (!result.companyId && !result.role) {
+          console.warn(
+            `User (email: ${user.email}) document is missing both companyId and role.`,
+          );
+        }
+        return result; // Contains { companyId: '...', role: '...' } or with nulls
+      } else {
+        console.warn(
+          `Could not find employee document for email ${user.email}.`,
+        );
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle", { defaultValue: "Error" }),
+          text2: t("errors.userDataNotFound", {
+            defaultValue: "User data not found.",
+          }), // Add this translation key
+          position: "bottom",
+        });
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching active user data:", error);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.fetchActiveUserDataError", {
+          defaultValue: "Failed to fetch user data.",
+        }), // Add this translation key
+        position: "bottom",
+      });
+      return null;
+    }
+  }, [t]); // auth and db are stable module imports. t is from useTranslation.
+
   const handleBack = () => {
     router.back();
   };
 
-  const handleHome = () => {
-    router.replace("/employee/home");
-  };
+  // Inside your CalculationSummary component
+
+  const handleHome = useCallback(async () => {
+    const activeUserData = await _fetchActiveUserData(); // Fetch user data including role
+
+    if (activeUserData && activeUserData.role) {
+      const userRole = activeUserData.role.toLowerCase(); // Normalize role for robust comparison
+      if (userRole === "coordinator") {
+        router.replace("/coordinator/home");
+      } else if (userRole === "employee") {
+        router.replace("/employee/home");
+      } else {
+        // Fallback for unknown roles
+        console.warn(
+          `Unknown user role: '${activeUserData.role}'. Defaulting to employee home.`,
+        );
+        Toast.show({
+          type: "warning",
+          text1: t("warnings.roleUnknownTitle", {
+            defaultValue: "Unknown Role",
+          }),
+          text2: t("warnings.defaultEmployeeNavigationUnknownRole", {
+            defaultValue: `Role '${activeUserData.role}' is not recognized. Navigating to default home.`,
+          }), // Add this translation key
+          position: "bottom",
+        });
+        router.replace("/employee/home");
+      }
+    } else {
+      // Fallback if role couldn't be determined (e.g., user not logged in, data missing)
+      // A more specific Toast might have already been shown by _fetchActiveUserData.
+      console.warn(
+        "Could not determine user role or user data is incomplete. Defaulting to employee home.",
+      );
+      if (!auth.currentUser) {
+        // If user is not authenticated, _fetchActiveUserData would have already shown a toast.
+      } else if (!activeUserData) {
+        // If activeUserData is null due to fetch error (e.g. document not found), _fetchActiveUserData might have shown a toast.
+      } else {
+        // Generic fallback toast if no specific one was shown.
+        Toast.show({
+          type: "error",
+          text1: t("errors.roleFetchErrorTitle", {
+            defaultValue: "Role Error",
+          }),
+          text2: t("errors.defaultEmployeeNavigationRoleError", {
+            defaultValue:
+              "Failed to determine role. Navigating to default home.",
+          }), // Add this translation key
+          position: "bottom",
+        });
+      }
+      router.replace("/employee/home"); // Default navigation
+    }
+  }, [_fetchActiveUserData, router, t]); // Dependencies for useCallback
 
   const handleGraph = () => {
     // Pasar el resultado y también indicar la unidad (metros)

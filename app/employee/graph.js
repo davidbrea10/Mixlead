@@ -19,6 +19,9 @@ import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { CUSTOM_MARKER_ICON_BASE64 } from "../../components/CustomMarkerIcon"; // Ajusta la ruta si es necesario
+import { collectionGroup, query, where, getDocs } from "firebase/firestore";
+import { db, auth } from "../../firebase/config"; // Adjust path if necessary
+import Toast from "react-native-toast-message"; // Ensure Toast is imported if not already for this specific file
 
 // --- Constantes ---
 const LOCATION_ACCURACY = Location.Accuracy.Balanced; // Can be higher if needed (BestForNavigation)
@@ -61,6 +64,133 @@ export default function Graph() {
   // console.log("Received Radius:", exclusionRadiusProhibited);
 
   const exclusionRadiusRemoteControl = parseFloat("10");
+
+  // Inside your Graph component, after the existing hooks (useState, useRef, etc.)
+
+  const _fetchActiveUserData = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log("No user authenticated for _fetchActiveUserData.");
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.userNotLoggedIn", {
+          defaultValue: "User not logged in.",
+        }),
+        position: "bottom",
+      });
+      return null;
+    }
+
+    try {
+      const employeesQueryRef = collectionGroup(db, "employees");
+      const q = query(employeesQueryRef, where("email", "==", user.email));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userDocSnap = querySnapshot.docs[0];
+        const userData = userDocSnap.data();
+        const result = { companyId: null, role: null };
+
+        if (userData.companyId) {
+          result.companyId = userData.companyId;
+        } else {
+          console.warn(
+            `User (email: ${user.email}) document is missing companyId.`,
+          );
+        }
+
+        if (userData.role) {
+          result.role = userData.role;
+        } else {
+          console.warn(`User (email: ${user.email}) document is missing role.`);
+        }
+
+        if (!result.companyId && !result.role) {
+          console.warn(
+            `User (email: ${user.email}) document is missing both companyId and role.`,
+          );
+        }
+        return result;
+      } else {
+        console.warn(
+          `Could not find employee document for email ${user.email}.`,
+        );
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle", { defaultValue: "Error" }),
+          text2: t("errors.userDataNotFound", {
+            defaultValue: "User data not found.",
+          }),
+          position: "bottom",
+        });
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching active user data:", error);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.fetchActiveUserDataError", {
+          defaultValue: "Failed to fetch user data.",
+        }),
+        position: "bottom",
+      });
+      return null;
+    }
+  }, [t]); // Dependencies: t. db and auth are assumed stable module imports.
+
+  // Inside your Graph component, define the new handleHome function:
+
+  const handleHome = useCallback(async () => {
+    const activeUserData = await _fetchActiveUserData();
+
+    if (activeUserData && activeUserData.role) {
+      const userRole = activeUserData.role.toLowerCase();
+      if (userRole === "coordinator") {
+        router.replace("/coordinator/home");
+      } else if (userRole === "employee") {
+        router.replace("/employee/home");
+      } else {
+        console.warn(
+          `Unknown user role: '${activeUserData.role}'. Defaulting to employee home.`,
+        );
+        Toast.show({
+          type: "warning",
+          text1: t("warnings.roleUnknownTitle", {
+            defaultValue: "Unknown Role",
+          }),
+          text2: t("warnings.defaultEmployeeNavigationUnknownRole", {
+            defaultValue: `Role '${activeUserData.role}' is not recognized. Navigating to default home.`,
+          }),
+          position: "bottom",
+        });
+        router.replace("/employee/home");
+      }
+    } else {
+      console.warn(
+        "Could not determine user role or user data incomplete. Defaulting to employee home.",
+      );
+      if (!auth.currentUser) {
+        // _fetchActiveUserData would have shown a toast.
+      } else if (!activeUserData) {
+        // _fetchActiveUserData might have shown a toast.
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("errors.roleFetchErrorTitle", {
+            defaultValue: "Role Error",
+          }),
+          text2: t("errors.defaultEmployeeNavigationRoleError", {
+            defaultValue:
+              "Failed to determine role. Navigating to default home.",
+          }),
+          position: "bottom",
+        });
+      }
+      router.replace("/employee/home");
+    }
+  }, [_fetchActiveUserData, router, t]);
 
   useEffect(() => {
     (async () => {
@@ -537,7 +667,7 @@ export default function Graph() {
             />
           </Pressable>
           <Text style={styles.title}>{t("graph.header.title")}</Text>
-          <Pressable onPress={() => router.replace("/employee/home")}>
+          <Pressable onPress={handleHome}>
             <Image
               source={require("../../assets/icon.png")}
               style={styles.icon}

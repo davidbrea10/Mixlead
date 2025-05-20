@@ -59,52 +59,79 @@ export default function Calculation() {
     return auth.currentUser?.uid; // USA 'auth' importado
   }, []); // auth podría ser una dependencia si cambia, pero usualmente es estable
 
-  const _fetchCurrentUserCompanyId = async (employeeId) => {
-    if (!employeeId) {
-      console.log("No employeeId provided to _fetchCurrentUserCompanyId.");
-      return null;
-    }
-    const user = auth.currentUser; // USA 'auth' importado
-    if (!user || user.uid !== employeeId) {
-      console.error(
-        "User mismatch or not authenticated for fetching companyId.",
-      );
-      return null;
-    }
+  // Inside your Calculation component
 
-    try {
-      const employeesQueryRef = collectionGroup(db, "employees"); // USA 'db' importado
-      const q = query(employeesQueryRef, where("email", "==", user.email));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const userDocSnap = querySnapshot.docs[0];
-        const userData = userDocSnap.data();
-        if (userData.companyId) {
-          return userData.companyId;
-        } else {
-          console.warn(
-            `User ${employeeId} (email: ${user.email}) document is missing companyId.`,
-          );
-          return null;
-        }
-      } else {
-        console.warn(
-          `Could not find employee document for email ${user.email} to retrieve companyId.`,
+  const _fetchActiveUserData = useCallback(
+    async (employeeId) => {
+      if (!employeeId) {
+        console.log("No employeeId provided to _fetchActiveUserData.");
+        return null;
+      }
+      const user = auth.currentUser;
+      if (!user || user.uid !== employeeId) {
+        console.error(
+          "User mismatch or not authenticated for fetching active user data.",
         );
         return null;
       }
-    } catch (error) {
-      console.error("Error fetching user's companyId:", error);
-      Toast.show({
-        type: "error",
-        text1: t("errors.errorTitle"),
-        text2: t("errors.fetchCompanyIdError"),
-        position: "bottom",
-      });
-      return null;
-    }
-  };
+
+      try {
+        const employeesQueryRef = collectionGroup(db, "employees");
+        // Assuming user's role and companyId are stored in a document
+        // accessible via their email in an 'employees' collection group.
+        // Adjust the query if your Firestore structure is different (e.g., querying by UID).
+        const q = query(employeesQueryRef, where("email", "==", user.email));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const userDocSnap = querySnapshot.docs[0];
+          const userData = userDocSnap.data();
+          const result = { companyId: null, role: null };
+
+          if (userData.companyId) {
+            result.companyId = userData.companyId;
+          } else {
+            console.warn(
+              `User ${employeeId} (email: ${user.email}) document is missing companyId.`,
+            );
+          }
+
+          // Assuming the role is stored under a field named 'role' in the user's document
+          if (userData.role) {
+            result.role = userData.role;
+          } else {
+            console.warn(
+              `User ${employeeId} (email: ${user.email}) document is missing role.`,
+            );
+          }
+
+          if (!result.companyId && !result.role) {
+            console.warn(
+              `User ${employeeId} (email: ${user.email}) document is missing both companyId and role.`,
+            );
+          }
+          return result;
+        } else {
+          console.warn(
+            `Could not find employee document for email ${user.email} to retrieve active user data.`,
+          );
+          return null;
+        }
+      } catch (error) {
+        console.error("Error fetching active user data:", error);
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t("errors.fetchActiveUserDataError", {
+            defaultValue: "Failed to fetch user data.",
+          }), // Ensure this translation key exists or provide a default
+          position: "bottom",
+        });
+        return null;
+      }
+    },
+    [t],
+  ); // Dependencies: t. db and auth are module imports.
 
   const fetchCustomMaterials = useCallback(async () => {
     const employeeId = getCurrentEmployeeId();
@@ -113,8 +140,11 @@ export default function Calculation() {
       return;
     }
 
-    const companyId = await _fetchCurrentUserCompanyId(employeeId);
-    if (!companyId) {
+    // Use the new _fetchActiveUserData function
+    const activeUserData = await _fetchActiveUserData(employeeId);
+
+    // Check if activeUserData and companyId are available
+    if (!activeUserData || !activeUserData.companyId) {
       console.log(
         "Cannot fetch custom materials: companyId not found for employee:",
         employeeId,
@@ -122,10 +152,11 @@ export default function Calculation() {
       setCustomMaterialsFromDB({});
       return;
     }
+    const companyId = activeUserData.companyId; // Get companyId from the result
 
     try {
       const materialsColRef = collection(
-        db, // USA 'db' importado
+        db,
         "companies",
         companyId,
         "employees",
@@ -148,7 +179,8 @@ export default function Calculation() {
       });
       setCustomMaterialsFromDB({});
     }
-  }, [t, getCurrentEmployeeId]); // db no suele cambiar, por lo que no es estrictamente necesario aquí si es estable
+    // Add _fetchActiveUserData to the dependency array
+  }, [t, getCurrentEmployeeId, _fetchActiveUserData]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -287,8 +319,20 @@ export default function Calculation() {
       });
       return;
     }
+    const activeUserData = await _fetchActiveUserData(employeeId);
+    if (!activeUserData || !activeUserData.companyId) {
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle"),
+        text2: t("radiographyCalculator.alerts.companyDataMissing", {
+          defaultValue: "User company data not found.",
+        }), // New or existing translation
+        position: "bottom",
+      });
+      return;
+    }
+    const companyId = activeUserData.companyId;
 
-    const companyId = await _fetchCurrentUserCompanyId(employeeId);
     if (!companyId) {
       Toast.show({
         type: "error",
@@ -444,7 +488,19 @@ export default function Calculation() {
       return;
     }
 
-    const companyId = await _fetchCurrentUserCompanyId(employeeId);
+    const activeUserData = await _fetchActiveUserData(employeeId);
+    if (!activeUserData || !activeUserData.companyId) {
+      Toast.show({
+        type: "error",
+        text1: t("radiographyCalculator.alerts.errorTitle"),
+        text2: t("radiographyCalculator.alerts.companyDataMissing", {
+          defaultValue: "User company data not found.",
+        }), // New or existing translation
+        position: "bottom",
+      });
+      return;
+    }
+    const companyId = activeUserData.companyId;
     if (!companyId) {
       Toast.show({
         type: "error",
@@ -987,7 +1043,66 @@ export default function Calculation() {
   // --- Fin de la lógica para placeholders ---
 
   const handleBack = () => router.back();
-  const handleHome = () => router.replace("/employee/home");
+
+  // Inside your Calculation component
+
+  const handleHome = useCallback(async () => {
+    const employeeId = getCurrentEmployeeId(); // This gets auth.currentUser.uid
+    if (!employeeId) {
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.userNotLoggedIn", {
+          defaultValue: "User not logged in.",
+        }),
+        position: "bottom",
+      });
+      router.replace("/login"); // Fallback to login or a generic home page
+      return;
+    }
+
+    const userData = await _fetchActiveUserData(employeeId);
+
+    if (userData && userData.role) {
+      const userRole = userData.role.toLowerCase(); // Normalize role to lowercase for comparison
+      if (userRole === "coordinator") {
+        router.replace("/coordinator/home");
+      } else if (userRole === "employee") {
+        router.replace("/employee/home");
+      } else {
+        // Handle unknown roles, perhaps default to employee home or show an error
+        console.warn(
+          `Unknown user role: '${userData.role}'. Defaulting to employee home.`,
+        );
+        Toast.show({
+          type: "warning",
+          text1: t("warnings.roleUnknownTitle", {
+            defaultValue: "Unknown Role",
+          }),
+          text2: t("warnings.defaultEmployeeNavigationUnknownRole", {
+            defaultValue: `Role '${userData.role}' is not recognized. Navigating to default home.`,
+          }),
+          position: "bottom",
+        });
+        router.replace("/employee/home"); // Or a more generic fallback
+      }
+    } else {
+      // Handle cases where userData or role is not found
+      console.warn(
+        "Could not determine user role or user data is incomplete. Defaulting to employee home.",
+      );
+      Toast.show({
+        type: "error",
+        text1: t("errors.roleFetchErrorTitle", { defaultValue: "Role Error" }),
+        text2: t("errors.defaultEmployeeNavigationRoleError", {
+          defaultValue:
+            "Failed to determine user role. Navigating to default home.",
+        }),
+        position: "bottom",
+      });
+      router.replace("/employee/home"); // Fallback navigation
+    }
+  }, [getCurrentEmployeeId, _fetchActiveUserData, router, t]); // Dependencies for useCallback
 
   return (
     <LinearGradient

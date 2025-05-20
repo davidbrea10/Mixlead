@@ -59,8 +59,8 @@ export default function Home() {
     }
   };
 
-  const handleMyAgenda = () => router.push("/coordinator/myAgenda");
-  const handleCalculation = () => router.push("/coordinator/calculation");
+  const handleMyAgenda = () => router.push("/employee/myAgenda");
+  const handleCalculation = () => router.push("/employee/calculation");
   const handleSettings = () => router.push("/coordinator/settings");
   const handleApplications = () => router.push("/coordinator/applications");
   const handleEmployees = () => router.push("/coordinator/myEmployees");

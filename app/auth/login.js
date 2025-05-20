@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 20 : 20,
+    paddingTop: Platform.OS === "ios" ? 20 : 60,
   },
   languageSelector: {
     flexDirection: "row",

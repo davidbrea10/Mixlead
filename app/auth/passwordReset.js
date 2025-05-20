@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   headerIcons: {
     position: "absolute",
-    top: Platform.OS === "android" ? 20 : 55, // Adjust based on your header style
+    top: Platform.OS === "android" ? 50 : 55, // Adjust based on your header style
     left: 20,
     right: 20,
     flexDirection: "row",

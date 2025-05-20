@@ -8,12 +8,15 @@ import {
   StyleSheet,
   Platform,
   ScrollView,
-  TouchableOpacity, // Añadido para los botones de cambio de tabla
+  TouchableOpacity,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useState, useMemo } from "react"; // Añadido useState
+import { useState, useMemo, useCallback } from "react";
+import { collectionGroup, query, where, getDocs } from "firebase/firestore";
+import { db, auth } from "../../firebase/config";
+import Toast from "react-native-toast-message";
 
 // --- Constantes ---
 const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
@@ -154,6 +157,138 @@ export default function Tables() {
       return { rowTitle: target_dose_rate_uSv_h, values: distances_m };
     });
   }, [baseCalcParams]);
+
+  // Inside your Tables component:
+
+  const _fetchActiveUserData = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log("No user authenticated for _fetchActiveUserData.");
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.userNotLoggedIn", {
+          defaultValue: "User not logged in.",
+        }),
+        position: "bottom",
+      });
+      return null;
+    }
+
+    try {
+      const employeesQueryRef = collectionGroup(db, "employees");
+      // Assuming user's role and companyId are stored in a document
+      // accessible via their email in an 'employees' collection group.
+      const q = query(employeesQueryRef, where("email", "==", user.email));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userDocSnap = querySnapshot.docs[0];
+        const userData = userDocSnap.data();
+        const result = { companyId: null, role: null };
+
+        if (userData.companyId) {
+          result.companyId = userData.companyId;
+        } else {
+          console.warn(
+            `User (email: ${user.email}) document is missing companyId.`,
+          );
+        }
+
+        // Assuming the role is stored under a field named 'role' in the user's document
+        if (userData.role) {
+          result.role = userData.role;
+        } else {
+          console.warn(`User (email: ${user.email}) document is missing role.`);
+        }
+
+        if (!result.companyId && !result.role) {
+          console.warn(
+            `User (email: ${user.email}) document is missing both companyId and role.`,
+          );
+        }
+        return result; // Returns { companyId: '...', role: '...' } or with nulls
+      } else {
+        console.warn(
+          `Could not find employee document for email ${user.email}.`,
+        );
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle", { defaultValue: "Error" }),
+          text2: t("errors.userDataNotFound", {
+            defaultValue: "User data not found.",
+          }), // Ensure this translation key exists
+          position: "bottom",
+        });
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching active user data:", error);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.fetchActiveUserDataError", {
+          defaultValue: "Failed to fetch user data.",
+        }), // Ensure this translation key exists
+        position: "bottom",
+      });
+      return null;
+    }
+  }, [t]); // auth and db are stable module imports. t is from useTranslation.
+
+  // Inside your Tables component:
+
+  const handleHome = useCallback(async () => {
+    const activeUserData = await _fetchActiveUserData(); // Fetch user data including role
+
+    if (activeUserData && activeUserData.role) {
+      const userRole = activeUserData.role.toLowerCase(); // Normalize role
+      if (userRole === "coordinator") {
+        router.replace("/coordinator/home");
+      } else if (userRole === "employee") {
+        router.replace("/employee/home");
+      } else {
+        // Fallback for unknown roles
+        console.warn(
+          `Unknown user role: '${activeUserData.role}'. Defaulting to employee home.`,
+        );
+        Toast.show({
+          type: "warning",
+          text1: t("warnings.roleUnknownTitle", {
+            defaultValue: "Unknown Role",
+          }),
+          text2: t("warnings.defaultEmployeeNavigationUnknownRole", {
+            defaultValue: `Role '${activeUserData.role}' is not recognized. Navigating to default home.`,
+          }), // Ensure this translation key exists
+          position: "bottom",
+        });
+        router.replace("/employee/home");
+      }
+    } else {
+      // Fallback if role couldn't be determined
+      console.warn(
+        "Could not determine user role or user data incomplete. Defaulting to employee home.",
+      );
+      if (!auth.currentUser) {
+        // _fetchActiveUserData would have shown a toast.
+      } else if (!activeUserData) {
+        // _fetchActiveUserData might have shown a toast.
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("errors.roleFetchErrorTitle", {
+            defaultValue: "Role Error",
+          }),
+          text2: t("errors.defaultEmployeeNavigationRoleError", {
+            defaultValue:
+              "Failed to determine role. Navigating to default home.",
+          }), // Ensure this translation key exists
+          position: "bottom",
+        });
+      }
+      router.replace("/employee/home"); // Default navigation
+    }
+  }, [_fetchActiveUserData, router, t]); // Dependencies
 
   // --- Funciones de Renderizado de Cabeceras y Filas ---
   const renderDoseRateTableHeader = () => (
@@ -321,7 +456,7 @@ export default function Tables() {
           <Text style={styles.title}>
             {t("tables.header.titleTables", "Tablas de Cálculo")}
           </Text>
-          <Pressable onPress={() => router.replace("/employee/home")}>
+          <Pressable onPress={handleHome}>
             <Image
               source={require("../../assets/icon.png")}
               style={styles.icon}

@@ -28,6 +28,7 @@ import RNPickerSelect from "react-native-picker-select";
 import { useTranslation } from "react-i18next"; // Import the translation hook
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
 import * as Sharing from "expo-sharing"; // Import Sharing
+import Toast from "react-native-toast-message";
 
 export default function Home() {
   const router = useRouter();
@@ -45,13 +46,140 @@ export default function Home() {
     t(`doseDetails.months.${i + 1}`, { defaultValue: `Month ${i + 1}` }),
   ); // Add defaultValue
 
+  // Inside your Home component, typically after other hooks (useState, useEffect, etc.)
+
+  const _fetchActiveUserData = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log("No user authenticated for _fetchActiveUserData.");
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.userNotLoggedIn", {
+          defaultValue: "User not logged in.",
+        }),
+        position: "bottom",
+      });
+      return null;
+    }
+
+    try {
+      const employeesQueryRef = collectionGroup(db, "employees");
+      // Assuming user's role and companyId are stored in a document
+      // accessible via their email in an 'employees' collection group.
+      // This matches the logic in your loadDataOnFocus function.
+      const q = query(employeesQueryRef, where("email", "==", user.email));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userDocSnap = querySnapshot.docs[0];
+        const userData = userDocSnap.data();
+        const result = { companyId: null, role: null };
+
+        if (userData.companyId) {
+          result.companyId = userData.companyId;
+        } else {
+          console.warn(
+            `User (email: ${user.email}) document is missing companyId.`,
+          );
+        }
+
+        // Assuming the role is stored under a field named 'role'
+        if (userData.role) {
+          result.role = userData.role;
+        } else {
+          console.warn(`User (email: ${user.email}) document is missing role.`);
+        }
+
+        if (!result.companyId && !result.role) {
+          console.warn(
+            `User (email: ${user.email}) document is missing both companyId and role.`,
+          );
+        }
+        return result; // Contains { companyId: '...', role: '...' } or with nulls
+      } else {
+        console.warn(
+          `Could not find employee document for email ${user.email}.`,
+        );
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle", { defaultValue: "Error" }),
+          text2: t("errors.userDataNotFound", {
+            defaultValue: "User data not found.",
+          }), // Ensure this translation key exists
+          position: "bottom",
+        });
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching active user data:", error);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.fetchActiveUserDataError", {
+          defaultValue: "Failed to fetch user data.",
+        }), // Ensure this translation key exists
+        position: "bottom",
+      });
+      return null;
+    }
+  }, [t]); // auth and db are stable module imports. t is from useTranslation.
+
   const handleBack = () => {
     router.back();
   };
 
-  const handleHome = () => {
-    router.replace("/employee/home");
-  };
+  const handleHome = useCallback(async () => {
+    const activeUserData = await _fetchActiveUserData(); // Fetch user data including role
+
+    if (activeUserData && activeUserData.role) {
+      const userRole = activeUserData.role.toLowerCase(); // Normalize role for comparison
+      if (userRole === "coordinator") {
+        router.replace("/coordinator/home");
+      } else if (userRole === "employee") {
+        router.replace("/employee/home"); // This Home.js seems to be an employee's home already
+      } else {
+        // Fallback for unknown roles
+        console.warn(
+          `Unknown user role: '${activeUserData.role}'. Defaulting to employee home.`,
+        );
+        Toast.show({
+          type: "warning",
+          text1: t("warnings.roleUnknownTitle", {
+            defaultValue: "Unknown Role",
+          }),
+          text2: t("warnings.defaultEmployeeNavigationUnknownRole", {
+            defaultValue: `Role '${activeUserData.role}' is not recognized. Navigating to default home.`,
+          }), // Ensure this translation key exists
+          position: "bottom",
+        });
+        router.replace("/employee/home");
+      }
+    } else {
+      // Fallback if role couldn't be determined (e.g., user not logged in, data missing)
+      console.warn(
+        "Could not determine user role or user data incomplete. Defaulting to employee home.",
+      );
+      if (!auth.currentUser) {
+        // _fetchActiveUserData would have shown a toast.
+      } else if (!activeUserData) {
+        // _fetchActiveUserData might have shown a toast.
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("errors.roleFetchErrorTitle", {
+            defaultValue: "Role Error",
+          }),
+          text2: t("errors.defaultEmployeeNavigationRoleError", {
+            defaultValue:
+              "Failed to determine role. Navigating to default home.",
+          }), // Ensure this translation key exists
+          position: "bottom",
+        });
+      }
+      router.replace("/employee/home"); // Default navigation
+    }
+  }, [_fetchActiveUserData, router, t]); // Dependencies for useCallback
 
   useFocusEffect(
     useCallback(() => {
@@ -60,6 +188,13 @@ export default function Home() {
       // return () => console.log("Home screen lost focus");
     }, []), // Empty dependency array for useCallback is usually correct here
   );
+
+  const calculateTotalAnnualDose = () => {
+    const total = monthlyDoses
+      .filter((item) => item.year === selectedYear)
+      .reduce((sum, item) => sum + (item.totalDose || 0), 0); // Use || 0 for safety
+    setTotalAnnualDose(total);
+  };
 
   useEffect(() => {
     // Recalculate total only if a year is selected
@@ -218,13 +353,6 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const calculateTotalAnnualDose = () => {
-    const total = monthlyDoses
-      .filter((item) => item.year === selectedYear)
-      .reduce((sum, item) => sum + (item.totalDose || 0), 0); // Use || 0 for safety
-    setTotalAnnualDose(total);
   };
 
   const handleViewDetails = (month, year) => {
