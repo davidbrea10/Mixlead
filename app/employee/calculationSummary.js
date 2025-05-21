@@ -10,6 +10,7 @@ import {
   TouchableWithoutFeedback,
   TextInput,
   Keyboard,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -29,6 +30,10 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function CalculationSummary() {
   const router = useRouter();
@@ -461,41 +466,39 @@ export default function CalculationSummary() {
             backgroundColor: "#FF9300",
             flexDirection: "row",
             alignItems: "center",
-            padding: 16,
+            padding: isTablet ? 20 : 16, // Increased padding for tablet
             borderBottomStartRadius: 40,
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 10 },
             shadowOpacity: 0.3,
             shadowRadius: 10,
             elevation: 10,
-            marginBottom: 20,
+            marginBottom: isTablet ? 30 : 20, // Increased margin for tablet
             paddingTop: Platform.select({
-              // Apply platform-specific padding
-              ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-              android: 40, // Base padding on Android (adjust value as needed)
+              ios: isTablet ? 70 : 60, // Adjusted for tablet
+              android: isTablet ? 50 : 40, // Adjusted for tablet
             }),
           }}
         >
           <Pressable onPress={handleBack}>
             <Image
               source={require("../../assets/go-back.png")}
-              style={{ width: 50, height: 50 }}
+              style={{ width: isTablet ? 60 : 50, height: isTablet ? 60 : 50 }} // Larger icon for tablet
             />
           </Pressable>
 
-          {/* Contenedor centrado */}
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text
               style={{
-                fontSize: 24,
+                fontSize: isTablet ? 30 : 24, // User already has isTablet here, slight increase
                 fontWeight: "bold",
                 color: "white",
                 textAlign: "center",
+                marginHorizontal: 10,
                 letterSpacing: 2,
                 textShadowColor: "black",
                 textShadowOffset: { width: 1, height: 1 },
                 textShadowRadius: 1,
-                marginHorizontal: 10,
               }}
             >
               {t("calculationSummary.title", {
@@ -509,68 +512,239 @@ export default function CalculationSummary() {
           <Pressable onPress={handleHome}>
             <Image
               source={require("../../assets/icon.png")}
-              style={{ width: 50, height: 50 }}
+              style={{ width: isTablet ? 60 : 50, height: isTablet ? 60 : 50 }} // Larger icon for tablet
             />
           </Pressable>
         </View>
 
         {/* Main Content */}
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <Text style={{ fontSize: 18, fontWeight: "bold", margin: 15 }}>
-            {t("calculationSummary.resultsFor")}
-          </Text>
-          <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>{t("calculationSummary.isotope")}</Text>
-            <Text style={styles.textLabel}>{params.isotope?.toString()}</Text>
-          </View>
-          <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>
-              {t("calculationSummary.collimator")}
-            </Text>
-            <Text style={styles.textLabel}>
-              {params.collimator?.toString()}
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>
-              {isDistance
-                ? t("calculationSummary.thickness")
-                : t("calculationSummary.distance")}
-            </Text>
-            <Text style={styles.textLabel}>
-              {params.value?.toString()} {isDistance ? "mm" : "m"}
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>{t("calculationSummary.activity")}</Text>
-            <Text style={styles.textLabel}>
-              {params.activity?.toString()} {t("calculationSummary.ci")}
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>{t("calculationSummary.material")}</Text>
-            <Text style={styles.textLabel}>{params.material?.toString()}</Text>
-          </View>
-          {params.material === "Other" && (
-            <View style={{ flexDirection: "row" }}>
-              <Text style={styles.label}>
-                {t("calculationSummary.attenuation")}
-              </Text>
-              <Text style={styles.textLabel}>
-                {params.attenuation?.toString()}
-              </Text>
-            </View>
-          )}
-          <View style={{ flexDirection: "row" }}>
-            <Text style={styles.label}>{t("calculationSummary.limit")}</Text>
-            <Text style={styles.textLabel}>{params.limit?.toString()}</Text>
-          </View>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContainer,
+            { paddingHorizontal: isTablet ? 30 : 0 },
+          ]}
+        >
           <Text
             style={{
-              fontSize: 18,
+              fontSize: isTablet ? 22 : 18,
               fontWeight: "bold",
-              marginTop: 10,
+              margin: isTablet ? 25 : 15,
               textAlign: "center",
+            }}
+          >
+            {t("calculationSummary.resultsFor")}
+          </Text>
+
+          {/* Summary Details */}
+          <View
+            style={{ width: isTablet ? "80%" : "100%", alignSelf: "center" }}
+          >
+            <View
+              style={{ flexDirection: "row", marginBottom: isTablet ? 15 : 0 }}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginLeft: isTablet ? 0 : 80,
+                    flex: isTablet ? 0.4 : undefined,
+                  },
+                ]}
+              >
+                {t("calculationSummary.isotope")}
+              </Text>
+              <Text
+                style={[
+                  styles.textLabel,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    flex: isTablet ? 0.6 : undefined,
+                  },
+                ]}
+              >
+                {params.isotope?.toString()}
+              </Text>
+            </View>
+            <View
+              style={{ flexDirection: "row", marginBottom: isTablet ? 15 : 0 }}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginLeft: isTablet ? 0 : 80,
+                    flex: isTablet ? 0.4 : undefined,
+                  },
+                ]}
+              >
+                {t("calculationSummary.collimator")}
+              </Text>
+              <Text
+                style={[
+                  styles.textLabel,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    flex: isTablet ? 0.6 : undefined,
+                  },
+                ]}
+              >
+                {params.collimator?.toString()}
+              </Text>
+            </View>
+            <View
+              style={{ flexDirection: "row", marginBottom: isTablet ? 15 : 0 }}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginLeft: isTablet ? 0 : 80,
+                    flex: isTablet ? 0.4 : undefined,
+                  },
+                ]}
+              >
+                {isDistance
+                  ? t("calculationSummary.thickness")
+                  : t("calculationSummary.distance")}
+              </Text>
+              <Text
+                style={[
+                  styles.textLabel,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    flex: isTablet ? 0.6 : undefined,
+                  },
+                ]}
+              >
+                {params.value?.toString()} {isDistance ? "mm" : "m"}
+              </Text>
+            </View>
+            <View
+              style={{ flexDirection: "row", marginBottom: isTablet ? 15 : 0 }}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginLeft: isTablet ? 0 : 80,
+                    flex: isTablet ? 0.4 : undefined,
+                  },
+                ]}
+              >
+                {t("calculationSummary.activity")}
+              </Text>
+              <Text
+                style={[
+                  styles.textLabel,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    flex: isTablet ? 0.6 : undefined,
+                  },
+                ]}
+              >
+                {params.activity?.toString()} {t("calculationSummary.ci")}
+              </Text>
+            </View>
+            <View
+              style={{ flexDirection: "row", marginBottom: isTablet ? 15 : 0 }}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginLeft: isTablet ? 0 : 80,
+                    flex: isTablet ? 0.4 : undefined,
+                  },
+                ]}
+              >
+                {t("calculationSummary.material")}
+              </Text>
+              <Text
+                style={[
+                  styles.textLabel,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    flex: isTablet ? 0.6 : undefined,
+                  },
+                ]}
+              >
+                {params.material?.toString()}
+              </Text>
+            </View>
+            {params.material === "Other" && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  marginBottom: isTablet ? 15 : 0,
+                }}
+              >
+                <Text
+                  style={[
+                    styles.label,
+                    {
+                      fontSize: isTablet ? 20 : 18,
+                      marginLeft: isTablet ? 0 : 80,
+                      flex: isTablet ? 0.4 : undefined,
+                    },
+                  ]}
+                >
+                  {t("calculationSummary.attenuation")}
+                </Text>
+                <Text
+                  style={[
+                    styles.textLabel,
+                    {
+                      fontSize: isTablet ? 20 : 18,
+                      flex: isTablet ? 0.6 : undefined,
+                    },
+                  ]}
+                >
+                  {params.attenuation?.toString()}
+                </Text>
+              </View>
+            )}
+            <View
+              style={{ flexDirection: "row", marginBottom: isTablet ? 15 : 0 }}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginLeft: isTablet ? 0 : 80,
+                    flex: isTablet ? 0.4 : undefined,
+                  },
+                ]}
+              >
+                {t("calculationSummary.limit")}
+              </Text>
+              <Text
+                style={[
+                  styles.textLabel,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    flex: isTablet ? 0.6 : undefined,
+                  },
+                ]}
+              >
+                {params.limit?.toString()}
+              </Text>
+            </View>
+          </View>
+
+          <Text
+            style={{
+              fontSize: isTablet ? 24 : 18, // Larger result text
+              fontWeight: "bold",
+              marginTop: isTablet ? 30 : 10,
+              marginBottom: isTablet ? 20 : 0, // Added margin below result
+              textAlign: "center",
+              paddingHorizontal: isTablet ? 20 : 0,
             }}
           >
             {isDistance
@@ -587,36 +761,70 @@ export default function CalculationSummary() {
             style={{
               flexDirection: "column",
               alignItems: "center",
-              marginTop: 40,
+              marginTop: isTablet ? 50 : 40, // Increased top margin
+              width: isTablet ? "70%" : "100%", // Control width on tablet
+              alignSelf: "center",
             }}
           >
-            <Pressable onPress={handleGraph} style={styles.button}>
-              <Text style={{ color: "#fff", fontSize: 19 }}>
+            <Pressable
+              onPress={handleGraph}
+              style={[
+                styles.button,
+                { height: isTablet ? 65 : 55, marginTop: isTablet ? 25 : 20 },
+              ]}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: isTablet ? 21 : 19,
+                  fontWeight: "600",
+                }}
+              >
                 {t("calculationSummary.graph")}
               </Text>
             </Pressable>
-            <Pressable onPress={handleTable} style={styles.button}>
-              <Text style={{ color: "#fff", fontSize: 19 }}>
+            <Pressable
+              onPress={handleTable}
+              style={[
+                styles.button,
+                { height: isTablet ? 65 : 55, marginTop: isTablet ? 25 : 20 },
+              ]}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: isTablet ? 21 : 19,
+                  fontWeight: "600",
+                }}
+              >
                 {t("calculationSummary.table")}
               </Text>
             </Pressable>
             <Pressable
               onPress={() => setModalVisible(true)}
-              style={styles.buttonAddDose}
+              style={[
+                styles.buttonAddDose,
+                { height: isTablet ? 65 : 55, marginTop: isTablet ? 25 : 20 },
+              ]}
             >
-              <Text style={{ color: "#fff", fontSize: 19 }}>
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: isTablet ? 21 : 19,
+                  fontWeight: "600",
+                }}
+              >
                 {t("home.addDataManually")}
               </Text>
             </Pressable>
           </View>
         </ScrollView>
       </View>
-
       {/* Footer */}
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          padding: isTablet ? 50 : 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",
@@ -634,10 +842,36 @@ export default function CalculationSummary() {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalLabel}>{t("home.modal.dose")}</Text>
+            <View
+              style={[
+                styles.modalContent,
+                {
+                  width: isTablet ? "75%" : "90%",
+                  padding: isTablet ? 30 : 20,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.modalLabel,
+                  {
+                    fontSize: isTablet ? 18 : 16,
+                    marginTop: isTablet ? 15 : 10,
+                  },
+                ]}
+              >
+                {t("home.modal.dose")}
+              </Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    fontSize: isTablet ? 18 : 16,
+                    height: isTablet ? 55 : undefined,
+                    padding: isTablet ? 12 : 10,
+                    marginTop: isTablet ? 12 : 10,
+                  },
+                ]}
                 value={dose}
                 onChangeText={setDose}
                 keyboardType="numeric"
@@ -645,55 +879,122 @@ export default function CalculationSummary() {
                 placeholderTextColor={"gray"}
               />
 
-              <Text style={styles.modalLabel}>
+              <Text
+                style={[
+                  styles.modalLabel,
+                  {
+                    fontSize: isTablet ? 18 : 16,
+                    marginTop: isTablet ? 20 : 10,
+                  },
+                ]}
+              >
                 {t("home.modal.numberOfExposures")}
               </Text>
               <TextInput
-                style={styles.input}
-                value={modalTotalExposures} // Use modal state
-                onChangeText={setModalTotalExposures} // Use modal state
-                keyboardType="number-pad" // Better for integers
+                style={[
+                  styles.input,
+                  {
+                    fontSize: isTablet ? 18 : 16,
+                    height: isTablet ? 55 : undefined,
+                    padding: isTablet ? 12 : 10,
+                    marginTop: isTablet ? 12 : 10,
+                  },
+                ]}
+                value={modalTotalExposures}
+                onChangeText={setModalTotalExposures}
+                keyboardType="number-pad"
                 placeholder={t("home.modal.enterNumberOfExposures")}
                 placeholderTextColor={"gray"}
               />
 
-              <Text style={styles.modalLabel}>
+              <Text
+                style={[
+                  styles.modalLabel,
+                  {
+                    fontSize: isTablet ? 18 : 16,
+                    marginTop: isTablet ? 20 : 10,
+                  },
+                ]}
+              >
                 {t("home.modal.exposureTime", "Tiempo Exposición (HH:MM:SS)")}
               </Text>
-              <View style={styles.durationContainer}>
-                {/* Horas */}
+              <View
+                style={[
+                  styles.durationContainer,
+                  {
+                    marginTop: isTablet ? 10 : 5,
+                    marginBottom: isTablet ? 15 : 10,
+                  },
+                ]}
+              >
                 <TextInput
-                  style={styles.durationInput}
+                  style={[
+                    styles.durationInput,
+                    {
+                      fontSize: isTablet ? 18 : 16,
+                      padding: isTablet ? 12 : 10,
+                      width: isTablet ? "28%" : "25%",
+                      height: isTablet ? 50 : undefined,
+                    },
+                  ]}
                   value={durationHours}
                   onChangeText={(text) =>
                     setDurationHours(text.replace(/[^0-9]/g, ""))
-                  } // Solo números
+                  }
                   keyboardType="number-pad"
                   placeholder="HH"
-                  maxLength={2} // O más si necesitas > 99 horas
+                  maxLength={2}
                   placeholderTextColor="gray"
                 />
-                <Text style={styles.durationSeparator}>:</Text>
-                {/* Minutos */}
+                <Text
+                  style={[
+                    styles.durationSeparator,
+                    { fontSize: isTablet ? 20 : 18 },
+                  ]}
+                >
+                  :
+                </Text>
                 <TextInput
-                  style={styles.durationInput}
+                  style={[
+                    styles.durationInput,
+                    {
+                      fontSize: isTablet ? 18 : 16,
+                      padding: isTablet ? 12 : 10,
+                      width: isTablet ? "28%" : "25%",
+                      height: isTablet ? 50 : undefined,
+                    },
+                  ]}
                   value={durationMinutes}
                   onChangeText={(text) =>
                     setDurationMinutes(text.replace(/[^0-9]/g, ""))
-                  } // Solo números
+                  }
                   keyboardType="number-pad"
                   placeholder="MM"
                   maxLength={2}
                   placeholderTextColor="gray"
                 />
-                <Text style={styles.durationSeparator}>:</Text>
-                {/* Segundos */}
+                <Text
+                  style={[
+                    styles.durationSeparator,
+                    { fontSize: isTablet ? 20 : 18 },
+                  ]}
+                >
+                  :
+                </Text>
                 <TextInput
-                  style={styles.durationInput}
+                  style={[
+                    styles.durationInput,
+                    {
+                      fontSize: isTablet ? 18 : 16,
+                      padding: isTablet ? 12 : 10,
+                      width: isTablet ? "28%" : "25%",
+                      height: isTablet ? 50 : undefined,
+                    },
+                  ]}
                   value={durationSeconds}
                   onChangeText={(text) =>
                     setDurationSeconds(text.replace(/[^0-9]/g, ""))
-                  } // Solo números
+                  }
                   keyboardType="number-pad"
                   placeholder="SS"
                   maxLength={2}
@@ -701,25 +1002,44 @@ export default function CalculationSummary() {
                 />
               </View>
 
-              <Text style={styles.modalLabel}>
+              <Text
+                style={[
+                  styles.modalLabel,
+                  {
+                    fontSize: isTablet ? 18 : 16,
+                    marginTop: isTablet ? 15 : 10,
+                  },
+                ]}
+              >
                 {t("home.modal.startTime", "Hora Inicio")}
                 {t("home.modal.optional", "Opcional")}
               </Text>
               <Pressable
                 onPress={() => setShowTimePicker(true)}
-                style={styles.pickerButton} // Reutiliza o crea un estilo similar al de Register.js
+                style={[
+                  styles.pickerButton,
+                  {
+                    height: isTablet ? 60 : 55,
+                    paddingHorizontal: isTablet ? 15 : 10,
+                    marginBottom: isTablet ? 20 : 10,
+                  },
+                ]}
               >
                 <Text
                   style={[
-                    styles.pickerButtonText, // Estilo base
-                    !formattedStartTime && styles.pickerButtonPlaceholder, // Estilo si no hay hora seleccionada
+                    styles.pickerButtonText,
+                    { fontSize: isTablet ? 18 : 16 },
+                    !formattedStartTime && styles.pickerButtonPlaceholder,
                   ]}
                 >
-                  {/* Muestra la hora formateada o un placeholder */}
                   {formattedStartTime ||
                     t("home.modal.selectStartTime", "Seleccionar Hora")}
                 </Text>
-                <Ionicons name="time-outline" size={24} color="gray" />
+                <Ionicons
+                  name="time-outline"
+                  size={isTablet ? 28 : 24}
+                  color="gray"
+                />
               </Pressable>
 
               {/* Picker de Hora (condicional) */}
@@ -733,21 +1053,51 @@ export default function CalculationSummary() {
                 />
               )}
 
-              <View style={styles.buttonContainer}>
+              <View
+                style={[
+                  styles.buttonContainer,
+                  { marginTop: isTablet ? 25 : 20 },
+                ]}
+              >
                 <Pressable
-                  style={[styles.cancelButton, { flex: 1, marginRight: 5 }]}
+                  style={[
+                    styles.cancelButton,
+                    {
+                      flex: 1,
+                      marginRight: isTablet ? 8 : 5,
+                      padding: isTablet ? 18 : 15,
+                    },
+                  ]}
                   onPress={() => setModalVisible(false)}
                 >
-                  <Text style={styles.buttonText}>
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      { fontSize: isTablet ? 18 : 16 },
+                    ]}
+                  >
                     {t("home.modal.cancel")}
                   </Text>
                 </Pressable>
-
                 <TouchableOpacity
-                  style={[styles.modalButton, { flex: 1, marginLeft: 5 }]}
+                  style={[
+                    styles.modalButton,
+                    {
+                      flex: 1,
+                      marginLeft: isTablet ? 8 : 5,
+                      padding: isTablet ? 18 : 15,
+                    },
+                  ]}
                   onPress={handleSaveDose}
                 >
-                  <Text style={styles.buttonText}>{t("home.modal.save")}</Text>
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      { fontSize: isTablet ? 18 : 16 },
+                    ]}
+                  >
+                    {t("home.modal.save")}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

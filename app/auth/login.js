@@ -9,24 +9,21 @@ import {
   SafeAreaView, // Importa SafeAreaView
   StyleSheet, // Importa StyleSheet para una mejor organización
   Platform, // Importa Platform para ajustes específicos si fueran necesarios
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  doc,
-  getDoc,
-  collectionGroup,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
+import { collectionGroup, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../firebase/config";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import i18n from "../locales/i18n";
 import Toast from "react-native-toast-message";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const isTablet = SCREEN_WIDTH >= 700;
 
 export default function Login() {
   const router = useRouter();
@@ -310,12 +307,11 @@ export default function Login() {
 
 // Define los estilos usando StyleSheet
 const styles = StyleSheet.create({
-  // New style for the gradient to ensure it covers the whole screen
-
   fullScreenGradient: { flex: 1 },
   safeArea: { flex: 1, backgroundColor: "transparent" },
+
   headerContainer: {
-    /* ... */ width: "100%",
+    width: "100%",
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
@@ -331,6 +327,7 @@ const styles = StyleSheet.create({
   },
   flagImage: { width: 28, height: 28, borderRadius: 14 },
   languageText: { marginLeft: 8, fontSize: 16, color: "#333" },
+
   contentContainer: {
     flex: 1,
     width: "90%",
@@ -340,13 +337,19 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   welcomeText: {
-    fontSize: 32,
+    fontSize: isTablet ? 40 : 32,
     fontWeight: "bold",
     marginBottom: 20,
     color: "#444B59",
     textAlign: "center",
   },
-  logo: { width: 150, height: 150, marginBottom: 30, resizeMode: "contain" },
+  logo: {
+    width: isTablet ? 250 : 150,
+    height: isTablet ? 250 : 150,
+    marginBottom: 30,
+    resizeMode: "contain",
+  },
+
   inputContainer: { width: "100%", marginBottom: 15 },
   inputWrapper: { position: "relative", width: "100%", marginBottom: 15 },
   input: {
@@ -357,7 +360,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 18,
     backgroundColor: "white",
-    paddingRight: 50, // Espacio para el icono de ojo/limpiar
+    paddingRight: 50,
     color: "black",
   },
   clearButton: {
@@ -382,6 +385,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   recoverPasswordText: { color: "gray", fontSize: 16 },
+
   signInButtonBase: {
     width: "100%",
     height: 55,
@@ -401,6 +405,7 @@ const styles = StyleSheet.create({
   signInButtonPressed: { opacity: 0.8 },
   spinner: { marginRight: 10 },
   signInButtonText: { color: "#fff", fontSize: 19, fontWeight: "bold" },
+
   registerContainer: { alignItems: "center", marginTop: 40 },
   registerText: {
     fontSize: 18,

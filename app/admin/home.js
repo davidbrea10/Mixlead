@@ -6,6 +6,7 @@ import {
   StyleSheet, // Import StyleSheet
   Platform, // Import Platform
   Modal,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -14,6 +15,10 @@ import { signOut } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { useState } from "react";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function Home() {
   const router = useRouter();
@@ -204,31 +209,37 @@ const styles = StyleSheet.create({
     }),
   },
   headerIcon: {
-    width: 50,
-    height: 50,
+    width: isTablet ? 70 : 50,
+    height: isTablet ? 70 : 50,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: isTablet ? 32 : 24,
     fontWeight: "bold",
     color: "white",
-    letterSpacing: 1.5, // Adjusted letter spacing
-    textShadowColor: "rgba(0, 0, 0, 0.5)", // Slightly softer shadow
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-    // Allow title to take up available space and center text within it
     flex: 1,
     textAlign: "center",
-    marginHorizontal: 10, // Add space between icons and title edges
+    marginHorizontal: 10,
+    letterSpacing: 2,
+    textShadowColor: "black",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
+  },
+  scrollContentContainer: {
+    // Style for ScrollView content
+    flexGrow: 1, // Allows content to take height and center if less than screen
+    justifyContent: "center", // Center content vertically if less than screen height
+    paddingBottom: 20, // Add some padding at the bottom inside scrollview
+    paddingTop: 20, // Add some padding at the top inside scrollview
   },
   mainContent: {
-    flex: 1,
-    justifyContent: "center",
+    flex: 1, // Removed as ScrollView handles flex
+    justifyContent: "center", // Handled by ScrollView container
     alignItems: "center",
-    paddingHorizontal: "5%", // Add horizontal padding to the content area
+    paddingHorizontal: "5%",
   },
   actionButton: {
-    width: "90%", // Relative width
-    minHeight: 76, // Use minHeight to allow content to expand if needed
+    width: "90%",
+    minHeight: isTablet ? 100 : 76,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(4, 4, 4, 0.6)",
@@ -236,30 +247,34 @@ const styles = StyleSheet.create({
     borderColor: "white",
     borderWidth: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 }, // Adjusted shadow
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
-    elevation: 15, // Adjusted elevation
-    paddingHorizontal: 20, // Padding inside the button
-    paddingVertical: 10, // Vertical padding inside button
-    marginBottom: 50, // Increased spacing between buttons
+    elevation: 15,
+    paddingHorizontal: isTablet ? 30 : 20,
+    paddingVertical: isTablet ? 18 : 10,
+    marginBottom: isTablet ? 40 : 30,
+  },
+  lastActionButton: {
+    marginBottom: 0, // Remove margin from the last button if inside ScrollView
   },
   actionButtonIcon: {
-    width: 40,
-    height: 40,
-    marginRight: 15, // Space between icon and text
+    width: isTablet ? 60 : 40,
+    height: isTablet ? 60 : 40,
+    marginRight: isTablet ? 25 : 15,
   },
   actionButtonTextContainer: {
-    flex: 1, // Allow text container to take remaining space
+    flex: 1,
   },
   actionButtonText: {
     color: "white",
-    fontSize: 18,
-    fontWeight: "500", // Medium weight
+    fontSize: isTablet ? 22 : 18,
+    fontWeight: "500",
     textAlign: "center",
   },
   footer: {
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === "ios" ? 16 : 40,
     paddingHorizontal: 20,
     backgroundColor: "#006892",
     alignItems: "flex-end",
@@ -271,8 +286,8 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   footerIcon: {
-    width: 50,
-    height: 50,
+    width: isTablet ? 70 : 50,
+    height: isTablet ? 70 : 50,
   },
 
   // --- Estilos del Modal ---
@@ -296,14 +311,14 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: isTablet ? 26 : 20,
     fontWeight: "bold",
     color: "#FFFFFF", // Texto blanco
     marginBottom: 15,
     textAlign: "center",
   },
   modalMessage: {
-    fontSize: 16,
+    fontSize: isTablet ? 20 : 16,
     color: "#E0E0E0", // Texto gris claro
     textAlign: "center",
     marginBottom: 30, // Más espacio antes de los botones
@@ -315,15 +330,12 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     borderRadius: 10,
-    paddingVertical: 12,
-    // paddingHorizontal: 20, // Quita o ajusta si usas width
-    // flex: 1, // <-- QUITA ESTA LÍNEA
-    // marginHorizontal: 8, // Quita o ajusta si usas space-around/between
-    width: "45%", // <-- AÑADE UN ANCHO (ej. 45% para dejar espacio entre ellos)
+    width: "45%",
+    paddingVertical: isTablet ? 16 : 12,
+    minHeight: isTablet ? 55 : 45,
     // O un valor fijo como 120 si prefieres
     alignItems: "center", // Mantiene el texto centrado horizontalmente DENTRO del botón
     justifyContent: "center", // <-- AÑADE ESTO para centrar verticalmente si el texto se va a 2 líneas
-    minHeight: 45, // Opcional: asegura una altura mínima si el texto es corto
   },
   modalCancelButton: {
     backgroundColor: "#555555",
@@ -333,7 +345,7 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: isTablet ? 18 : 16,
     fontWeight: "600",
     textAlign: "center", // <-- AÑADE ESTO para asegurar centrado si hay 2 líneas
   },

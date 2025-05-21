@@ -7,6 +7,7 @@ import {
   Platform, // Import Platform
   ScrollView, // Import ScrollView if content might overflow on smaller screens
   Modal,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -15,6 +16,10 @@ import { signOut } from "firebase/auth";
 import { useTranslation } from "react-i18next"; // Import i18n hook
 import Toast from "react-native-toast-message"; // Import Toast
 import { useState } from "react";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function Home() {
   const { t } = useTranslation(); // Initialize translation hook
@@ -247,11 +252,11 @@ const styles = StyleSheet.create({
     }),
   },
   headerIcon: {
-    width: 50,
-    height: 50,
+    width: isTablet ? 70 : 50,
+    height: isTablet ? 70 : 50,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: isTablet ? 32 : 24,
     fontWeight: "bold",
     color: "white",
     flex: 1,
@@ -277,7 +282,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: "90%",
-    minHeight: 76,
+    minHeight: isTablet ? 100 : 76,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(4, 4, 4, 0.6)",
@@ -289,29 +294,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 15,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginBottom: 30, // Consistent spacing between buttons
+    paddingHorizontal: isTablet ? 30 : 20,
+    paddingVertical: isTablet ? 18 : 10,
+    marginBottom: isTablet ? 40 : 30,
   },
   lastActionButton: {
     marginBottom: 0, // Remove margin from the last button if inside ScrollView
   },
   actionButtonIcon: {
-    width: 40,
-    height: 40,
-    marginRight: 15,
+    width: isTablet ? 60 : 40,
+    height: isTablet ? 60 : 40,
+    marginRight: isTablet ? 25 : 15,
   },
   actionButtonTextContainer: {
     flex: 1,
   },
   actionButtonText: {
     color: "white",
-    fontSize: 18,
+    fontSize: isTablet ? 22 : 18,
     fontWeight: "500",
     textAlign: "center",
   },
   footer: {
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === "ios" ? 16 : 40,
     paddingHorizontal: 20,
     backgroundColor: "#006892",
     alignItems: "flex-end",
@@ -323,8 +329,8 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   footerIcon: {
-    width: 50,
-    height: 50,
+    width: isTablet ? 70 : 50,
+    height: isTablet ? 70 : 50,
   },
 
   // --- Estilos del Modal ---
@@ -348,14 +354,14 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: isTablet ? 26 : 20,
     fontWeight: "bold",
     color: "#FFFFFF", // Texto blanco
     marginBottom: 15,
     textAlign: "center",
   },
   modalMessage: {
-    fontSize: 16,
+    fontSize: isTablet ? 20 : 16,
     color: "#E0E0E0", // Texto gris claro
     textAlign: "center",
     marginBottom: 30, // Más espacio antes de los botones
@@ -367,15 +373,12 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     borderRadius: 10,
-    paddingVertical: 12,
-    // paddingHorizontal: 20, // Quita o ajusta si usas width
-    // flex: 1, // <-- QUITA ESTA LÍNEA
-    // marginHorizontal: 8, // Quita o ajusta si usas space-around/between
-    width: "45%", // <-- AÑADE UN ANCHO (ej. 45% para dejar espacio entre ellos)
+    width: "45%",
+    paddingVertical: isTablet ? 16 : 12,
+    minHeight: isTablet ? 55 : 45,
     // O un valor fijo como 120 si prefieres
     alignItems: "center", // Mantiene el texto centrado horizontalmente DENTRO del botón
     justifyContent: "center", // <-- AÑADE ESTO para centrar verticalmente si el texto se va a 2 líneas
-    minHeight: 45, // Opcional: asegura una altura mínima si el texto es corto
   },
   modalCancelButton: {
     backgroundColor: "#555555",
@@ -385,7 +388,7 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: isTablet ? 18 : 16,
     fontWeight: "600",
     textAlign: "center", // <-- AÑADE ESTO para asegurar centrado si hay 2 líneas
   },

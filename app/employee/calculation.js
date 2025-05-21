@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Image,
   Platform,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -27,6 +28,10 @@ import {
   query,
   where,
 } from "firebase/firestore";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
 const COLLIMATOR_EFFECT = { Yes: { "192Ir": 3, "75Se": 12.5 }, No: 0 };
@@ -1140,15 +1145,15 @@ export default function Calculation() {
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text
               style={{
-                fontSize: 24,
+                fontSize: isTablet ? 32 : 24,
                 fontWeight: "bold",
                 color: "white",
                 textAlign: "center",
+                marginHorizontal: 10,
                 letterSpacing: 2,
                 textShadowColor: "black",
                 textShadowOffset: { width: 1, height: 1 },
                 textShadowRadius: 1,
-                marginHorizontal: 5,
               }}
             >
               {t("radiographyCalculator.title")}
@@ -1158,29 +1163,60 @@ export default function Calculation() {
           <Pressable onPress={handleHome}>
             <Image
               source={require("../../assets/icon.png")}
-              style={{ width: 50, height: 50 }}
+              style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
             />
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.label}>
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: isTablet ? 20 : 18,
+                  marginRight: isTablet ? 15 : 10,
+                },
+              ]}
+            >
               {t("radiographyCalculator.isotope")}
             </Text>
             <Pressable
               onPress={() => openModal("isotope", OPTIONS.isotopes)}
-              style={styles.inputContainer}
+              style={[
+                styles.inputContainer,
+                {
+                  height: isTablet ? 65 : 55,
+                  paddingHorizontal: isTablet ? 15 : 10,
+                  marginBottom: isTablet ? 35 : 30,
+                },
+              ]}
             >
               <Text style={styles.input}>{form.isotope}</Text>
             </Pressable>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.label}>
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: isTablet ? 20 : 18,
+                  marginRight: isTablet ? 15 : 10,
+                },
+              ]}
+            >
               {t("radiographyCalculator.activity")}
             </Text>
             <TextInput
-              style={[styles.inputContainer, styles.input]}
+              style={[
+                styles.inputContainer,
+                {
+                  height: isTablet ? 65 : 55,
+                  paddingHorizontal: isTablet ? 15 : 10,
+                  marginBottom: isTablet ? 35 : 30,
+                },
+                styles.input,
+              ]}
               placeholder={t("radiographyCalculator.valueCi")}
               placeholderTextColor={"gray"}
               keyboardType="numeric"
@@ -1189,23 +1225,53 @@ export default function Calculation() {
             />
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.label}>
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: isTablet ? 20 : 18,
+                  marginRight: isTablet ? 15 : 10,
+                },
+              ]}
+            >
               {t("radiographyCalculator.collimator")}
             </Text>
             <Pressable
               onPress={() => openModal("collimator", OPTIONS.collimator)}
-              style={styles.inputContainer}
+              style={[
+                styles.inputContainer,
+                {
+                  height: isTablet ? 65 : 55,
+                  paddingHorizontal: isTablet ? 15 : 10,
+                  marginBottom: isTablet ? 35 : 30,
+                },
+              ]}
             >
               <Text style={styles.input}>{form.collimator}</Text>
             </Pressable>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.label}>
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: isTablet ? 20 : 18,
+                  marginRight: isTablet ? 15 : 10,
+                },
+              ]}
+            >
               {t("radiographyCalculator.tLimitFor")}
             </Text>
             <Pressable
               onPress={() => openModal("limit", OPTIONS.limits)}
-              style={styles.inputContainer}
+              style={[
+                styles.inputContainer,
+                {
+                  height: isTablet ? 65 : 55,
+                  paddingHorizontal: isTablet ? 15 : 10,
+                  marginBottom: isTablet ? 35 : 30,
+                },
+              ]}
             >
               <Text style={styles.input}>{form.limit}</Text>
             </Pressable>
@@ -1214,14 +1280,26 @@ export default function Calculation() {
           <View
             style={{ flexDirection: "row", alignItems: "center", width: "93%" }}
           >
-            <Text style={styles.label}>
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: isTablet ? 20 : 18,
+                  marginRight: isTablet ? 15 : 10,
+                },
+              ]}
+            >
               {t("radiographyCalculator.material")}
             </Text>
             <Pressable
               onPress={() => openModal("material", OPTIONS.materials)}
               style={[
                 styles.inputContainer,
-                { flex: 1 /* Ajustar si es necesario */ },
+                {
+                  height: isTablet ? 65 : 55,
+                  paddingHorizontal: isTablet ? 15 : 10,
+                  marginBottom: isTablet ? 35 : 30,
+                },
               ]}
             >
               <Text style={styles.input}>{form.material}</Text>
@@ -1240,7 +1318,15 @@ export default function Calculation() {
                   // marginBottom: 10, // Ajusta si es necesario antes de los coeficientes
                 }}
               >
-                <Text style={styles.label}>
+                <Text
+                  style={[
+                    styles.label,
+                    {
+                      fontSize: isTablet ? 20 : 18,
+                      marginRight: isTablet ? 15 : 10,
+                    },
+                  ]}
+                >
                   {t(
                     "radiographyCalculator.labels.otherMaterialName",
                     "Nombre Material",
@@ -1427,13 +1513,35 @@ export default function Calculation() {
                   };
                 })
               }
-              style={styles.switchButton}
+              style={[
+                styles.switchButton,
+                {
+                  height: isTablet ? 65 : 55,
+                  paddingHorizontal: isTablet ? 15 : 10,
+                  marginBottom: isTablet ? 35 : 30,
+                },
+              ]}
             >
-              <Text style={styles.label}>{form.thicknessOrDistance}</Text>
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginRight: isTablet ? 15 : 10,
+                  },
+                ]}
+              >
+                {form.thicknessOrDistance}
+              </Text>
             </Pressable>
             <TextInput
               style={[
                 styles.inputContainer,
+                {
+                  height: isTablet ? 65 : 55,
+                  paddingHorizontal: isTablet ? 15 : 10,
+                  marginBottom: isTablet ? 35 : 30,
+                },
                 styles.input,
                 !isValueEditable && styles.inputDisabled,
               ]}
@@ -1452,8 +1560,20 @@ export default function Calculation() {
             />
           </View>
 
-          <Pressable style={styles.button} onPress={calculateAndNavigate}>
-            <Text style={{ color: "#FFF", fontSize: 18 }}>
+          <Pressable
+            style={[
+              styles.button,
+              { height: isTablet ? 70 : 55, width: isTablet ? "85%" : "90%" },
+            ]}
+            onPress={calculateAndNavigate}
+          >
+            <Text
+              style={{
+                color: "#FFF",
+                fontSize: isTablet ? 22 : 18,
+                fontWeight: "bold",
+              }}
+            >
               {form.thicknessOrDistance ===
               t("radiographyCalculator.thicknessOrDistance")
                 ? t("radiographyCalculator.calculateDistance")
