@@ -9,6 +9,7 @@ import {
   Alert, // Import Alert
   Platform, // Import Platform
   StyleSheet,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -29,6 +30,10 @@ import { useTranslation } from "react-i18next"; // Import the translation hook
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
 import * as Sharing from "expo-sharing"; // Import Sharing
 import Toast from "react-native-toast-message";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function Home() {
   const router = useRouter();
@@ -634,10 +639,9 @@ export default function Home() {
       <View
         style={{
           backgroundColor: "#FF9300",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: 16,
+          flexDirection: "row", // Organiza los hijos en una fila: IconoIzquierdo - ContenedorDeTextos - IconoDerecho
+          alignItems: "center", // Centra los hijos verticalmente
+          padding: 16, // Espaciado general dentro del header
           borderBottomStartRadius: 40,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 10 },
@@ -645,24 +649,25 @@ export default function Home() {
           shadowRadius: 10,
           elevation: 10,
           paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
+            ios: 60,
+            android: 40,
           }),
         }}
       >
         <Pressable onPress={handleBack}>
           <Image
             source={require("../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
-        <View style={{ flexDirection: "column", alignItems: "center" }}>
+        <View style={{ flex: 1, alignItems: "center" }}>
           <Text
             style={{
-              fontSize: 24,
+              fontSize: isTablet ? 32 : 24,
               fontWeight: "bold",
               color: "white",
+              textAlign: "center",
+              marginHorizontal: 10,
               letterSpacing: 2,
               textShadowColor: "black",
               textShadowOffset: { width: 1, height: 1 },
@@ -687,7 +692,7 @@ export default function Home() {
         <Pressable onPress={handleHome}>
           <Image
             source={require("../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
       </View>

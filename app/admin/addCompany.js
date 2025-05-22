@@ -9,6 +9,7 @@ import {
   Platform,
   StyleSheet, // 1. Import StyleSheet
   ActivityIndicator, // 2. Import ActivityIndicator
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -17,6 +18,10 @@ import { collection, addDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message"; // 3. Import Toast
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function AddCompany() {
   const router = useRouter();
@@ -236,45 +241,48 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#FF9300",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    padding: 16,
     borderBottomStartRadius: 40,
-    borderBottomEndRadius: 40,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
     elevation: 10,
-    paddingTop: Platform.select({ ios: 60, android: 40 }),
+    marginBottom: 20,
+    paddingTop: Platform.select({
+      // Apply platform-specific padding
+      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+      android: 40, // Base padding on Android (adjust value as needed)
+    }),
   },
   headerIcon: {
-    width: 50,
-    height: 50,
+    width: isTablet ? 70 : 50,
+    height: isTablet ? 70 : 50,
   },
   headerTitleContainer: {
-    flex: 1,
-    alignItems: "center",
-    marginHorizontal: 10,
+    flex: 1, // Allow container to take available space
+    alignItems: "center", // Center titles horizontally
+    marginHorizontal: 10, // Add space between icons and title block
   },
   headerTitleMain: {
-    fontSize: 24,
+    fontSize: isTablet ? 32 : 24,
     fontWeight: "bold",
     color: "white",
-    letterSpacing: 1.5,
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
     textAlign: "center",
+    marginHorizontal: 10,
+    letterSpacing: 2,
+    textShadowColor: "black",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
   },
   headerTitleSub: {
-    fontSize: 18,
-    fontWeight: "300",
+    fontSize: 24,
+    fontWeight: "light",
     color: "white",
-    letterSpacing: 1,
-    marginTop: 2,
-    textAlign: "center",
+    letterSpacing: 2,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
   },
   scrollContainer: {
     alignItems: "center", // Center items horizontally in scroll view

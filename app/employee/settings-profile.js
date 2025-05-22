@@ -9,11 +9,13 @@ import {
   Animated,
   Platform,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { getAuth } from "firebase/auth";
+import { auth, db } from "../../firebase/config"; // Importa tu configuración de Firebase
 import {
   getFirestore,
   doc,
@@ -30,6 +32,11 @@ import i18n from "../locales/i18n";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
+import Toast from "react-native-toast-message";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function Profile() {
   const { t } = useTranslation();
@@ -49,6 +56,79 @@ export default function Profile() {
 
   const authInstance = getAuth();
   const dbInstance = getFirestore();
+
+  const _fetchActiveUserData = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log("No user authenticated for _fetchActiveUserData.");
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.userNotLoggedIn", {
+          defaultValue: "User not logged in.",
+        }),
+        position: "bottom",
+      });
+      return null;
+    }
+
+    try {
+      const employeesQueryRef = collectionGroup(db, "employees");
+      const q = query(employeesQueryRef, where("email", "==", user.email));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userDocSnap = querySnapshot.docs[0];
+        const userData = userDocSnap.data();
+        const result = { companyId: null, role: null };
+
+        if (userData.companyId) {
+          result.companyId = userData.companyId;
+        } else {
+          console.warn(
+            `User (email: ${user.email}) document is missing companyId.`,
+          );
+        }
+
+        if (userData.role) {
+          result.role = userData.role;
+        } else {
+          console.warn(`User (email: ${user.email}) document is missing role.`);
+        }
+
+        if (!result.companyId && !result.role) {
+          console.warn(
+            `User (email: ${user.email}) document is missing both companyId and role.`,
+          );
+        }
+        return result;
+      } else {
+        console.warn(
+          `Could not find employee document for email ${user.email}.`,
+        );
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle", { defaultValue: "Error" }),
+          text2: t("errors.userDataNotFound", {
+            defaultValue: "User data not found.",
+          }),
+          position: "bottom",
+        });
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching active user data:", error);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.fetchActiveUserDataError", {
+          defaultValue: "Failed to fetch user data.",
+        }),
+        position: "bottom",
+      });
+      return null;
+    }
+  }, [t]); // Dependencies: t. db and auth are assumed stable module imports.
 
   useEffect(() => {
     const fetchUserDataAndNoCompanyId = async () => {
@@ -190,13 +270,58 @@ export default function Profile() {
     };
   }, [i18n.language]);
 
+  const handleHome = useCallback(async () => {
+    const activeUserData = await _fetchActiveUserData();
+
+    if (activeUserData && activeUserData.role) {
+      const userRole = activeUserData.role.toLowerCase();
+      if (userRole === "coordinator") {
+        router.replace("/coordinator/home");
+      } else if (userRole === "employee") {
+        router.replace("/employee/home");
+      } else {
+        console.warn(
+          `Unknown user role: '${activeUserData.role}'. Defaulting to employee home.`,
+        );
+        Toast.show({
+          type: "warning",
+          text1: t("warnings.roleUnknownTitle", {
+            defaultValue: "Unknown Role",
+          }),
+          text2: t("warnings.defaultEmployeeNavigationUnknownRole", {
+            defaultValue: `Role '${activeUserData.role}' is not recognized. Navigating to default home.`,
+          }),
+          position: "bottom",
+        });
+        router.replace("/employee/home");
+      }
+    } else {
+      console.warn(
+        "Could not determine user role or user data incomplete. Defaulting to employee home.",
+      );
+      if (!auth.currentUser) {
+        // _fetchActiveUserData would have shown a toast.
+      } else if (!activeUserData) {
+        // _fetchActiveUserData might have shown a toast.
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("errors.roleFetchErrorTitle", {
+            defaultValue: "Role Error",
+          }),
+          text2: t("errors.defaultEmployeeNavigationRoleError", {
+            defaultValue:
+              "Failed to determine role. Navigating to default home.",
+          }),
+          position: "bottom",
+        });
+      }
+      router.replace("/employee/home");
+    }
+  }, [_fetchActiveUserData, router, t]);
+
   const handleBack = () => {
     router.back();
-  };
-
-  const handleHome = () => {
-    // Esta ruta sugiere que es un perfil de empleado normal
-    router.replace("/employee/home");
   };
 
   const handleCompanyModalOpen = () => {
@@ -390,6 +515,30 @@ export default function Profile() {
     );
   }
 
+  const profileItems = [
+    { label: t("profile.name"), value: userData?.firstName },
+    { label: t("profile.lastName"), value: userData?.lastName },
+    { label: t("profile.dni"), value: userData?.dni },
+    { label: t("profile.telephone"), value: userData?.phone },
+    { label: t("profile.birth"), value: userData?.formattedBirthDate },
+    { label: t("profile.email"), value: userData?.email },
+    {
+      label: t("profile.companyName"),
+      value: companyName || t("profile.noCompanyAssigned"),
+    },
+  ];
+
+  const userHasRealCompany =
+    userData?.companyId &&
+    (noCompanyDocId ? userData.companyId !== noCompanyDocId : true);
+
+  if (userHasRealCompany) {
+    profileItems.push({
+      label: t("profile.companyId", "ID Empresa"), // Añade una traducción para "ID Empresa" en tus archivos de i18n
+      value: userData.companyId,
+    });
+  }
+
   return (
     <LinearGradient
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
@@ -400,11 +549,15 @@ export default function Profile() {
         style={{
           backgroundColor: "#FF9300",
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           padding: 16,
           borderBottomStartRadius: 40,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 10,
           elevation: 10,
+          marginBottom: 20,
           paddingTop: Platform.select({
             // Apply platform-specific padding
             ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
@@ -415,15 +568,18 @@ export default function Profile() {
         <Pressable onPress={handleBack}>
           <Image
             source={require("../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
 
         <Text
           style={{
-            fontSize: 24,
+            fontSize: isTablet ? 32 : 24,
             fontWeight: "bold",
             color: "white",
+            flex: 1,
+            textAlign: "center",
+            marginHorizontal: 10,
             letterSpacing: 2,
             textShadowColor: "black",
             textShadowOffset: { width: 1, height: 1 },
@@ -436,42 +592,36 @@ export default function Profile() {
         <Pressable onPress={handleHome}>
           <Image
             source={require("../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
       </View>
 
       {/* Main Content */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
-        {[
-          { label: t("profile.name"), value: userData?.firstName },
-          { label: t("profile.lastName"), value: userData?.lastName },
-          { label: t("profile.dni"), value: userData?.dni },
-          { label: t("profile.telephone"), value: userData?.phone },
-          { label: t("profile.birth"), value: userData?.formattedBirthDate }, // Usar fecha formateada
-          { label: t("profile.email"), value: userData?.email },
-          {
-            label: t("profile.companyName"),
-            value: companyName || t("profile.noCompanyAssigned"),
-          },
-        ].map((item, index) => (
-          <View key={index} style={{ marginBottom: 15 }}>
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "#333",
-                marginBottom: 3,
-              }}
-            >
-              {item.label}
-            </Text>
-            <Text style={{ fontSize: 18, color: "#555", marginBottom: 8 }}>
-              {item.value || t("profile.notAvailable", "N/A")}
-            </Text>
-            <View style={{ height: 1, backgroundColor: "#ccc" }} />
-          </View>
-        ))}
+        {profileItems.map(
+          (
+            item,
+            index, // Usar el array `profileItems` modificado
+          ) => (
+            <View key={index} style={{ marginBottom: 15 }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "bold",
+                  color: "#333",
+                  marginBottom: 3,
+                }}
+              >
+                {item.label}
+              </Text>
+              <Text style={{ fontSize: 18, color: "#555", marginBottom: 8 }}>
+                {item.value || t("profile.notAvailable", "N/A")}
+              </Text>
+              <View style={{ height: 1, backgroundColor: "#ccc" }} />
+            </View>
+          ),
+        )}
 
         {showJoinCompanyButton && ( // <-- Condición actualizada
           <View style={{ marginTop: 30, alignItems: "center" }}>

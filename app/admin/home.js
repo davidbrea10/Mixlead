@@ -201,7 +201,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    marginBottom: 20,
     paddingTop: Platform.select({
       // Apply platform-specific padding
       ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)

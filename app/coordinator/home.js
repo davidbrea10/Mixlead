@@ -66,7 +66,7 @@ export default function Home() {
 
   const handleMyAgenda = () => router.push("/employee/myAgenda");
   const handleCalculation = () => router.push("/employee/calculation");
-  const handleSettings = () => router.push("/coordinator/settings");
+  const handleSettings = () => router.push("/employee/settings");
   const handleApplications = () => router.push("/coordinator/applications");
   const handleEmployees = () => router.push("/coordinator/myEmployees");
   const handleEmployeeAgenda = () =>
@@ -244,7 +244,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    marginBottom: 20,
     paddingTop: Platform.select({
       // Apply platform-specific padding
       ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)

@@ -692,7 +692,15 @@
     "distanceView": "Ver Distancias",
     "header": {
       "titleTables": "Tablas de Cálculos" 
-    }
+    },
+    "main_title_dose_rate": "Tabla: Cálculo de Tasa de Dosis (µSv/h)",
+    "main_title_distance": "Tabla: Cálculo de Distancia (m)",
+    "y_axis_distance_m": "Distancia (m)",
+    "y_axis_target_dose_rate": "Tasa Dosis (µSv/h)",
+    "x_axis_layers_header": "Nº de Capas de Blindaje (10mm c/u)",
+    "layers_X_axis_description": "Capas Blindaje (10mm c/u)",
+    "layer_thickness_unit": "(capa de 10mm)",
+    "x_axis_layer_description_short": "Capas (10mm)"
   },
 
   "settings": {

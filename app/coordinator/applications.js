@@ -10,6 +10,7 @@ import {
   Modal,
   Platform,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -26,6 +27,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { t } from "i18next";
 import Toast from "react-native-toast-message";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function ApplicationsScreen() {
   const router = useRouter();
@@ -466,7 +471,7 @@ export default function ApplicationsScreen() {
         <Pressable onPress={handleBack}>
           <Image
             source={require("../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
 
@@ -474,10 +479,11 @@ export default function ApplicationsScreen() {
         <View style={{ flex: 1, alignItems: "center" }}>
           <Text
             style={{
-              fontSize: 24,
+              fontSize: isTablet ? 32 : 24,
               fontWeight: "bold",
               color: "white",
               textAlign: "center",
+              marginHorizontal: 10,
               letterSpacing: 2,
               textShadowColor: "black",
               textShadowOffset: { width: 1, height: 1 },
@@ -491,7 +497,7 @@ export default function ApplicationsScreen() {
         <Pressable onPress={handleHome}>
           <Image
             source={require("../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
       </View>

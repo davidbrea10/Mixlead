@@ -1138,7 +1138,7 @@ export default function Calculation() {
           <Pressable onPress={handleBack}>
             <Image
               source={require("../../assets/go-back.png")}
-              style={{ width: 50, height: 50 }}
+              style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
             />
           </Pressable>
 

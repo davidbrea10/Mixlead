@@ -11,6 +11,7 @@ import {
   Platform,
   Modal,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -22,6 +23,10 @@ import { CUSTOM_MARKER_ICON_BASE64 } from "../../components/CustomMarkerIcon"; /
 import { collectionGroup, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "../../firebase/config"; // Adjust path if necessary
 import Toast from "react-native-toast-message"; // Ensure Toast is imported if not already for this specific file
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 // --- Constantes ---
 const LOCATION_ACCURACY = Location.Accuracy.Balanced; // Can be higher if needed (BestForNavigation)
@@ -932,36 +937,34 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   header: {
-    paddingTop: Platform.select({
-      ios: 60,
-      android: 40,
-    }),
     backgroundColor: "#FF9300",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    padding: 16,
     borderBottomStartRadius: 40,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 8,
-    zIndex: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+    paddingTop: Platform.select({
+      // Apply platform-specific padding
+      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+      android: 40, // Base padding on Android (adjust value as needed)
+    }),
   },
-  icon: { width: 45, height: 45 },
+  icon: { width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 },
   title: {
-    fontSize: 24,
+    fontSize: isTablet ? 32 : 24,
     fontWeight: "bold",
     color: "white",
+    flex: 1,
     textAlign: "center",
+    marginHorizontal: 10,
     letterSpacing: 2,
     textShadowColor: "black",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 1,
-    marginHorizontal: 10,
-    flexShrink: 1, // Allow title to shrink if needed
   },
   mapContainer: {
     flex: 1,

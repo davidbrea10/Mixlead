@@ -9,6 +9,7 @@ import {
   Modal,
   Platform,
   StyleSheet,
+  Dimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
@@ -18,6 +19,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message"; // 1. Import Toast
 import { Ionicons } from "@expo/vector-icons"; // Import icons for modal if desired
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function EmployeeDetailCoordinatorView() {
   // Renamed component for clarity
@@ -308,7 +313,6 @@ export default function EmployeeDetailCoordinatorView() {
         style={{
           backgroundColor: "#FF9300",
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           padding: 16,
           borderBottomStartRadius: 40,
@@ -317,6 +321,7 @@ export default function EmployeeDetailCoordinatorView() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
+          marginBottom: 20,
           paddingTop: Platform.select({
             // Apply platform-specific padding
             ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
@@ -327,15 +332,19 @@ export default function EmployeeDetailCoordinatorView() {
         <Pressable onPress={() => router.replace("/coordinator/myEmployees")}>
           <Image
             source={require("../../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
-        <View style={{ flexDirection: "column", alignItems: "center" }}>
+        <View
+          style={{ flexDirection: "column", alignItems: "center", flex: 1 }}
+        >
           <Text
             style={{
-              fontSize: 24,
+              fontSize: isTablet ? 32 : 24,
               fontWeight: "bold",
               color: "white",
+              textAlign: "center",
+              marginHorizontal: 10,
               letterSpacing: 2,
               textShadowColor: "black",
               textShadowOffset: { width: 1, height: 1 },
@@ -360,7 +369,7 @@ export default function EmployeeDetailCoordinatorView() {
         <Pressable onPress={() => router.push("/coordinator/home")}>
           <Image
             source={require("../../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
       </View>

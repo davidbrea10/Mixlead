@@ -1,7 +1,18 @@
-import { View, Text, Pressable, Image, Platform } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Image,
+  Platform,
+  Dimensions,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function Settings() {
   const router = useRouter();
@@ -30,7 +41,6 @@ export default function Settings() {
         style={{
           backgroundColor: "#FF9300",
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           padding: 16,
           borderBottomStartRadius: 40,
@@ -49,14 +59,17 @@ export default function Settings() {
         <Pressable onPress={handleBack}>
           <Image
             source={require("../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
         <Text
           style={{
-            fontSize: 24,
+            fontSize: isTablet ? 32 : 24,
             fontWeight: "bold",
             color: "white",
+            flex: 1,
+            textAlign: "center",
+            marginHorizontal: 10,
             letterSpacing: 2,
             textShadowColor: "black",
             textShadowOffset: { width: 1, height: 1 },
@@ -68,7 +81,7 @@ export default function Settings() {
         <Pressable onPress={handleHome}>
           <Image
             source={require("../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
       </View>

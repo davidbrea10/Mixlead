@@ -10,12 +10,17 @@ import {
   ActivityIndicator,
   Pressable,
   Platform,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { useTranslation } from "react-i18next";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function CompaniesScreen() {
   const router = useRouter();
@@ -80,7 +85,6 @@ export default function CompaniesScreen() {
         style={{
           backgroundColor: "#FF9300",
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           padding: 16,
           borderBottomStartRadius: 40,
@@ -89,25 +93,28 @@ export default function CompaniesScreen() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
-
+          marginBottom: 20,
           paddingTop: Platform.select({
             // Apply platform-specific padding
-            ios: 60, // More padding on iOS
-            android: 40, // Base padding on Android
+            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+            android: 40, // Base padding on Android (adjust value as needed)
           }),
         }}
       >
         <Pressable onPress={handleBack}>
           <Image
             source={require("../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
         <Text
           style={{
-            fontSize: 24,
+            fontSize: isTablet ? 32 : 24,
             fontWeight: "bold",
             color: "white",
+            flex: 1,
+            textAlign: "center",
+            marginHorizontal: 10,
             letterSpacing: 2,
             textShadowColor: "black",
             textShadowOffset: { width: 1, height: 1 },
@@ -119,7 +126,7 @@ export default function CompaniesScreen() {
         <Pressable onPress={handleHome}>
           <Image
             source={require("../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
       </View>

@@ -10,6 +10,7 @@ import {
   ActivityIndicator, // Import ActivityIndicator
   Alert, // Import Alert
   Platform, // Import Platform
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -26,6 +27,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
 import * as Sharing from "expo-sharing"; // Import Sharing
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function DoseDetails() {
   const router = useRouter();
@@ -425,25 +430,27 @@ export default function DoseDetails() {
       <View // Contenedor Principal de la Cabecera
         style={{
           backgroundColor: "#FF9300",
-          flexDirection: "row", // Elementos en fila
-          alignItems: "center", // Centrar verticalmente
-          paddingHorizontal: 16, // Padding horizontal general
-          paddingBottom: 16,
+          flexDirection: "row", // Organiza los hijos en una fila: IconoIzquierdo - ContenedorDeTextos - IconoDerecho
+          alignItems: "center", // Centra los hijos verticalmente
+          padding: 16, // Espaciado general dentro del header
           borderBottomStartRadius: 40,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
-          paddingTop: Platform.select({ ios: 60, android: 40 }),
+          paddingTop: Platform.select({
+            ios: 60,
+            android: 40,
+          }),
         }}
       >
         {/* Contenedor Izquierdo (Ancho Fijo) */}
-        <View style={{ width: 50, alignItems: "center" }}>
+        <View style={{ width: isTablet ? 70 : 50, alignItems: "center" }}>
           <Pressable onPress={() => router.back()}>
             <Image
               source={require("../../../assets/go-back.png")}
-              style={{ width: 50, height: 50 }} // Tamaño del icono
+              style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }} // Tamaño del icono
             />
           </Pressable>
         </View>
@@ -458,14 +465,16 @@ export default function DoseDetails() {
         >
           <Text
             style={{
-              fontSize: 24,
+              fontSize: isTablet ? 32 : 24,
               fontWeight: "bold",
               color: "white",
-              textAlign: "center", // Importante para centrar texto multi-línea
+              flex: 1,
+              textAlign: "center",
+              marginHorizontal: 10,
+              letterSpacing: 2,
               textShadowColor: "black",
               textShadowOffset: { width: 1, height: 1 },
               textShadowRadius: 1,
-              // Quita numberOfLines y ellipsizeMode para permitir wrapping
             }}
           >
             {t("doseDetails.title")}

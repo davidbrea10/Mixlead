@@ -8,6 +8,7 @@ import {
   // Alert, // Remove Alert import
   Platform,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -19,6 +20,10 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import Toast from "react-native-toast-message"; // 1. Import Toast
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function Profile() {
   const router = useRouter();
@@ -187,7 +192,6 @@ export default function Profile() {
         style={{
           backgroundColor: "#FF9300",
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           padding: 16,
           borderBottomStartRadius: 40,
@@ -196,39 +200,44 @@ export default function Profile() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
+          marginBottom: 20,
           paddingTop: Platform.select({
-            ios: 60,
-            android: 40,
+            // Apply platform-specific padding
+            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+            android: 40, // Base padding on Android (adjust value as needed)
           }),
         }}
       >
         <Pressable onPress={handleBack}>
           <Image
             source={require("../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
         <Text
           style={{
-            fontSize: 24,
+            fontSize: isTablet ? 32 : 24,
             fontWeight: "bold",
             color: "white",
+            flex: 1,
+            textAlign: "center",
+            marginHorizontal: 10,
             letterSpacing: 2,
             textShadowColor: "black",
             textShadowOffset: { width: 1, height: 1 },
             textShadowRadius: 1,
-            textAlign: "center", // Ensure title centers if space allows
-            flex: 1, // Allow text to take available space
-            marginHorizontal: 10, // Add some spacing around title
           }}
         >
           {t("profile.title")}
         </Text>
-        <Pressable onPress={handleHome} style={{ width: 50 }}>
+        <Pressable
+          onPress={handleHome}
+          style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
+        >
           {/* Keep original icon or empty view */}
           <Image
             source={require("../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
       </View>

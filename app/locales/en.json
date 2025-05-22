@@ -707,7 +707,15 @@
     "distanceView": "View Distance",
     "header": {
       "titleTables": "Calculation tables" 
-    }
+    },
+    "main_title_dose_rate": "Table: Calculated Dose Rate (µSv/h)",
+    "main_title_distance": "Table: Calculated Distance (m)",
+    "y_axis_distance_m": "Distance (m)",
+    "y_axis_target_dose_rate": "Dose Rate (µSv/h)",
+    "x_axis_layers_header": "Nº of Shielding Layers (10mm each)",
+    "layers_X_axis_description": "Shielding Layers (10mm each)",
+    "layer_thickness_unit": "(10mm layer)",
+    "x_axis_layer_description_short": "Layers (10 mm)"
   },
 
   "settings": {

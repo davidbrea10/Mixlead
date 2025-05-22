@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -30,6 +31,10 @@ import { t } from "i18next"; // Import t function for translation
 import RNHTMLtoPDF from "react-native-html-to-pdf";
 import * as Sharing from "expo-sharing";
 import RNPickerSelect from "react-native-picker-select";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 // --- Helper function to get distinct years from all doses of a company ---
 // NOTE: This performs a potentially large read. Consider optimizing
@@ -883,11 +888,6 @@ export default function Home() {
     >
       <View
         style={{
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
           backgroundColor: "#FF9300",
           flexDirection: "row",
           alignItems: "center",
@@ -898,26 +898,31 @@ export default function Home() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
+          paddingTop: Platform.select({
+            // Apply platform-specific padding
+            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+            android: 40, // Base padding on Android (adjust value as needed)
+          }),
         }}
       >
         <Pressable onPress={handleBack}>
           <Image
             source={require("../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
           <Text
             style={{
-              fontSize: 24,
+              fontSize: isTablet ? 32 : 24,
               fontWeight: "bold",
               color: "white",
               textAlign: "center",
+              marginHorizontal: 10,
               letterSpacing: 2,
               textShadowColor: "black",
               textShadowOffset: { width: 1, height: 1 },
               textShadowRadius: 1,
-              marginHorizontal: 5,
             }}
           >
             {t("employeesAgenda.header.title")}
@@ -926,7 +931,7 @@ export default function Home() {
         <Pressable onPress={handleHome}>
           <Image
             source={require("../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
       </View>

@@ -9,6 +9,7 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -17,14 +18,19 @@ import { getAuth, deleteUser } from "firebase/auth";
 import { db } from "../../firebase/config";
 import {
   doc,
-  deleteDoc,
   collection,
   collectionGroup, // Added for querying employees
   getDocs,
   writeBatch,
+  query,
+  where,
 } from "firebase/firestore";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function Settings() {
   const router = useRouter();
@@ -35,6 +41,129 @@ export default function Settings() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(true);
   const [currentUserDetails, setCurrentUserDetails] = useState(null); // { userId: string, companyId: string | null }
+
+  const _fetchActiveUserData = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log("No user authenticated for _fetchActiveUserData.");
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.userNotLoggedIn", {
+          defaultValue: "User not logged in.",
+        }),
+        position: "bottom",
+      });
+      return null;
+    }
+
+    try {
+      const employeesQueryRef = collectionGroup(db, "employees");
+      const q = query(employeesQueryRef, where("email", "==", user.email));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userDocSnap = querySnapshot.docs[0];
+        const userData = userDocSnap.data();
+        const result = { companyId: null, role: null };
+
+        if (userData.companyId) {
+          result.companyId = userData.companyId;
+        } else {
+          console.warn(
+            `User (email: ${user.email}) document is missing companyId.`,
+          );
+        }
+
+        if (userData.role) {
+          result.role = userData.role;
+        } else {
+          console.warn(`User (email: ${user.email}) document is missing role.`);
+        }
+
+        if (!result.companyId && !result.role) {
+          console.warn(
+            `User (email: ${user.email}) document is missing both companyId and role.`,
+          );
+        }
+        return result;
+      } else {
+        console.warn(
+          `Could not find employee document for email ${user.email}.`,
+        );
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle", { defaultValue: "Error" }),
+          text2: t("errors.userDataNotFound", {
+            defaultValue: "User data not found.",
+          }),
+          position: "bottom",
+        });
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching active user data:", error);
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle", { defaultValue: "Error" }),
+        text2: t("errors.fetchActiveUserDataError", {
+          defaultValue: "Failed to fetch user data.",
+        }),
+        position: "bottom",
+      });
+      return null;
+    }
+  }, [t]); // Dependencies: t. db and auth are assumed stable module imports.
+
+  const handleHome = useCallback(async () => {
+    const activeUserData = await _fetchActiveUserData();
+
+    if (activeUserData && activeUserData.role) {
+      const userRole = activeUserData.role.toLowerCase();
+      if (userRole === "coordinator") {
+        router.replace("/coordinator/home");
+      } else if (userRole === "employee") {
+        router.replace("/employee/home");
+      } else {
+        console.warn(
+          `Unknown user role: '${activeUserData.role}'. Defaulting to employee home.`,
+        );
+        Toast.show({
+          type: "warning",
+          text1: t("warnings.roleUnknownTitle", {
+            defaultValue: "Unknown Role",
+          }),
+          text2: t("warnings.defaultEmployeeNavigationUnknownRole", {
+            defaultValue: `Role '${activeUserData.role}' is not recognized. Navigating to default home.`,
+          }),
+          position: "bottom",
+        });
+        router.replace("/employee/home");
+      }
+    } else {
+      console.warn(
+        "Could not determine user role or user data incomplete. Defaulting to employee home.",
+      );
+      if (!auth.currentUser) {
+        // _fetchActiveUserData would have shown a toast.
+      } else if (!activeUserData) {
+        // _fetchActiveUserData might have shown a toast.
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("errors.roleFetchErrorTitle", {
+            defaultValue: "Role Error",
+          }),
+          text2: t("errors.defaultEmployeeNavigationRoleError", {
+            defaultValue:
+              "Failed to determine role. Navigating to default home.",
+          }),
+          position: "bottom",
+        });
+      }
+      router.replace("/employee/home");
+    }
+  }, [_fetchActiveUserData, router, t]);
 
   const fetchUserCompanyDetails = useCallback(async () => {
     setIsLoadingUserDetails(true);
@@ -122,10 +251,6 @@ export default function Settings() {
 
   const handleBack = () => {
     router.back();
-  };
-
-  const handleHome = () => {
-    router.replace("/employee/home");
   };
 
   const handleProfile = () => {
@@ -402,27 +527,37 @@ const styles = StyleSheet.create({
   flexOne: {
     flex: 1,
   },
+  gradient: {
+    flex: 1,
+  },
   header: {
     backgroundColor: "#FF9300",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    padding: 16,
     borderBottomStartRadius: 40,
-    borderBottomEndRadius: 40,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    paddingTop: Platform.select({ ios: 60, android: 40 }),
+    paddingTop: Platform.select({
+      // Apply platform-specific padding
+      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
+      android: 40, // Base padding on Android (adjust value as needed)
+    }),
   },
-  headerIcon: { width: 50, height: 50 },
+  headerIcon: {
+    width: isTablet ? 70 : 50,
+    height: isTablet ? 70 : 50,
+  },
   headerTitle: {
-    fontSize: 24,
+    fontSize: isTablet ? 32 : 24,
     fontWeight: "bold",
     color: "white",
+    flex: 1,
+    textAlign: "center",
+    marginHorizontal: 10,
     letterSpacing: 2,
     textShadowColor: "black",
     textShadowOffset: { width: 1, height: 1 },

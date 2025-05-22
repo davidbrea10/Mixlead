@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -17,6 +18,10 @@ import { useState, useMemo, useCallback } from "react";
 import { collectionGroup, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "../../firebase/config";
 import Toast from "react-native-toast-message";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 // --- Constantes ---
 const GAMMA_FACTOR = { "192Ir": 0.13, "75Se": 0.054 };
@@ -293,6 +298,30 @@ export default function Tables() {
   // --- Funciones de Renderizado de Cabeceras y Filas ---
   const renderDoseRateTableHeader = () => (
     <View>
+      {/* Primera fila visual de la cabecera */}
+      <View style={styles.tableRow}>
+        <Text // Celda placeholder para la columna de etiquetas de fila
+          style={[
+            styles.tableHeaderCell,
+            styles.tableDistanceCell, // Ancho y fondo específicos para esta columna
+            // Si SHIELDING_LAYERS_N está vacío, esta es la última celda de la fila
+            SHIELDING_LAYERS_N.length === 0 && styles.lastHeaderCell,
+          ]}
+        />
+        {/* Renderizar la etiqueta "Capas de 10 mm" solo si hay capas */}
+        {SHIELDING_LAYERS_N.length > 0 && (
+          <Text // Etiqueta única que abarca las columnas de capas
+            style={[
+              styles.tableHeaderCell, // Estilo base de celda de cabecera (texto, padding vertical, fondo por defecto)
+              { flex: 1, textAlign: "center" }, // Ocupa el espacio restante y centra el texto
+              styles.lastHeaderCell, // Elimina el borde derecho
+            ]}
+          >
+            {t("tables.x_axis_layer_description_short")}
+          </Text>
+        )}
+      </View>
+      {/* Segunda fila visual de la cabecera: Etiquetas de eje Y y valores numéricos de eje X */}
       <View style={[styles.tableRow, styles.firstHeaderRow]}>
         <Text
           style={[
@@ -301,7 +330,7 @@ export default function Tables() {
             SHIELDING_LAYERS_N.length === 0 && styles.lastHeaderCell,
           ]}
         >
-          {t("tables.distance", "Dist (m)")}
+          {t("tables.y_axis_distance_m")}
         </Text>
         {SHIELDING_LAYERS_N.map((num_layers, index) => (
           <Text
@@ -316,33 +345,35 @@ export default function Tables() {
           </Text>
         ))}
       </View>
-      <View style={styles.tableRow}>
-        <Text
-          style={[
-            styles.tableHeaderCell,
-            styles.tableDistanceCell,
-            styles.unitHeaderCellPlaceholder,
-            SHIELDING_LAYERS_N.length === 0 && styles.lastHeaderCell,
-          ]}
-        />
-        {SHIELDING_LAYERS_N.map((num_layers_key, index) => (
-          <Text
-            key={`header-unit-${num_layers_key}`}
-            style={[
-              styles.tableHeaderCell,
-              styles.unitHeaderCell,
-              index === SHIELDING_LAYERS_N.length - 1 && styles.lastHeaderCell,
-            ]}
-          >
-            ({t("tables.doseRateUnit", "µSv/h")})
-          </Text>
-        ))}
-      </View>
     </View>
   );
 
   const renderDistanceTableHeader = () => (
     <View>
+      {/* Primera fila visual de la cabecera */}
+      <View style={styles.tableRow}>
+        <Text // Celda placeholder para la columna de etiquetas de fila
+          style={[
+            styles.tableHeaderCell,
+            styles.tableRateCell, // Ancho y fondo específicos para esta columna
+            // Si SHIELDING_LAYERS_N está vacío, esta es la última celda de la fila
+            SHIELDING_LAYERS_N.length === 0 && styles.lastHeaderCell,
+          ]}
+        />
+        {/* Renderizar la etiqueta "Capas de 10 mm" solo si hay capas */}
+        {SHIELDING_LAYERS_N.length > 0 && (
+          <Text // Etiqueta única que abarca las columnas de capas
+            style={[
+              styles.tableHeaderCell, // Estilo base de celda de cabecera (texto, padding vertical, fondo por defecto)
+              { flex: 1, textAlign: "center" }, // Ocupa el espacio restante y centra el texto
+              styles.lastHeaderCell, // Elimina el borde derecho
+            ]}
+          >
+            {t("tables.x_axis_layer_description_short")}
+          </Text>
+        )}
+      </View>
+      {/* Segunda fila visual de la cabecera: Etiquetas de eje Y y valores numéricos de eje X */}
       <View style={[styles.tableRow, styles.firstHeaderRow]}>
         <Text
           style={[
@@ -351,7 +382,7 @@ export default function Tables() {
             SHIELDING_LAYERS_N.length === 0 && styles.lastHeaderCell,
           ]}
         >
-          {t("tables.targetDoseRate", "Tasa (µSv/h)")}
+          {t("tables.y_axis_target_dose_rate")}{" "}
         </Text>
         {SHIELDING_LAYERS_N.map((num_layers, index) => (
           <Text
@@ -363,28 +394,6 @@ export default function Tables() {
             ]}
           >
             {`${num_layers}`}
-          </Text>
-        ))}
-      </View>
-      <View style={styles.tableRow}>
-        <Text
-          style={[
-            styles.tableHeaderCell,
-            styles.tableRateCell,
-            styles.unitHeaderCellPlaceholder,
-            SHIELDING_LAYERS_N.length === 0 && styles.lastHeaderCell,
-          ]}
-        />
-        {SHIELDING_LAYERS_N.map((num_layers_key, index) => (
-          <Text
-            key={`header-unit-dist-${num_layers_key}`}
-            style={[
-              styles.tableHeaderCell,
-              styles.unitHeaderCell,
-              index === SHIELDING_LAYERS_N.length - 1 && styles.lastHeaderCell,
-            ]}
-          >
-            ({t("tables.distanceUnitShort", "m")})
           </Text>
         ))}
       </View>
@@ -402,8 +411,8 @@ export default function Tables() {
       <Text
         style={[
           styles.tableCell,
-          isDistanceTable ? styles.tableRateCell : styles.tableDistanceCell,
-          SHIELDING_LAYERS_N.length === 0 && styles.lastDataCell,
+          isDistanceTable ? styles.tableRateCell : styles.tableDistanceCell, // Aplica el fondo y minWidth correctos a la primera celda de datos
+          rowData.values.length === 0 && styles.lastDataCell, // Si no hay valores, es la última celda
         ]}
       >
         {rowData.rowTitle}
@@ -412,8 +421,8 @@ export default function Tables() {
         <Text
           key={`cell-${rowIndex}-${cellIndex}`}
           style={[
-            styles.tableCell,
-            cellIndex === rowData.values.length - 1 && styles.lastDataCell,
+            styles.tableCell, // Estilo base para celdas de datos
+            cellIndex === rowData.values.length - 1 && styles.lastDataCell, // Si es la última celda de datos
           ]}
         >
           {value}
@@ -561,37 +570,47 @@ export default function Tables() {
         )}
 
         {currentView === "doseRate" && doseRateTableData && (
-          <ScrollView
-            horizontal
-            contentContainerStyle={styles.tableOuterContainer}
-          >
+          <>
+            <Text style={styles.tableMainTitle}>
+              {t("tables.main_title_dose_rate")}
+            </Text>
             <ScrollView
-              vertical
-              contentContainerStyle={styles.tableInnerContainer}
+              horizontal
+              contentContainerStyle={styles.tableOuterContainer}
             >
-              {renderDoseRateTableHeader()}
-              {doseRateTableData.map((rowData, index) =>
-                renderTableRow(rowData, index, false),
-              )}
+              <ScrollView
+                vertical
+                contentContainerStyle={styles.tableInnerContainer}
+              >
+                {renderDoseRateTableHeader()}
+                {doseRateTableData.map((rowData, index) =>
+                  renderTableRow(rowData, index, false),
+                )}
+              </ScrollView>
             </ScrollView>
-          </ScrollView>
+          </>
         )}
 
         {currentView === "distance" && distanceTableData && (
-          <ScrollView
-            horizontal
-            contentContainerStyle={styles.tableOuterContainer}
-          >
+          <>
+            <Text style={styles.tableMainTitle}>
+              {t("tables.main_title_distance")}
+            </Text>
             <ScrollView
-              vertical
-              contentContainerStyle={styles.tableInnerContainer}
+              horizontal
+              contentContainerStyle={styles.tableOuterContainer}
             >
-              {renderDistanceTableHeader()}
-              {distanceTableData.map((rowData, index) =>
-                renderTableRow(rowData, index, true),
-              )}
+              <ScrollView
+                vertical
+                contentContainerStyle={styles.tableInnerContainer}
+              >
+                {renderDistanceTableHeader()}
+                {distanceTableData.map((rowData, index) =>
+                  renderTableRow(rowData, index, true),
+                )}
+              </ScrollView>
             </ScrollView>
-          </ScrollView>
+          </>
         )}
 
         <View style={styles.footer}></View>
@@ -603,36 +622,33 @@ export default function Tables() {
 const styles = StyleSheet.create({
   // ... (Estilos de header, icon, title, summary* que ya tenías y fueron mejorados) ...
   header: {
+    backgroundColor: "#FF9300",
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomStartRadius: 40,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
     paddingTop: Platform.select({
       ios: 60,
       android: 40,
     }),
-    backgroundColor: "#FF9300",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomStartRadius: 40,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 8,
-    zIndex: 10,
   },
-  icon: { width: 45, height: 45 },
+  icon: { width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 },
   title: {
-    fontSize: 24,
+    fontSize: isTablet ? 32 : 24,
     fontWeight: "bold",
     color: "white",
+    flex: 1,
     textAlign: "center",
+    marginHorizontal: 10,
     letterSpacing: 2,
     textShadowColor: "black",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 1,
-    marginHorizontal: 10,
-    flexShrink: 1, // Allow title to shrink if needed
   },
   summaryContainer: {
     paddingHorizontal: 20,
@@ -640,7 +656,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.92)",
     marginHorizontal: 12,
     marginTop: 15,
-    // marginBottom: 15, // Eliminado para que el toggleButtonContainer esté más cerca
     borderRadius: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -666,40 +681,46 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: "right",
   },
-  // --- Estilos para Botones de Cambio de Tabla ---
   toggleButtonContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginVertical: 15, // Espacio vertical para los botones
+    marginVertical: 15,
     marginHorizontal: 12,
-    backgroundColor: "rgba(0, 92, 146, 0.1)", // Fondo sutil para el contenedor de botones
+    backgroundColor: "rgba(0, 92, 146, 0.1)",
     borderRadius: 8,
   },
   toggleButton: {
-    flex: 1, // Para que los botones compartan el espacio
+    flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 10,
     alignItems: "center",
-    borderRadius: 8, // Para que el botón activo tenga bordes redondeados
+    borderRadius: 8,
   },
   toggleButtonActive: {
-    backgroundColor: "#006892", // Azul del footer para el botón activo
+    backgroundColor: "#006892",
   },
   toggleButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#006892", // Azul para texto inactivo
+    color: "#006892",
   },
   toggleButtonTextActive: {
-    color: "white", // Texto blanco para botón activo
+    color: "white",
   },
-  // --- Estilos de Tabla (pueden requerir pequeños ajustes) ---
+  tableMainTitle: {
+    fontSize: isTablet ? 20 : 17,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginVertical: isTablet ? 20 : 15,
+    marginHorizontal: isTablet ? 20 : 10,
+    color: "#333",
+  },
   tableOuterContainer: {
-    marginTop: 0, // Reducido porque los botones de toggle ya tienen margen
+    marginTop: 0,
     marginBottom: 20,
     borderColor: "#C8D1DC",
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: isTablet ? 12 : 8,
     backgroundColor: "#FFFFFF",
     overflow: "hidden",
   },
@@ -712,47 +733,47 @@ const styles = StyleSheet.create({
     borderBottomColor: "#D8E0E8",
   },
   firstHeaderRow: {
-    borderBottomWidth: 1,
+    borderBottomWidth: isTablet ? 1.5 : 1,
     borderBottomColor: "#B0BCCD",
   },
   tableHeaderCell: {
-    paddingVertical: 10, // Reducido ligeramente
-    paddingHorizontal: 5,
+    paddingVertical: isTablet ? 14 : 10,
+    paddingHorizontal: isTablet ? 10 : 5,
     fontWeight: "bold",
-    fontSize: 12, // Ligeramente más pequeño para cabeceras
+    fontSize: isTablet ? 15 : 12,
     textAlign: "center",
-    minWidth: 65, // Ajustado para caber más contenido si es necesario
+    minWidth: isTablet ? 90 : 65, // Ancho base para columnas de números de capa
     borderRightWidth: 1,
     borderRightColor: "#D8E0E8",
-    backgroundColor: "#F0F5FA",
+    backgroundColor: "#F0F5FA", // Fondo por defecto para celdas de cabecera
     color: "#1C3D5D",
   },
   tableDistanceCell: {
-    // Para la columna de "Dist (m)"
-    minWidth: 75,
-    backgroundColor: "#E4EBF3",
+    // Para la primera celda de cabecera (Distancia) y datos de la primera columna
+    minWidth: isTablet ? 140 : 100, // Se mantiene este valor para la tabla de Tasa de Dosis
+    backgroundColor: "#E4EBF3", // Fondo distintivo para la primera columna
+    // Hereda otras propiedades de tableHeaderCell o tableCell
   },
   tableRateCell: {
-    // Para la columna de "Tasa (µSv/h)" en la tabla de distancias
-    minWidth: 90, // Podría necesitar más ancho para "1000,00"
-    backgroundColor: "#E4EBF3",
-    fontSize: 12, // Para consistencia con la otra cabecera de fila
+    // Para la primera celda de cabecera (Tasa Objetivo) y datos de la primera columna
+    minWidth: isTablet ? 180 : 140, // <<--- VALOR AUMENTADO AQUÍ
+    backgroundColor: "#E4EBF3", // Fondo distintivo para la primera columna
+    // fontSize: isTablet ? 15 : 12, // Esta propiedad la hereda de tableHeaderCell para la cabecera
+    // o de tableCell para las celdas de datos si no se especifica aquí.
+    // Si estaba definida explícitamente, asegurarse que sea la deseada.
+    // En tu código original era: fontSize: isTablet ? 15 : 12,
+    // Hereda otras propiedades de tableHeaderCell o tableCell
   },
   layerNumHeaderCell: {
-    // sin cambios
+    // Hereda de tableHeaderCell, minWidth se aplica desde allí
   },
   unitHeaderCellPlaceholder: {
-    backgroundColor: "#E4EBF3", // Mismo que la celda de Distancia/Tasa
-    paddingVertical: 5, // Ajustado
-    fontSize: 10, // Ajustado
+    backgroundColor: "#E4EBF3",
     borderRightColor: "#D8E0E8",
   },
   unitHeaderCell: {
-    paddingVertical: 5, // Ajustado
-    fontSize: 10, // Ajustado
-    fontWeight: "600",
-    color: "#3E6A94",
-    backgroundColor: "#F0F5FA",
+    // Este estilo ya no se usa activamente para "Capas de 10 mm" en la cabecera,
+    // pero se deja por si tiene otros usos o por limpieza futura.
   },
   tableRowEven: {
     backgroundColor: "#FFFFFF",
@@ -761,11 +782,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F9FC",
   },
   tableCell: {
-    paddingVertical: 9, // Ajustado
-    paddingHorizontal: 5, // Ajustado
-    fontSize: 12, // Ajustado
+    // Para celdas de datos generales
+    paddingVertical: isTablet ? 12 : 9,
+    paddingHorizontal: isTablet ? 10 : 5,
+    fontSize: isTablet ? 14 : 12,
     textAlign: "right",
-    minWidth: 65, // Ajustado
+    minWidth: isTablet ? 90 : 65, // Ancho base para columnas de datos (igual que cabecera de números)
     borderRightWidth: 1,
     borderRightColor: "#E8EEF3",
     color: "#212529",

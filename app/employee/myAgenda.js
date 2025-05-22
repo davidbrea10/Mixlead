@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -28,6 +29,10 @@ import Toast from "react-native-toast-message";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
+
+const { width } = Dimensions.get("window");
+
+const isTablet = width >= 700;
 
 export default function Home() {
   const router = useRouter();
@@ -440,32 +445,33 @@ export default function Home() {
         <Pressable onPress={handleBack}>
           <Image
             source={require("../../assets/go-back.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
 
         {/* Contenedor centrado */}
-        <View style={{ flex: 1, alignItems: "center" }}>
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: "bold",
-              color: "white",
-              textAlign: "center",
-              letterSpacing: 2,
-              textShadowColor: "black",
-              textShadowOffset: { width: 1, height: 1 },
-              textShadowRadius: 1,
-            }}
-          >
-            {t("home.header.title")}
-          </Text>
-        </View>
+
+        <Text
+          style={{
+            fontSize: isTablet ? 32 : 24,
+            fontWeight: "bold",
+            color: "white",
+            flex: 1,
+            textAlign: "center",
+            marginHorizontal: 10,
+            letterSpacing: 2,
+            textShadowColor: "black",
+            textShadowOffset: { width: 1, height: 1 },
+            textShadowRadius: 1,
+          }}
+        >
+          {t("home.header.title")}
+        </Text>
 
         <Pressable onPress={handleHome}>
           <Image
             source={require("../../assets/icon.png")}
-            style={{ width: 50, height: 50 }}
+            style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }}
           />
         </Pressable>
       </View>
@@ -607,37 +613,38 @@ export default function Home() {
           onPress={handleDoseData}
           style={{
             width: "90%",
-            height: 76,
+            minHeight: isTablet ? 100 : 76,
             flexDirection: "row",
-            justifyContent: "center",
-            marginBottom: 68,
+            alignItems: "center",
             backgroundColor: "rgba(4, 4, 4, 0.6)",
             borderRadius: 50,
-            alignItems: "center",
             borderColor: "white",
             borderWidth: 3,
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.5,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.4,
             shadowRadius: 10,
-            elevation: 20,
-            paddingLeft: 20,
+            elevation: 15,
+            paddingHorizontal: isTablet ? 30 : 20,
+            paddingVertical: isTablet ? 18 : 10,
+            marginBottom: isTablet ? 40 : 30,
           }}
         >
           <Image
             source={require("../../assets/doseData.png")}
             style={{
-              width: 40,
-              height: 40,
+              width: isTablet ? 60 : 40,
+              height: isTablet ? 60 : 40,
+              marginRight: isTablet ? 25 : 15,
             }}
           />
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text
               style={{
                 color: "white",
-                fontSize: 18,
+                fontSize: isTablet ? 22 : 18,
+                fontWeight: "500",
                 textAlign: "center",
-                paddingHorizontal: 10,
               }}
             >
               {t("home.doseData")}
@@ -649,37 +656,38 @@ export default function Home() {
           onPress={() => setModalVisible(true)}
           style={{
             width: "90%",
-            height: 76,
+            minHeight: isTablet ? 100 : 76,
             flexDirection: "row",
-            justifyContent: "center",
-            marginBottom: 68,
+            alignItems: "center",
             backgroundColor: "rgba(4, 4, 4, 0.6)",
             borderRadius: 50,
-            alignItems: "center",
             borderColor: "white",
             borderWidth: 3,
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.5,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.4,
             shadowRadius: 10,
-            elevation: 20,
-            paddingLeft: 20,
+            elevation: 15,
+            paddingHorizontal: isTablet ? 30 : 20,
+            paddingVertical: isTablet ? 18 : 10,
+            marginBottom: isTablet ? 40 : 30,
           }}
         >
           <Image
             source={require("../../assets/addDoseManually.png")}
             style={{
-              width: 40,
-              height: 40,
+              width: isTablet ? 60 : 40,
+              height: isTablet ? 60 : 40,
+              marginRight: isTablet ? 25 : 15,
             }}
           />
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text
               style={{
                 color: "white",
-                fontSize: 18,
+                fontSize: isTablet ? 22 : 18,
+                fontWeight: "500",
                 textAlign: "center",
-                paddingHorizontal: 10,
               }}
             >
               {t("home.addDataManually")}

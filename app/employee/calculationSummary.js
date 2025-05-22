@@ -483,14 +483,14 @@ export default function CalculationSummary() {
           <Pressable onPress={handleBack}>
             <Image
               source={require("../../assets/go-back.png")}
-              style={{ width: isTablet ? 60 : 50, height: isTablet ? 60 : 50 }} // Larger icon for tablet
+              style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }} // Larger icon for tablet
             />
           </Pressable>
 
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text
               style={{
-                fontSize: isTablet ? 30 : 24, // User already has isTablet here, slight increase
+                fontSize: isTablet ? 32 : 24,
                 fontWeight: "bold",
                 color: "white",
                 textAlign: "center",
@@ -512,7 +512,7 @@ export default function CalculationSummary() {
           <Pressable onPress={handleHome}>
             <Image
               source={require("../../assets/icon.png")}
-              style={{ width: isTablet ? 60 : 50, height: isTablet ? 60 : 50 }} // Larger icon for tablet
+              style={{ width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 }} // Larger icon for tablet
             />
           </Pressable>
         </View>
