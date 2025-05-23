@@ -463,64 +463,90 @@ export default function Graph() {
   };
 
   // --- Function to generate Map HTML ---
-  // (This function is largely the same as before, ensuring it defines
-  // BOTH setFixedMarkerAndCenter AND updateDynamicLocationIndicator)
-  const createMapHtml = () => `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-      <title>${t("graph.header.title", "Map View")}</title>
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-      <style>
-        html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
-        #map { height: 100%; width: 100%; background-color: #f0f0f0; }
-        .dynamic-location-icon {
-            background-color: rgba(0, 100, 255, 0.8); width: 14px; height: 14px;
-            border-radius: 50%; border: 2px solid white; box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
-        }
-      </style>
-    </head>
-    <body>
-      <div id="map"></div>
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-      <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var map = L.map('map').setView([40.4167, -3.70325], 6); // Madrid, Spain
-            var fixedMarker = null;
-            var dynamicMarker = null;
-            // MODIFICADO: Variables para los tres círculos
-            var exclusionCircleProhibited = null;
-            var exclusionCircleLimited = null;
-            var exclusionCircleControlled = null;
-            var exclusionCircleRemoteControl = null;
+  const createMapHtml = (normalLayerName, satelliteLayerName) => `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>${t("graph.header.title", "Map View")}</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+      html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
+      #map { height: 100%; width: 100%; background-color: #f0f0f0; }
+      .dynamic-location-icon {
+          background-color: rgba(0, 100, 255, 0.8); width: 14px; height: 14px;
+          border-radius: 50%; border: 2px solid white; box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+      }
+      /* Style for the layer control */
+      .leaflet-control-layers-toggle {
+          background-image: url(https://unpkg.com/leaflet@1.9.4/dist/images/layers.png);
+          background-size: 26px 26px;
+      }
+      
+      /* --- ✨ YOUR CHANGE IS HERE --- */
+      /* Add top margin to the layer control container */
+      .leaflet-top.leaflet-right {
+        margin-top: 100px; /* Adjust this value to get the desired spacing */
+        margin-right: 10px; /* Optional: Add some right margin */
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          var map = L.map('map').setView([40.4167, -3.70325], 6); // Madrid, Spain
+          var fixedMarker = null;
+          var dynamicMarker = null;
+          var exclusionCircleProhibited = null;
+          var exclusionCircleLimited = null;
+          var exclusionCircleControlled = null;
+          var exclusionCircleRemoteControl = null;
 
-            const customIconBase64 = '${CUSTOM_MARKER_ICON_BASE64}'; 
+          const customIconBase64 = '${CUSTOM_MARKER_ICON_BASE64}'; 
 
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          // --- Define map layers ---
+          var osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
               maxZoom: 19, minZoom: 3,
-              attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+              attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          });
 
-            var customFixedIcon = L.icon({
-                iconUrl: customIconBase64,
-                iconSize: [20, 20], iconAnchor: [12, 12], popupAnchor: [0, -12]
-            });
+          var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+              maxZoom: 19, minZoom: 3,
+              attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+          });
+          
+          // Add default layer to the map
+          osmLayer.addTo(map);
 
-            var dynamicLocationIcon = L.divIcon({
-                className: 'dynamic-location-icon',
-                iconSize: [14, 14], iconAnchor: [7, 7]
-            });
+          // --- Create the base layers object for the control ---
+          var baseMaps = {
+                "${normalLayerName}": osmLayer,
+                "${satelliteLayerName}": satelliteLayer
+            };
 
-            // MODIFICADO: Nombre de función y parámetros
-            window.setFixedMarkerAndCircles = function(lat, lon, radiusProhibited, radiusLimited, radiusControlled, radiusRemoteControl) {
+
+          // --- Add the layer control to the map ---
+          L.control.layers(baseMaps).addTo(map);
+
+          var customFixedIcon = L.icon({
+              iconUrl: customIconBase64,
+              iconSize: [20, 20], iconAnchor: [12, 12], popupAnchor: [0, -12]
+          });
+
+          var dynamicLocationIcon = L.divIcon({
+              className: 'dynamic-location-icon',
+              iconSize: [14, 14], iconAnchor: [7, 7]
+          });
+
+          window.setFixedMarkerAndCircles = function(lat, lon, radiusProhibited, radiusLimited, radiusControlled, radiusRemoteControl) {
               console.log('WebView: Setting fixed marker and circles at', lat, lon, 
                 'Radii P/L/C:', radiusProhibited, radiusLimited, radiusControlled);
               if (!map) { console.error("Map not initialized!"); return; }
               const centerLatLng = L.latLng(lat, lon);
 
-              // Limpiar marcador y círculos existentes
               if (fixedMarker) { map.removeLayer(fixedMarker); fixedMarker = null; }
               if (exclusionCircleProhibited) { map.removeLayer(exclusionCircleProhibited); exclusionCircleProhibited = null; }
               if (exclusionCircleLimited) { map.removeLayer(exclusionCircleLimited); exclusionCircleLimited = null; }
@@ -535,38 +561,30 @@ export default function Graph() {
                 console.warn("WebView: customFixedIcon Base64 is not available or placeholder, skipping fixed marker.");
               }
 
-              // Dibujar círculos del más grande al más pequeño (o como prefieras para el efecto visual)
-              // Opcional: ajustar opacidades para que se vean bien superpuestos.
-
-              // Zona Controlada (Verde) - La más externa
               if (radiusControlled && typeof radiusControlled === 'number' && radiusControlled > 0) {
                   exclusionCircleControlled = L.circle(centerLatLng, {
                       color: 'green', fillColor: 'green', fillOpacity: 0.15, radius: radiusControlled
                   }).addTo(map);
               }
               
-              // Zona de Permanencia Limitada (Amarillo/Naranja) - Intermedia
               if (radiusLimited && typeof radiusLimited === 'number' && radiusLimited > 0) {
                   exclusionCircleLimited = L.circle(centerLatLng, {
-                      color: 'yellow', fillColor: 'yellow', fillOpacity: 0.2, radius: radiusLimited // Puedes usar 'yellow'
+                      color: 'yellow', fillColor: 'yellow', fillOpacity: 0.2, radius: radiusLimited
                   }).addTo(map);
               }
 
-              // Zona Prohibida (Rojo) - La más interna
               if (radiusProhibited && typeof radiusProhibited === 'number' && radiusProhibited > 0) {
                   exclusionCircleProhibited = L.circle(centerLatLng, {
                       color: 'red', fillColor: '#f03', fillOpacity: 0.25, radius: radiusProhibited
                   }).addTo(map);
               }
 
-              // Zona de Control Remoto (Azul) - Opcional, si se necesita
               if (radiusRemoteControl && typeof radiusRemoteControl === 'number' && radiusRemoteControl > 0) {
                   exclusionCircleRemoteControl = L.circle(centerLatLng, {
                       color: 'blue', fillColor: 'blue', fillOpacity: 0.2, radius: radiusRemoteControl
                   }).addTo(map);
               }
               
-              // Ajustar el zoom para mostrar el círculo más grande, o el prohibido si es el único
               if (exclusionCircleRemoteControl) {
                   map.fitBounds(exclusionCircleRemoteControl.getBounds(), { padding: [50, 50] });
               } else if (exclusionCircleControlled) {
@@ -576,11 +594,11 @@ export default function Graph() {
               } else if (exclusionCircleProhibited) {
                   map.fitBounds(exclusionCircleProhibited.getBounds(), { padding: [50, 50] });
               } else {
-                  map.setView(centerLatLng, 17); // Fallback si no hay círculos
+                  map.setView(centerLatLng, 17);
               }
-            }
+          }
 
-            window.updateDynamicLocationIndicator = function(lat, lon) {
+          window.updateDynamicLocationIndicator = function(lat, lon) {
               if (!map) return;
               const currentLatLng = L.latLng(lat, lon);
               if (!dynamicMarker) {
@@ -588,27 +606,26 @@ export default function Graph() {
               } else {
                   dynamicMarker.setLatLng(currentLatLng);
               }
-            }
+          }
 
-            window.panToUserLocation = function(lat, lon, zoomLevel = 17) {
-                if (!map) return;
-                console.log('WebView: Panning to user location:', lat, lon);
-                map.setView([lat, lon], zoomLevel);
-            }
+          window.panToUserLocation = function(lat, lon, zoomLevel = 17) {
+              if (!map) return;
+              console.log('WebView: Panning to user location:', lat, lon);
+              map.setView([lat, lon], zoomLevel);
+          }
 
-            window.getMapCenter = function() {
-                if (map && window.ReactNativeWebView) {
-                    const center = map.getCenter();
-                    const centerCoords = { lat: center.lat, lng: center.lng };
-                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'mapCenter', data: centerCoords }));
-                    console.log('WebView: Sent map center to RN:', centerCoords);
-                } else {
-                    console.error('WebView: Map or ReactNativeWebView not available for getMapCenter.');
-                }
-            };
+          window.getMapCenter = function() {
+              if (map && window.ReactNativeWebView) {
+                  const center = map.getCenter();
+                  const centerCoords = { lat: center.lat, lng: center.lng };
+                  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'mapCenter', data: centerCoords }));
+                  console.log('WebView: Sent map center to RN:', centerCoords);
+              } else {
+                  console.error('WebView: Map or ReactNativeWebView not available for getMapCenter.');
+              }
+          };
 
-            // MODIFICADO: Nombre de función y lógica para remover todos los círculos
-            window.removeFixedMarkerAndCircles = function() {
+          window.removeFixedMarkerAndCircles = function() {
               if (map) {
                   if (fixedMarker) { map.removeLayer(fixedMarker); fixedMarker = null; }
                   if (exclusionCircleProhibited) { map.removeLayer(exclusionCircleProhibited); exclusionCircleProhibited = null; }
@@ -616,23 +633,19 @@ export default function Graph() {
                   if (exclusionCircleControlled) { map.removeLayer(exclusionCircleControlled); exclusionCircleControlled = null; }
                   if (exclusionCircleRemoteControl) {map.removeLayer(exclusionCircleRemoteControl); exclusionCircleRemoteControl = null; }
                   console.log('WebView: Fixed marker and all circles removed.');
-                  // Opcional: notificar a RN
-                  // if (window.ReactNativeWebView) {
-                  //   window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'materialUnmarked' }));
-                  // }
               } else {
                   console.error('WebView: Map not available for removeFixedMarkerAndCircles.');
               }
-            };
-            
-            if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage('MapReady');
-            }
-        });
-      </script>
-    </body>
-    </html>
-  `;
+          };
+          
+          if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage('MapReady');
+          }
+      });
+    </script>
+  </body>
+  </html>
+`;
 
   // --- Render ---
 
@@ -654,8 +667,15 @@ export default function Graph() {
     );
   }
 
+  const normalLayerName = t("graph.map.layers.normal", {
+    defaultValue: "Normal",
+  });
+  const satelliteLayerName = t("graph.map.layers.satellite", {
+    defaultValue: "Satellite",
+  });
+
   // ✨ CAMBIO: Genera el HTML del mapa usando la constante directamente
-  const mapHtmlContent = createMapHtml(); // Ya no necesita argumento
+  const mapHtmlContent = createMapHtml(normalLayerName, satelliteLayerName); // Ya no necesita argumento
 
   return (
     <LinearGradient

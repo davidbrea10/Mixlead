@@ -628,7 +628,11 @@
     },
     "map": {
       "initialMarkerPopup": "Punto Inicial",
-      "markedLocationPopup": "Ubicación del Material Marcada"
+      "markedLocationPopup": "Ubicación del Material Marcada",
+      "layers": {
+        "normal": "Normal",
+        "satellite": "Satélite"
+      }
     },
     "location": {
       "permissionDeniedTitle": "Permiso Denegado",
