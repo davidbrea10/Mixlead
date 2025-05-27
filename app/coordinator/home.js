@@ -67,6 +67,7 @@ export default function Home() {
   const handleMyAgenda = () => router.push("/employee/myAgenda");
   const handleCalculation = () => router.push("/employee/calculation");
   const handleSettings = () => router.push("/employee/settings");
+  const handleTimer = () => router.push("/employee/timer");
   const handleApplications = () => router.push("/coordinator/applications");
   const handleEmployees = () => router.push("/coordinator/myEmployees");
   const handleEmployeeAgenda = () =>
@@ -154,10 +155,7 @@ export default function Home() {
           </Pressable>
 
           {/* Calculation Button */}
-          <Pressable
-            onPress={handleCalculation}
-            style={[styles.actionButton, styles.lastActionButton]}
-          >
+          <Pressable onPress={handleCalculation} style={[styles.actionButton]}>
             {/* Remove bottom margin for last button */}
             <Image
               source={require("../../assets/calculation.png")}
@@ -166,6 +164,21 @@ export default function Home() {
             <View style={styles.actionButtonTextContainer}>
               <Text style={styles.actionButtonText}>
                 {t("radiographyCalculator.buttonTitle")}
+              </Text>
+            </View>
+          </Pressable>
+          <Pressable
+            onPress={handleTimer} // Add onPress handler
+            style={[styles.actionButton, styles.lastActionButton]} // Use StyleSheet, remove bottom margin
+          >
+            <Image
+              source={require("../../assets/temporizador.png")}
+              style={styles.actionButtonIcon} // Use StyleSheet
+            />
+            <View style={styles.actionButtonTextContainer}>
+              <Text style={styles.actionButtonText}>
+                {/* Use StyleSheet */}
+                {t("timer.screen_title")}
               </Text>
             </View>
           </Pressable>

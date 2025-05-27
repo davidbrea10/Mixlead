@@ -564,6 +564,7 @@ const styles = StyleSheet.create({
     fontWeight: "light",
     color: "white",
     letterSpacing: 2,
+    textAlign: "center",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 1,
   },

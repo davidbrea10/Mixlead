@@ -681,6 +681,7 @@ export default function Home() {
               fontSize: 24,
               fontWeight: "light",
               color: "white",
+              textAlign: "center",
               letterSpacing: 2,
               textShadowOffset: { width: 1, height: 1 },
               textShadowRadius: 1,

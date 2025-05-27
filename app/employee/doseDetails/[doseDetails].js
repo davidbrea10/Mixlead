@@ -620,7 +620,6 @@ export default function DoseDetails() {
               fontSize: isTablet ? 32 : 24,
               fontWeight: "bold",
               color: "white",
-              flex: 1,
               textAlign: "center",
               marginHorizontal: 10,
               letterSpacing: 2,
@@ -637,6 +636,7 @@ export default function DoseDetails() {
               fontWeight: "light",
               color: "white",
               letterSpacing: 2,
+              textAlign: "center",
               textShadowOffset: { width: 1, height: 1 },
               textShadowRadius: 1,
             }}
