@@ -761,59 +761,60 @@ export default function CalculationSummary() {
             style={{
               flexDirection: "column",
               alignItems: "center",
-              marginTop: isTablet ? 50 : 40, // Increased top margin
-              width: isTablet ? "70%" : "100%", // Control width on tablet
-              alignSelf: "center",
+              marginTop: isTablet ? 40 : 30, // Ajusta el margen superior general si es necesario
+              width: "100%", // El contenedor ocupa todo el ancho disponible
             }}
           >
-            <Pressable
-              onPress={handleGraph}
-              style={[
-                styles.button,
-                { height: isTablet ? 65 : 55, marginTop: isTablet ? 25 : 20 },
-              ]}
-            >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontSize: isTablet ? 21 : 19,
-                  fontWeight: "600",
-                }}
-              >
+            <Pressable onPress={handleGraph} style={styles.professionalButton}>
+              <Ionicons
+                name="stats-chart-outline"
+                size={isTablet ? 24 : 20}
+                color="#fff"
+              />
+              <Text style={styles.professionalButtonText}>
                 {t("calculationSummary.graph")}
               </Text>
             </Pressable>
-            <Pressable
-              onPress={handleTable}
-              style={[
-                styles.button,
-                { height: isTablet ? 65 : 55, marginTop: isTablet ? 25 : 20 },
-              ]}
-            >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontSize: isTablet ? 21 : 19,
-                  fontWeight: "600",
-                }}
-              >
+
+            <Pressable onPress={handleTable} style={styles.professionalButton}>
+              <Ionicons
+                name="grid-outline"
+                size={isTablet ? 24 : 20}
+                color="#fff"
+              />
+              <Text style={styles.professionalButtonText}>
                 {t("calculationSummary.table")}
               </Text>
             </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/employee/timer")} // Navegación al temporizador
+              style={styles.professionalButton}
+            >
+              <Ionicons
+                name="timer-outline"
+                size={isTablet ? 24 : 20}
+                color="#fff"
+              />
+              <Text style={styles.professionalButtonText}>
+                {t(
+                  "calculationSummary.buttons.goToTimer",
+                  "Ir al Temporizador",
+                )}
+              </Text>
+            </Pressable>
+
+            {/* Botón para "Añadir Dosis Manualmente" - puede tener un estilo primario diferente */}
             <Pressable
               onPress={() => setModalVisible(true)}
-              style={[
-                styles.buttonAddDose,
-                { height: isTablet ? 65 : 55, marginTop: isTablet ? 25 : 20 },
-              ]}
+              style={[styles.professionalButton, styles.ctaButton]} // Aplica el base y luego el CTA
             >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontSize: isTablet ? 21 : 19,
-                  fontWeight: "600",
-                }}
-              >
+              <Ionicons
+                name="add-circle-outline"
+                size={isTablet ? 24 : 20}
+                color="#fff"
+              />
+              <Text style={styles.professionalButtonText}>
                 {t("home.addDataManually")}
               </Text>
             </Pressable>
@@ -1255,5 +1256,37 @@ const styles = {
     fontSize: 18,
     fontWeight: "bold",
     marginHorizontal: 5,
+  },
+
+  professionalButton: {
+    flexDirection: "row", // Para alinear icono y texto
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#006892", // Color principal y consistente
+    paddingVertical: isTablet ? 16 : 13, // Padding vertical para altura adaptable
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginTop: isTablet ? 20 : 18, // Margen consistente entre botones
+    width: isTablet ? "75%" : "90%", // Ancho consistente
+    alignSelf: "center", // Asegurar que se centre si el contenedor es más ancho
+    // Sombras sutiles
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3.0,
+    elevation: 4,
+  },
+  professionalButtonText: {
+    color: "#fff",
+    fontSize: isTablet ? 19 : 17,
+    fontWeight: "600",
+    marginLeft: 10, // Espacio entre el icono y el texto
+    textAlign: "center",
+  },
+  // Puedes tener una variación para el botón de "Añadir Dosis" si quieres que destaque más
+  ctaButton: {
+    // Call To Action button
+    backgroundColor: "#28a745", // Un verde para la acción principal de guardar/añadir
+    // Hereda el resto de professionalButton o define todo aquí si es muy diferente
   },
 };

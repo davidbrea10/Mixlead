@@ -497,7 +497,11 @@
     "resultDistance": "DISTANCIA: {{result}} m",
     "resultThickness": "ESPESOR: {{result}} mm",
     "graph": "Mapa de zonas",
-    "table": "Tablas"
+    "table": "Tablas",
+
+    "buttons": {
+      "goToTimer": "Ir al temporizador"
+    }
   },
 
   "home": {
@@ -716,6 +720,11 @@
   },
 
   "tables": {
+    "noMaterialModal": {
+      "title": "Material Requerido",
+      "message": "Para generar las tablas de cálculo, es necesario seleccionar un material de blindaje. Por favor, regrese y elija un material.",
+      "acceptButton": "Aceptar y Volver"
+    },
     "header.title": "Tablas",
     "doseRateView": "Ver Tasa Dosis",
     "distanceView": "Ver Distancias",

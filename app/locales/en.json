@@ -499,7 +499,10 @@
     "resultDistance": "DISTANCE: {{result}} m",
     "resultThickness": "THICKNESS: {{result}} mm",
     "graph": "Zones Map",
-    "table": "Tables"
+    "table": "Tables",
+    "buttons": {
+      "goToTimer": "Go to Timer"
+    }
   },
 
   "home": {
@@ -734,6 +737,11 @@
   },
 
   "tables": {
+    "noMaterialModal": {
+      "title": "Material Required",
+      "message": "To generate the calculation tables, a shielding material must be selected. Please go back and choose a material.",
+      "acceptButton": "OK & Go Back"
+    },
     "header.title": "Tables",
     "doseRateView": "View Dose Rate",
     "distanceView": "View Distance",

@@ -16,7 +16,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { collectionGroup, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "../../firebase/config";
 import Toast from "react-native-toast-message";
@@ -54,6 +54,7 @@ export default function Tables() {
     type: null,
     data: null,
   });
+  const [noMaterialModalVisible, setNoMaterialModalVisible] = useState(false);
 
   const collimatorMapForY = useMemo(
     () => ({
@@ -75,6 +76,12 @@ export default function Tables() {
     ) {
       return null;
     }
+    const withoutMaterialString = t(
+      "radiographyCalculator.options.materials.withoutMaterial",
+    );
+    const isWithoutMaterialSelected =
+      params.materialDisplayName === withoutMaterialString;
+
     try {
       const activity_GBq =
         parseFloat(String(params.activityCi).replace(",", ".")) * 37;
@@ -82,23 +89,51 @@ export default function Tables() {
       const collimatorKey =
         collimatorMapForY[params.collimatorDisplayName] || "No";
       const Y = COLLIMATOR_EFFECT[collimatorKey]?.[params.isotope] ?? 0;
-      const mu_cm_inv = parseFloat(
-        String(params.muUsedInCalculation).replace(",", "."),
-      );
-      const mu_m_inv = mu_cm_inv * 100;
 
+      let mu_cm_inv;
+      let mu_m_inv;
+
+      // Manejo específico para muUsedInCalculation cuando es "N/A"
+      if (params.muUsedInCalculation === "N/A") {
+        if (isWithoutMaterialSelected) {
+          // Es esperado que mu sea "N/A" (o 0) si se eligió "Sin Material".
+          // El modal noMaterialModalVisible se encargará de la UX.
+          // Para evitar el NaN aquí, asignamos 0 a mu.
+          mu_cm_inv = 0;
+          mu_m_inv = 0;
+        } else {
+          // mu es "N/A" pero el material NO es "Sin Material" - esto es un estado inesperado.
+          console.error(
+            "Error: muUsedInCalculation es 'N/A' para un material específico:",
+            params.materialDisplayName,
+          );
+          return null;
+        }
+      } else {
+        // Intenta parsear normalmente si no es "N/A"
+        mu_cm_inv = parseFloat(
+          String(params.muUsedInCalculation).replace(",", "."),
+        );
+        mu_m_inv = mu_cm_inv * 100;
+      }
+
+      // Validación final de todos los parámetros parseados
       if (
         isNaN(activity_GBq) ||
         G === undefined ||
         isNaN(Y) ||
-        isNaN(mu_m_inv)
+        isNaN(mu_m_inv) // Esta condición ahora solo se activará si parseFloat falla para valores que NO son "N/A"
       ) {
-        console.error("Error en parsing de parámetros base:", {
-          activity_GBq,
-          G,
-          Y,
-          mu_m_inv,
-        });
+        console.error(
+          "Error en parsing de parámetros base (post-manejo N/A):",
+          {
+            activity_GBq,
+            G,
+            Y,
+            mu_m_inv_final: mu_m_inv, // renombro para no confundir con la variable del scope superior
+            rawMuParam: params.muUsedInCalculation,
+          },
+        );
         return null;
       }
       return {
@@ -113,6 +148,15 @@ export default function Tables() {
       return null;
     }
   }, [params, t, collimatorMapForY]);
+
+  useEffect(() => {
+    const withoutMaterialString = t(
+      "radiographyCalculator.options.materials.withoutMaterial",
+    );
+    if (params.materialDisplayName === withoutMaterialString) {
+      setNoMaterialModalVisible(true);
+    }
+  }, [params.materialDisplayName, t]);
 
   // --- Datos para la Tabla de Tasa de Dosis ---
   const doseRateTableData = useMemo(() => {
@@ -364,6 +408,11 @@ export default function Tables() {
     }
   }, [_fetchActiveUserData, router, t]); // Dependencies
 
+  const handleNoMaterialModalCloseAndGoBack = () => {
+    setNoMaterialModalVisible(false);
+    router.back();
+  };
+
   // --- Funciones de Renderizado de Cabeceras y Filas ---
   const renderDoseRateTableHeader = () => (
     <View>
@@ -584,7 +633,8 @@ export default function Tables() {
     }
   }, []);
 
-  if (!baseCalcParams) {
+  if (!baseCalcParams && !noMaterialModalVisible) {
+    // Si no hay parámetros base Y el modal de "sin material" no está (o no debería estar) visible
     return (
       <LinearGradient
         colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
@@ -625,228 +675,280 @@ export default function Tables() {
             />
           </Pressable>
         </View>
+        <View style={{ flex: 1 }}>
+          {baseCalcParams && !noMaterialModalVisible && (
+            <>
+              <View style={styles.summaryContainer}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>
+                    {t("tables.isotope", "Isótopo")}:
+                  </Text>
+                  <Text style={styles.summaryValue}>{params.isotope}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>
+                    {t("tables.activity", "Actividad")}:
+                  </Text>
+                  <Text style={styles.summaryValue}>
+                    {params.activityCi} Ci
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>
+                    {t("tables.material", "Material")}:
+                  </Text>
+                  <Text style={styles.summaryValue}>
+                    {params.materialDisplayName}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>
+                    {t("tables.collimator", "Colimador")}:
+                  </Text>
+                  <Text style={styles.summaryValue}>
+                    {params.collimatorDisplayName}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>
+                    µ ({t("tables.used_mu_unit_m_inv", "m⁻¹")}):
+                  </Text>
+                  <Text style={styles.summaryValue}>
+                    {baseCalcParams.mu_m_inv_display}
+                  </Text>
+                </View>
+              </View>
 
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>
-              {t("tables.isotope", "Isótopo")}:
-            </Text>
-            <Text style={styles.summaryValue}>{params.isotope}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>
-              {t("tables.activity", "Actividad")}:
-            </Text>
-            <Text style={styles.summaryValue}>{params.activityCi} Ci</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>
-              {t("tables.material", "Material")}:
-            </Text>
-            <Text style={styles.summaryValue}>
-              {params.materialDisplayName}
-            </Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>
-              {t("tables.collimator", "Colimador")}:
-            </Text>
-            <Text style={styles.summaryValue}>
-              {params.collimatorDisplayName}
-            </Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>
-              µ ({t("tables.used_mu_unit_m_inv", "m⁻¹")}):
-            </Text>
-            <Text style={styles.summaryValue}>
-              {baseCalcParams.mu_m_inv_display}
-            </Text>
-          </View>
+              {/* Botones de cambio de tabla */}
+              <View style={styles.toggleButtonContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    currentView === "doseRate" && styles.toggleButtonActive,
+                  ]}
+                  onPress={() => setCurrentView("doseRate")}
+                >
+                  <Text
+                    style={[
+                      styles.toggleButtonText,
+                      currentView === "doseRate" &&
+                        styles.toggleButtonTextActive,
+                    ]}
+                  >
+                    {t("tables.doseRateView", "Ver Tasa Dosis")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    currentView === "distance" && styles.toggleButtonActive,
+                  ]}
+                  onPress={() => setCurrentView("distance")}
+                >
+                  <Text
+                    style={[
+                      styles.toggleButtonText,
+                      currentView === "distance" &&
+                        styles.toggleButtonTextActive,
+                    ]}
+                  >
+                    {t("tables.distanceView", "Ver Distancias")}
+                  </Text>
+                </TouchableOpacity>
+                {/* --- BOTÓN NUEVO --- */}
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    currentView === "thickness" && styles.toggleButtonActive,
+                  ]}
+                  onPress={() => setCurrentView("thickness")}
+                >
+                  <Text
+                    style={[
+                      styles.toggleButtonText,
+                      currentView === "thickness" &&
+                        styles.toggleButtonTextActive,
+                    ]}
+                  >
+                    {t("tables.thicknessView", "Ver Espesor (mm)")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {currentView === "doseRate" && !doseRateTableData && (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.errorText}>
+                    {t(
+                      "tables.errorGeneratingDR",
+                      "Error generando tabla de Tasa de Dosis.",
+                    )}
+                  </Text>
+                </View>
+              )}
+              {currentView === "distance" && !distanceTableData && (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.errorText}>
+                    {t(
+                      "tables.errorGeneratingDist",
+                      "Error generando tabla de Distancias.",
+                    )}
+                  </Text>
+                </View>
+              )}
+              {currentView === "thickness" && !thicknessTableData && (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.errorText}>
+                    {t(
+                      "tables.errorGeneratingThick",
+                      "Error generando tabla de Espesor.",
+                    )}
+                  </Text>
+                </View>
+              )}
+
+              {currentView === "doseRate" && doseRateTableData && (
+                <>
+                  <View style={styles.tableTitleContainer}>
+                    <Text style={styles.tableMainTitle}>
+                      {t("tables.main_title_dose_rate")}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        openFullScreen("doseRate", doseRateTableData)
+                      }
+                    >
+                      <Image
+                        source={require("../../assets/fullscreen-icon.png")}
+                        style={styles.fullscreenIcon}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    contentContainerStyle={styles.tableOuterContainer}
+                  >
+                    <ScrollView
+                      vertical
+                      contentContainerStyle={styles.tableInnerContainer}
+                    >
+                      {renderDoseRateTableHeader()}
+                      {doseRateTableData.map((rowData, index) =>
+                        renderTableRow(rowData, index, false),
+                      )}
+                    </ScrollView>
+                  </ScrollView>
+                </>
+              )}
+
+              {currentView === "distance" && distanceTableData && (
+                <>
+                  <View style={styles.tableTitleContainer}>
+                    <Text style={styles.tableMainTitle}>
+                      {t("tables.main_title_distance")}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        openFullScreen("distance", distanceTableData)
+                      }
+                    >
+                      <Image
+                        source={require("../../assets/fullscreen-icon.png")}
+                        style={styles.fullscreenIcon}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    contentContainerStyle={styles.tableOuterContainer}
+                  >
+                    <ScrollView
+                      vertical
+                      contentContainerStyle={styles.tableInnerContainer}
+                    >
+                      {renderDistanceTableHeader()}
+                      {distanceTableData.map((rowData, index) =>
+                        renderTableRow(rowData, index, true),
+                      )}
+                    </ScrollView>
+                  </ScrollView>
+                </>
+              )}
+
+              {currentView === "thickness" && thicknessTableData && (
+                <>
+                  <View style={styles.tableTitleContainer}>
+                    <Text style={styles.tableMainTitle}>
+                      {t(
+                        "tables.main_title_thickness",
+                        "Espesor de Blindaje Requerido (mm)",
+                      )}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        openFullScreen("thickness", thicknessTableData)
+                      }
+                    >
+                      <Image
+                        source={require("../../assets/fullscreen-icon.png")}
+                        style={styles.fullscreenIcon}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    contentContainerStyle={styles.tableOuterContainer}
+                  >
+                    <ScrollView
+                      vertical
+                      contentContainerStyle={styles.tableInnerContainer}
+                    >
+                      {renderThicknessTableHeader()}
+                      {thicknessTableData.map(
+                        (rowData, index) =>
+                          renderTableRow(rowData, index, true), // true para usar el estilo de celda ancha
+                      )}
+                    </ScrollView>
+                  </ScrollView>
+                </>
+              )}
+            </>
+          )}
         </View>
 
-        {/* Botones de cambio de tabla */}
-        <View style={styles.toggleButtonContainer}>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              currentView === "doseRate" && styles.toggleButtonActive,
-            ]}
-            onPress={() => setCurrentView("doseRate")}
-          >
-            <Text
-              style={[
-                styles.toggleButtonText,
-                currentView === "doseRate" && styles.toggleButtonTextActive,
-              ]}
-            >
-              {t("tables.doseRateView", "Ver Tasa Dosis")}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              currentView === "distance" && styles.toggleButtonActive,
-            ]}
-            onPress={() => setCurrentView("distance")}
-          >
-            <Text
-              style={[
-                styles.toggleButtonText,
-                currentView === "distance" && styles.toggleButtonTextActive,
-              ]}
-            >
-              {t("tables.distanceView", "Ver Distancias")}
-            </Text>
-          </TouchableOpacity>
-          {/* --- BOTÓN NUEVO --- */}
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              currentView === "thickness" && styles.toggleButtonActive,
-            ]}
-            onPress={() => setCurrentView("thickness")}
-          >
-            <Text
-              style={[
-                styles.toggleButtonText,
-                currentView === "thickness" && styles.toggleButtonTextActive,
-              ]}
-            >
-              {t("tables.thicknessView", "Ver Espesor (mm)")}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Modal para "Sin Material" */}
 
-        {currentView === "doseRate" && !doseRateTableData && (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.errorText}>
-              {t(
-                "tables.errorGeneratingDR",
-                "Error generando tabla de Tasa de Dosis.",
-              )}
-            </Text>
-          </View>
-        )}
-        {currentView === "distance" && !distanceTableData && (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.errorText}>
-              {t(
-                "tables.errorGeneratingDist",
-                "Error generando tabla de Distancias.",
-              )}
-            </Text>
-          </View>
-        )}
-        {currentView === "thickness" && !thicknessTableData && (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.errorText}>
-              {t(
-                "tables.errorGeneratingThick",
-                "Error generando tabla de Espesor.",
-              )}
-            </Text>
-          </View>
-        )}
-
-        {currentView === "doseRate" && doseRateTableData && (
-          <>
-            <View style={styles.tableTitleContainer}>
-              <Text style={styles.tableMainTitle}>
-                {t("tables.main_title_dose_rate")}
+        <Modal
+          visible={noMaterialModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => {
+            // No cerramos el modal con el botón de atrás de Android,
+            // forzamos al usuario a usar el botón del modal para volver.
+            // Opcionalmente, podrías llamar a handleNoMaterialModalCloseAndGoBack() aquí también.
+          }}
+        >
+          <View style={styles.centeredModalOverlay}>
+            <View style={styles.standardModalContent}>
+              <Text style={styles.standardModalTitle}>
+                {t("tables.noMaterialModal.title", "Material Requerido")}
               </Text>
-              <TouchableOpacity
-                onPress={() => openFullScreen("doseRate", doseRateTableData)}
-              >
-                <Image
-                  source={require("../../assets/fullscreen-icon.png")}
-                  style={styles.fullscreenIcon}
-                />
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              horizontal
-              contentContainerStyle={styles.tableOuterContainer}
-            >
-              <ScrollView
-                vertical
-                contentContainerStyle={styles.tableInnerContainer}
-              >
-                {renderDoseRateTableHeader()}
-                {doseRateTableData.map((rowData, index) =>
-                  renderTableRow(rowData, index, false),
-                )}
-              </ScrollView>
-            </ScrollView>
-          </>
-        )}
-
-        {currentView === "distance" && distanceTableData && (
-          <>
-            <View style={styles.tableTitleContainer}>
-              <Text style={styles.tableMainTitle}>
-                {t("tables.main_title_distance")}
-              </Text>
-              <TouchableOpacity
-                onPress={() => openFullScreen("distance", distanceTableData)}
-              >
-                <Image
-                  source={require("../../assets/fullscreen-icon.png")}
-                  style={styles.fullscreenIcon}
-                />
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              horizontal
-              contentContainerStyle={styles.tableOuterContainer}
-            >
-              <ScrollView
-                vertical
-                contentContainerStyle={styles.tableInnerContainer}
-              >
-                {renderDistanceTableHeader()}
-                {distanceTableData.map((rowData, index) =>
-                  renderTableRow(rowData, index, true),
-                )}
-              </ScrollView>
-            </ScrollView>
-          </>
-        )}
-
-        {currentView === "thickness" && thicknessTableData && (
-          <>
-            <View style={styles.tableTitleContainer}>
-              <Text style={styles.tableMainTitle}>
+              <Text style={styles.standardModalMessage}>
                 {t(
-                  "tables.main_title_thickness",
-                  "Espesor de Blindaje Requerido (mm)",
+                  "tables.noMaterialModal.message",
+                  "Para generar estas tablas, es necesario seleccionar un material de blindaje. Por favor, vuelva y elija un material.",
                 )}
               </Text>
               <TouchableOpacity
-                onPress={() => openFullScreen("thickness", thicknessTableData)}
+                style={styles.standardModalButton}
+                onPress={handleNoMaterialModalCloseAndGoBack}
               >
-                <Image
-                  source={require("../../assets/fullscreen-icon.png")}
-                  style={styles.fullscreenIcon}
-                />
+                <Text style={styles.standardModalButtonText}>
+                  {t("tables.noMaterialModal.acceptButton", "Aceptar y Volver")}
+                </Text>
               </TouchableOpacity>
             </View>
-            <ScrollView
-              horizontal
-              contentContainerStyle={styles.tableOuterContainer}
-            >
-              <ScrollView
-                vertical
-                contentContainerStyle={styles.tableInnerContainer}
-              >
-                {renderThicknessTableHeader()}
-                {thicknessTableData.map(
-                  (rowData, index) => renderTableRow(rowData, index, true), // true para usar el estilo de celda ancha
-                )}
-              </ScrollView>
-            </ScrollView>
-          </>
-        )}
+          </View>
+        </Modal>
 
         <Modal
           visible={isFullScreen}
@@ -1125,5 +1227,54 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 8,
+  },
+
+  centeredModalOverlay: {
+    // Similar a modalOverlay pero para contenido centrado
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)", // Fondo más oscuro
+  },
+  standardModalContent: {
+    // Contenido del modal de advertencia
+    width: "85%",
+    maxWidth: 400,
+    backgroundColor: "white",
+    borderRadius: 15,
+    padding: 25,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  standardModalTitle: {
+    fontSize: isTablet ? 22 : 19,
+    fontWeight: "bold",
+    color: "#333333",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  standardModalMessage: {
+    fontSize: isTablet ? 17 : 15,
+    color: "#555555",
+    textAlign: "center",
+    marginBottom: 25,
+    lineHeight: isTablet ? 26 : 22,
+  },
+  standardModalButton: {
+    backgroundColor: "#006892", // Color primario
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    width: "80%",
+    alignItems: "center",
+  },
+  standardModalButtonText: {
+    color: "white",
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: "600",
   },
 });
