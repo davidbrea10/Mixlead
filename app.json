@@ -17,7 +17,12 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarla en el mapa.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Permiso 'Siempre' (si es necesario para futuras funciones)."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Permiso 'Siempre' (si es necesario para futuras funciones).",
+         "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ]
       }
     },
     "android": {

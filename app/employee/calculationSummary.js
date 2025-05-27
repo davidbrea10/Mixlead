@@ -579,6 +579,33 @@ export default function CalculationSummary() {
                   },
                 ]}
               >
+                {t("calculationSummary.activity")}
+              </Text>
+              <Text
+                style={[
+                  styles.textLabel,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    flex: isTablet ? 0.6 : undefined,
+                  },
+                ]}
+              >
+                {params.activity?.toString()} {t("calculationSummary.ci")}
+              </Text>
+            </View>
+            <View
+              style={{ flexDirection: "row", marginBottom: isTablet ? 15 : 0 }}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginLeft: isTablet ? 0 : 80,
+                    flex: isTablet ? 0.4 : undefined,
+                  },
+                ]}
+              >
                 {t("calculationSummary.collimator")}
               </Text>
               <Text
@@ -606,9 +633,7 @@ export default function CalculationSummary() {
                   },
                 ]}
               >
-                {isDistance
-                  ? t("calculationSummary.thickness")
-                  : t("calculationSummary.distance")}
+                {t("calculationSummary.limit")}
               </Text>
               <Text
                 style={[
@@ -619,34 +644,7 @@ export default function CalculationSummary() {
                   },
                 ]}
               >
-                {params.value?.toString()} {isDistance ? "mm" : "m"}
-              </Text>
-            </View>
-            <View
-              style={{ flexDirection: "row", marginBottom: isTablet ? 15 : 0 }}
-            >
-              <Text
-                style={[
-                  styles.label,
-                  {
-                    fontSize: isTablet ? 20 : 18,
-                    marginLeft: isTablet ? 0 : 80,
-                    flex: isTablet ? 0.4 : undefined,
-                  },
-                ]}
-              >
-                {t("calculationSummary.activity")}
-              </Text>
-              <Text
-                style={[
-                  styles.textLabel,
-                  {
-                    fontSize: isTablet ? 20 : 18,
-                    flex: isTablet ? 0.6 : undefined,
-                  },
-                ]}
-              >
-                {params.activity?.toString()} {t("calculationSummary.ci")}
+                {params.limit?.toString()}
               </Text>
             </View>
             <View
@@ -721,7 +719,9 @@ export default function CalculationSummary() {
                   },
                 ]}
               >
-                {t("calculationSummary.limit")}
+                {isDistance
+                  ? t("calculationSummary.thickness")
+                  : t("calculationSummary.distance")}
               </Text>
               <Text
                 style={[
@@ -732,7 +732,7 @@ export default function CalculationSummary() {
                   },
                 ]}
               >
-                {params.limit?.toString()}
+                {params.value?.toString()} {isDistance ? "mm" : "m"}
               </Text>
             </View>
           </View>

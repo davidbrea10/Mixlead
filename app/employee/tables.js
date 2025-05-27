@@ -10,6 +10,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Modal,
+  SafeAreaView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -18,6 +20,7 @@ import { useState, useMemo, useCallback } from "react";
 import { collectionGroup, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "../../firebase/config";
 import Toast from "react-native-toast-message";
+import * as ScreenOrientation from "expo-screen-orientation";
 
 const { width } = Dimensions.get("window");
 
@@ -45,7 +48,12 @@ export default function Tables() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const [currentView, setCurrentView] = useState("doseRate"); // 'doseRate' o 'distance'
+  const [currentView, setCurrentView] = useState("doseRate"); // 'doseRate', 'distance' o 'thickness'
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [fullScreenData, setFullScreenData] = useState({
+    type: null,
+    data: null,
+  });
 
   const collimatorMapForY = useMemo(
     () => ({
@@ -111,7 +119,8 @@ export default function Tables() {
     if (!baseCalcParams) return null;
     const { activity_GBq, G, Y, mu_m_inv } = baseCalcParams;
 
-    const S_eff_numerator = activity_GBq * G;
+    // Se aplica la nueva fórmula: se añade el factor 1000
+    const S_eff_numerator = activity_GBq * G * 1000;
     const denominator_2_pow_Y = Math.pow(2, Y);
 
     return DISTANCES_M_FOR_DOSE_RATE_TABLE.map((distance_m) => {
@@ -119,6 +128,9 @@ export default function Tables() {
         const total_shield_thickness_m = num_layers * THICKNESS_PER_LAYER_M;
         const dr_unshielded_at_d =
           S_eff_numerator / (Math.pow(distance_m, 2) * denominator_2_pow_Y);
+
+        // ATENCIÓN: Se usa exponente negativo para que el blindaje ATENÚE la radiación.
+        // Si tu fórmula requiere un exponente positivo, elimina el signo '-' de la siguiente línea.
         const attenuation_factor = Math.exp(
           -mu_m_inv * total_shield_thickness_m,
         );
@@ -130,11 +142,13 @@ export default function Tables() {
   }, [baseCalcParams]);
 
   // --- Datos para la Tabla de Distancias ---
+  // --- Datos para la Tabla de Distancias ---
   const distanceTableData = useMemo(() => {
     if (!baseCalcParams) return null;
     const { activity_GBq, G, Y, mu_m_inv } = baseCalcParams;
 
-    const S_eff_numerator = activity_GBq * G;
+    // Se aplica la nueva fórmula: se añade el factor 1000 al numerador
+    const S_eff_numerator_base = activity_GBq * G * 1000;
     const denominator_2_pow_Y = Math.pow(2, Y);
 
     return TARGET_DOSE_RATES_uSv_h.map((target_dose_rate_uSv_h) => {
@@ -147,11 +161,15 @@ export default function Tables() {
       }
       const distances_m = SHIELDING_LAYERS_N.map((num_layers) => {
         const total_shield_thickness_m = num_layers * THICKNESS_PER_LAYER_M;
+
+        // ATENCIÓN: Se usa exponente negativo para que el blindaje ATENÚE la radiación.
+        // Si tu fórmula requiere un exponente positivo, elimina el signo '-' de la siguiente línea.
         const term_A_Gamma_exp =
-          S_eff_numerator * Math.exp(-mu_m_inv * total_shield_thickness_m);
+          S_eff_numerator_base * Math.exp(-mu_m_inv * total_shield_thickness_m);
+
         const term_T_2Y = target_dose_rate_uSv_h * denominator_2_pow_Y;
 
-        if (term_T_2Y <= 0 || term_A_Gamma_exp < 0) return "Error"; // o Inf, N/A
+        if (term_T_2Y <= 0 || term_A_Gamma_exp < 0) return "Error";
 
         const distance_sq = term_A_Gamma_exp / term_T_2Y;
         if (distance_sq < 0) return "-"; // No es posible físicamente
@@ -160,6 +178,57 @@ export default function Tables() {
         return distance.toFixed(2);
       });
       return { rowTitle: target_dose_rate_uSv_h, values: distances_m };
+    });
+  }, [baseCalcParams]);
+
+  // --- Datos para la Tabla de Espesor (NUEVO) ---
+  const thicknessTableData = useMemo(() => {
+    if (!baseCalcParams) return null;
+    const { activity_GBq, G, Y, mu_m_inv } = baseCalcParams;
+
+    // Si mu es 0, la atenuación es imposible, evitamos dividir por cero.
+    if (mu_m_inv <= 0) {
+      return TARGET_DOSE_RATES_uSv_h.map((rate) => ({
+        rowTitle: rate,
+        values: DISTANCES_M_FOR_DOSE_RATE_TABLE.map(() => "N/A"),
+      }));
+    }
+
+    const base_numerator = activity_GBq * G * 1000;
+    const denominator_2_pow_Y = Math.pow(2, Y);
+
+    // Las filas son las Tasas de Dosis Objetivo
+    return TARGET_DOSE_RATES_uSv_h.map((target_dose_rate_uSv_h) => {
+      if (target_dose_rate_uSv_h <= 0) {
+        return {
+          rowTitle: target_dose_rate_uSv_h,
+          values: DISTANCES_M_FOR_DOSE_RATE_TABLE.map(() => "N/A"),
+        };
+      }
+
+      // Las columnas son las Distancias
+      const thickness_values = DISTANCES_M_FOR_DOSE_RATE_TABLE.map(
+        (distance_m) => {
+          if (distance_m <= 0) return "N/A";
+
+          const dose_rate_unshielded =
+            base_numerator / (Math.pow(distance_m, 2) * denominator_2_pow_Y);
+
+          // Si la dosis sin blindaje ya es menor que el objetivo, no se necesita blindaje.
+          if (dose_rate_unshielded <= target_dose_rate_uSv_h) {
+            return "0.00";
+          }
+
+          // Calculamos el espesor X usando la fórmula despejada
+          const ratio = dose_rate_unshielded / target_dose_rate_uSv_h;
+          const thickness_m = Math.log(ratio) / mu_m_inv;
+
+          // Convertimos el resultado de metros a milímetros para mejor legibilidad
+          const thickness_mm = thickness_m * 1000;
+          return thickness_mm.toFixed(2);
+        },
+      );
+      return { rowTitle: target_dose_rate_uSv_h, values: thickness_values };
     });
   }, [baseCalcParams]);
 
@@ -400,6 +469,55 @@ export default function Tables() {
     </View>
   );
 
+  // --- Funciones de Renderizado de Cabeceras y Filas ---
+
+  const renderThicknessTableHeader = () => (
+    <View>
+      {/* Primera fila visual de la cabecera */}
+      <View style={styles.tableRow}>
+        <Text // Celda placeholder para la columna de etiquetas de fila
+          style={[
+            styles.tableHeaderCell,
+            styles.tableRateCell, // Usamos el estilo de la celda de Tasa
+          ]}
+        />
+        {/* Etiqueta que abarca las columnas de distancia */}
+        <Text
+          style={[
+            styles.tableHeaderCell,
+            { flex: 1, textAlign: "center" },
+            styles.lastHeaderCell,
+          ]}
+        >
+          {t("tables.x_axis_distance_description", {
+            defaultValue: "Distancia (m)",
+          })}
+        </Text>
+      </View>
+      {/* Segunda fila visual de la cabecera */}
+      <View style={[styles.tableRow, styles.firstHeaderRow]}>
+        <Text style={[styles.tableHeaderCell, styles.tableRateCell]}>
+          {t("tables.y_axis_target_dose_rate")}
+        </Text>
+        {DISTANCES_M_FOR_DOSE_RATE_TABLE.map((distance, index) => (
+          <Text
+            key={`header-thick-dist-${distance}`}
+            style={[
+              styles.tableHeaderCell,
+              styles.layerNumHeaderCell,
+              index === DISTANCES_M_FOR_DOSE_RATE_TABLE.length - 1 &&
+                styles.lastHeaderCell,
+            ]}
+          >
+            {`${distance}`}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+
+  // ... (las otras funciones de renderizado de cabecera) ...
+
   const renderTableRow = (rowData, rowIndex, isDistanceTable = false) => (
     <View
       key={`row-${rowIndex}`}
@@ -430,6 +548,41 @@ export default function Tables() {
       ))}
     </View>
   );
+
+  const openFullScreen = useCallback(async (type, data) => {
+    try {
+      // Bloquea la pantalla en modo horizontal
+      await ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT,
+      );
+      setFullScreenData({ type, data });
+      setIsFullScreen(true);
+    } catch (error) {
+      console.error("Error al bloquear la orientación:", error);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "No se pudo cambiar la orientación.",
+      });
+    }
+  }, []);
+
+  const closeFullScreen = useCallback(async () => {
+    try {
+      // Desbloquea la orientación y la vuelve a poner en vertical
+      await ScreenOrientation.unlockAsync();
+      await ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT_UP,
+      );
+      setIsFullScreen(false);
+      setFullScreenData({ type: null, data: null }); // Limpia los datos
+    } catch (error) {
+      console.error("Error al restaurar la orientación:", error);
+      // Aún así cerramos el modal
+      setIsFullScreen(false);
+      setFullScreenData({ type: null, data: null });
+    }
+  }, []);
 
   if (!baseCalcParams) {
     return (
@@ -546,6 +699,23 @@ export default function Tables() {
               {t("tables.distanceView", "Ver Distancias")}
             </Text>
           </TouchableOpacity>
+          {/* --- BOTÓN NUEVO --- */}
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              currentView === "thickness" && styles.toggleButtonActive,
+            ]}
+            onPress={() => setCurrentView("thickness")}
+          >
+            <Text
+              style={[
+                styles.toggleButtonText,
+                currentView === "thickness" && styles.toggleButtonTextActive,
+              ]}
+            >
+              {t("tables.thicknessView", "Ver Espesor (mm)")}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {currentView === "doseRate" && !doseRateTableData && (
@@ -568,12 +738,32 @@ export default function Tables() {
             </Text>
           </View>
         )}
+        {currentView === "thickness" && !thicknessTableData && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.errorText}>
+              {t(
+                "tables.errorGeneratingThick",
+                "Error generando tabla de Espesor.",
+              )}
+            </Text>
+          </View>
+        )}
 
         {currentView === "doseRate" && doseRateTableData && (
           <>
-            <Text style={styles.tableMainTitle}>
-              {t("tables.main_title_dose_rate")}
-            </Text>
+            <View style={styles.tableTitleContainer}>
+              <Text style={styles.tableMainTitle}>
+                {t("tables.main_title_dose_rate")}
+              </Text>
+              <TouchableOpacity
+                onPress={() => openFullScreen("doseRate", doseRateTableData)}
+              >
+                <Image
+                  source={require("../../assets/fullscreen-icon.png")}
+                  style={styles.fullscreenIcon}
+                />
+              </TouchableOpacity>
+            </View>
             <ScrollView
               horizontal
               contentContainerStyle={styles.tableOuterContainer}
@@ -593,9 +783,19 @@ export default function Tables() {
 
         {currentView === "distance" && distanceTableData && (
           <>
-            <Text style={styles.tableMainTitle}>
-              {t("tables.main_title_distance")}
-            </Text>
+            <View style={styles.tableTitleContainer}>
+              <Text style={styles.tableMainTitle}>
+                {t("tables.main_title_distance")}
+              </Text>
+              <TouchableOpacity
+                onPress={() => openFullScreen("distance", distanceTableData)}
+              >
+                <Image
+                  source={require("../../assets/fullscreen-icon.png")}
+                  style={styles.fullscreenIcon}
+                />
+              </TouchableOpacity>
+            </View>
             <ScrollView
               horizontal
               contentContainerStyle={styles.tableOuterContainer}
@@ -612,6 +812,76 @@ export default function Tables() {
             </ScrollView>
           </>
         )}
+
+        {currentView === "thickness" && thicknessTableData && (
+          <>
+            <View style={styles.tableTitleContainer}>
+              <Text style={styles.tableMainTitle}>
+                {t(
+                  "tables.main_title_thickness",
+                  "Espesor de Blindaje Requerido (mm)",
+                )}
+              </Text>
+              <TouchableOpacity
+                onPress={() => openFullScreen("thickness", thicknessTableData)}
+              >
+                <Image
+                  source={require("../../assets/fullscreen-icon.png")}
+                  style={styles.fullscreenIcon}
+                />
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              contentContainerStyle={styles.tableOuterContainer}
+            >
+              <ScrollView
+                vertical
+                contentContainerStyle={styles.tableInnerContainer}
+              >
+                {renderThicknessTableHeader()}
+                {thicknessTableData.map(
+                  (rowData, index) => renderTableRow(rowData, index, true), // true para usar el estilo de celda ancha
+                )}
+              </ScrollView>
+            </ScrollView>
+          </>
+        )}
+
+        <Modal
+          visible={isFullScreen}
+          animationType="slide"
+          onRequestClose={closeFullScreen} // Para el botón de "atrás" en Android
+        >
+          <SafeAreaView style={styles.fullScreenContainer}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={closeFullScreen}
+            >
+              <Text style={styles.closeButtonText}>X</Text>
+            </TouchableOpacity>
+
+            <ScrollView horizontal>
+              <ScrollView vertical>
+                {fullScreenData.type === "doseRate" &&
+                  renderDoseRateTableHeader()}
+                {fullScreenData.type === "distance" &&
+                  renderDistanceTableHeader()}
+                {fullScreenData.type === "thickness" &&
+                  renderThicknessTableHeader()}
+
+                {fullScreenData.data &&
+                  fullScreenData.data.map((rowData, index) =>
+                    renderTableRow(
+                      rowData,
+                      index,
+                      fullScreenData.type !== "doseRate",
+                    ),
+                  )}
+              </ScrollView>
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
 
         <View style={styles.footer}></View>
       </View>
@@ -703,6 +973,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#006892",
+    textAlign: "center",
   },
   toggleButtonTextActive: {
     color: "white",
@@ -712,7 +983,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginVertical: isTablet ? 20 : 15,
-    marginHorizontal: isTablet ? 20 : 10,
     color: "#333",
   },
   tableOuterContainer: {
@@ -808,6 +1078,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "red",
     textAlign: "center",
+  },
+  tableTitleContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: isTablet ? 20 : 10,
+  },
+  fullscreenIcon: {
+    width: 22,
+    height: 22,
+    marginLeft: 10,
+    tintColor: "#006892", // Para cambiar el color del icono si es monocromático
+  },
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: "rgba(240, 245, 250, 1)", // Un fondo suave
+    padding: 10,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10, // Para asegurarse de que esté por encima de todo
+  },
+  closeButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
   },
   footer: {
     backgroundColor: "#006892",

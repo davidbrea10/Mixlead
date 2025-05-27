@@ -589,21 +589,20 @@ export default function Calculation() {
   };
 
   const calculateAndNavigate = () => {
-    // Usar combinedMaterialMap que incluye materiales predefinidos y personalizados
     const materialInternalKey = Object.keys(combinedMaterialMap).find(
       (key) => combinedMaterialMap[key] === form.material,
     );
 
-    const calculationTypeForNav =
+    const calculationType =
       form.thicknessOrDistance ===
       t("radiographyCalculator.thicknessOrDistance")
-        ? "distance"
-        : "thickness";
+        ? "distance" // User wants to calculate distance
+        : "thickness"; // User wants to calculate thickness
 
-    // --- Validaciones (mantenidas de tu versión "correcta" y las mejoras) ---
+    // --- Validations (largely kept from your existing logic) ---
     if (
       materialInternalKey === WITHOUT_MATERIAL_KEY &&
-      calculationTypeForNav === "thickness"
+      calculationType === "thickness"
     ) {
       Toast.show({
         type: "error",
@@ -614,7 +613,6 @@ export default function Calculation() {
       return;
     }
 
-    // Validación de campos generales (mejorada para usar los textos de placeholder)
     const placeholderValues = [
       t("radiographyCalculator.modal.isotope"),
       t("radiographyCalculator.modal.collimator"),
@@ -624,23 +622,22 @@ export default function Calculation() {
     if (
       !form.isotope ||
       placeholderValues.includes(form.isotope) ||
-      !form.activity.trim() || // Asegurar que actividad no esté vacía
+      !form.activity.trim() ||
       !form.limit ||
       placeholderValues.includes(form.limit) ||
       !form.material ||
       placeholderValues.includes(form.material) ||
       !form.collimator ||
-      placeholderValues.includes(form.collimator) // Añadida validación de colimador
+      placeholderValues.includes(form.collimator)
     ) {
       Toast.show({
         type: "error",
         text1: t("radiographyCalculator.alerts.errorTitle"),
-        text2: t("radiographyCalculator.alerts.allFieldsRequired"), // Usar el mensaje general
+        text2: t("radiographyCalculator.alerts.allFieldsRequired"),
         position: "bottom",
       });
       return;
     }
-
     if (
       materialInternalKey === OTHER_MATERIAL_KEY &&
       !form.otherMaterialName.trim()
@@ -653,298 +650,316 @@ export default function Calculation() {
       });
       return;
     }
-
-    // Validaciones para form.value (espesor/distancia) de tu versión "correcta"
-    // Nota: Los Toasts estaban comentados en tu snippet, aquí los activo con un mensaje genérico.
-    // Deberías tener traducciones para "radiographyCalculator.alerts.valueRequired".
+    // Value (thickness/distance) validation
+    // It's required unless calculating distance with "Sin Material"
     if (
-      materialInternalKey !== WITHOUT_MATERIAL_KEY &&
-      calculationTypeForNav === "distance" &&
-      !form.value.trim() && // trim() para asegurar que no sean solo espacios
-      materialInternalKey !== OTHER_MATERIAL_KEY &&
-      materialInternalKey !== WITHOUT_MATERIAL_KEY // Condición redundante, ya cubierta
-    ) {
-      Toast.show({
-        type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle"),
-        text2: t("radiographyCalculator.alerts.allFieldsRequired", {
-          fieldName: t("radiographyCalculator.labels.thickness"),
-        }),
-        position: "bottom",
-      });
-      return;
-    }
-    if (
-      materialInternalKey !== WITHOUT_MATERIAL_KEY &&
-      calculationTypeForNav === "thickness" &&
+      !(
+        materialInternalKey === WITHOUT_MATERIAL_KEY &&
+        calculationType === "distance"
+      ) &&
       !form.value.trim()
     ) {
       Toast.show({
         type: "error",
         text1: t("radiographyCalculator.alerts.errorTitle"),
         text2: t("radiographyCalculator.alerts.valueRequired", {
-          fieldName: t("radiographyCalculator.labels.distance"),
+          fieldName:
+            calculationType === "distance"
+              ? t("radiographyCalculator.labels.thickness") // Inputting thickness
+              : t("radiographyCalculator.labels.distance"), // Inputting distance
         }),
         position: "bottom",
       });
       return;
     }
-    if (materialInternalKey === OTHER_MATERIAL_KEY && !form.value.trim()) {
-      // Para "Other", el valor (espesor o distancia) también es requerido si la fórmula lo usa.
-      // La fórmula D0 * HVL * (1/inputValue) siempre usa inputValue.
+
+    // --- Parse Base Parameters ---
+    const activityString = form.activity.replace(/,/g, ".");
+    const A_Ci = parseFloat(activityString);
+    if (isNaN(A_Ci) || A_Ci <= 0) {
       Toast.show({
         type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle"),
-        text2: t("radiographyCalculator.alerts.valueRequired", {
-          fieldName:
-            calculationTypeForNav === "distance"
-              ? t("radiographyCalculator.labels.thickness")
-              : t("radiographyCalculator.labels.distance"),
+        text1: t("errors.errorTitle"),
+        text2: t("radiographyCalculator.alerts.invalidActivity", {
+          defaultValue: "Invalid activity value.",
         }),
         position: "bottom",
       });
       return;
     }
-    // --- Fin Validaciones ---
+    const A_GBq = A_Ci * 37; // Convert Ci to GBq
 
-    const activityString = form.activity.replace(/,/g, ".");
-    const A = parseFloat(activityString) * 37;
-    const Γ = GAMMA_FACTOR[form.isotope];
+    const Gamma = GAMMA_FACTOR[form.isotope];
 
-    // Usar collimatorMap que ya está definido en el componente
-    const collimatorKeyValue = Object.keys(collimatorMap).find(
+    const collimatorKey = Object.keys(collimatorMap).find(
       (key) => collimatorMap[key] === form.collimator,
     );
-    const Y =
-      collimatorKeyValue === "Yes"
+    const Y_effect =
+      collimatorKey === "Yes"
         ? COLLIMATOR_EFFECT.Yes[form.isotope]
-        : COLLIMATOR_EFFECT.No;
-    const T = form.limit === "11µSv/h" ? 0.011 : 0.0005;
+        : COLLIMATOR_EFFECT.No || 0; // Assuming COLLIMATOR_EFFECT.No might be 0
 
-    if (isNaN(A) || Γ === undefined || Y === undefined || T === undefined) {
+    const T_mSv_h = form.limit === "11µSv/h" ? 0.011 : 0.0005; // Target dose rate in mSv/h
+
+    if (Gamma === undefined || Y_effect === undefined) {
       Toast.show({
         type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle"),
-        text2: t("radiographyCalculator.alerts.invalidInputBase"), // Mensaje genérico para datos base
+        text1: t("errors.errorTitle"),
+        text2: t("radiographyCalculator.alerts.invalidInputBase"),
         position: "bottom",
       });
       return;
     }
 
-    let result;
-    let µ = 0; // Inicializar µ por si acaso
-    let inputValue = 0;
-    let distanceForControlled;
-    let distanceForLimited;
-    let distanceForProhibited;
+    // --- Parse Input Value (Thickness X or Distance d) ---
+    let inputValueNumeric = 0;
+    // Only parse if material is not "None" OR if it is "None" but we are calculating thickness (which is an invalid path caught earlier)
+    // More directly: parse if form.value is supposed to have a value.
+    if (
+      !(
+        materialInternalKey === WITHOUT_MATERIAL_KEY &&
+        calculationType === "distance"
+      )
+    ) {
+      const valueString = form.value.replace(/,/g, ".");
+      inputValueNumeric = parseFloat(valueString);
+      if (isNaN(inputValueNumeric) || inputValueNumeric < 0) {
+        Toast.show({
+          type: "error",
+          text1: t("errors.errorTitle"),
+          text2: t("radiographyCalculator.invalidInputMessage"),
+          position: "bottom",
+        });
+        return;
+      }
+    }
 
-    // Lógica de parseo de inputValue de tu versión "correcta"
-    // Esta condición asegura que inputValue solo se parsea si es relevante.
-    // Para 'Sin Material' calculando distancia, inputValue no se usa en la fórmula D_0.
-    // Para otros materiales, inputValue es necesario.
+    // --- Get Attenuation Coefficient (µ) ---
+    let mu_cm_inv = 0; // Attenuation coefficient in cm^-1
     if (materialInternalKey !== WITHOUT_MATERIAL_KEY) {
-      if (form.value.trim()) {
-        // Solo parsear si hay valor y el material no es "None"
-        const valueString = form.value.replace(/,/g, ".");
-        inputValue = parseFloat(valueString);
-        if (isNaN(inputValue) || inputValue < 0) {
-          // Añadido chequeo de < 0
-          Toast.show({
-            type: "error",
-            text1: t("radiographyCalculator.alerts.errorTitle"),
-            text2: t("radiographyCalculator.invalidInputMessage"),
-            position: "bottom",
-          });
-          return;
-        }
-        if (inputValue === 0) {
-          // La fórmula original (1/inputValue) dará Infinity si inputValue es 0.
-          // Esto será capturado por el chequeo !isFinite(result) más adelante.
-          // Esto replica el comportamiento de tu fórmula anterior.
-        }
-      } else {
-        // Si form.value está vacío aquí pero es requerido (material !== None),
-        // las validaciones anteriores ya deberían haber mostrado un error.
-        // Por si acaso, si se llega aquí y inputValue es 0 (por defecto) y se usa en 1/0:
-        // el chequeo de !isFinite(result) lo capturará.
-      }
-    }
-
-    const D_0 = Math.sqrt((A * Γ) / (Math.pow(2, Y) * T)); // Distancia sin blindaje (D_0)
-    const D_0Controlled = Math.sqrt((A * Γ) / (Math.pow(2, Y) * 0.0005)); // Distancia para controlada
-    const D_0Limited = Math.sqrt((A * Γ) / (Math.pow(2, Y) * 0.011)); // Distancia para limitada
-    const D_0Prohibited = Math.sqrt((A * Γ) / (Math.pow(2, Y) * 0.25)); // Distancia para prohibida
-
-    if (materialInternalKey === WITHOUT_MATERIAL_KEY) {
-      result = D_0; // El * 1 es innecesario
-      distanceForControlled = D_0Controlled;
-      distanceForLimited = D_0Limited;
-      distanceForProhibited = D_0Prohibited;
-    } else if (materialInternalKey === OTHER_MATERIAL_KEY) {
-      // Obtener µ para "Other"
-      if (form.isotope === "192Ir") {
-        µ = parseFloat(form.attenuationIr.replace(/,/g, ".")) || 0;
-      } else if (form.isotope === "75Se") {
-        µ = parseFloat(form.attenuationSe.replace(/,/g, ".")) || 0;
-      } else {
-        // Este caso debería estar cubierto por la validación general de form.isotope
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: "Seleccione un isótopo válido para 'Otro'.",
-        });
-        return;
-      }
-
-      // La línea `if (isNaN(µ)) µ = 0;` de tu código original ya está cubierta por `|| 0` en parseFloat.
-      // Pero para ser explícito y cubrir cualquier NaN no esperado:
-      if (isNaN(µ)) µ = 0;
-
-      if (µ <= 0) {
-        // Si µ es 0 o negativo (por si acaso), se trata como sin atenuación
-        result = D_0;
-        distanceForControlled = D_0Controlled;
-        distanceForLimited = D_0Limited;
-        distanceForProhibited = D_0Prohibited;
-      } else {
-        // Tu fórmula original
-        result = D_0 * (Math.log(2) / µ) * (1 / inputValue);
-        distanceForControlled =
-          D_0Controlled * (Math.log(2) / µ) * (1 / inputValue);
-        distanceForLimited = D_0Limited * (Math.log(2) / µ) * (1 / inputValue);
-        distanceForProhibited =
-          D_0Prohibited * (Math.log(2) / µ) * (1 / inputValue);
-      }
-    } else {
-      // Material predefinido o personalizado guardado
-      if (customMaterialsFromDB[materialInternalKey]) {
-        // Material personalizado guardado
+      if (materialInternalKey === OTHER_MATERIAL_KEY) {
+        const attString =
+          form.isotope === "192Ir" ? form.attenuationIr : form.attenuationSe;
+        mu_cm_inv = parseFloat(attString.replace(/,/g, ".")) || 0;
+      } else if (customMaterialsFromDB[materialInternalKey]) {
         const customMatData = customMaterialsFromDB[materialInternalKey];
-        let attValueStr;
-        if (form.isotope === "192Ir") {
-          attValueStr = customMatData.attenuationIr;
-        } else if (form.isotope === "75Se") {
-          attValueStr = customMatData.attenuationSe;
-        } else {
-          Toast.show({
-            type: "error",
-            text1: "Error",
-            text2: "Isótopo no configurado para material personalizado.",
-          });
-          return;
-        }
-        µ = parseFloat(String(attValueStr).replace(/,/g, ".")) || 0;
-        if (isNaN(µ)) µ = 0; // Seguridad
+        const attValueStr =
+          form.isotope === "192Ir"
+            ? customMatData.attenuationIr
+            : customMatData.attenuationSe;
+        mu_cm_inv = parseFloat(String(attValueStr).replace(/,/g, ".")) || 0;
       } else {
-        // Material predefinido
-        µ = ATTENUATION_COEFFICIENT[materialInternalKey]?.[form.isotope];
+        mu_cm_inv =
+          ATTENUATION_COEFFICIENT[materialInternalKey]?.[form.isotope] || 0;
       }
 
-      // Validación de µ para predefinidos/personalizados (tu lógica original era estricta aquí)
-      if (µ === undefined || isNaN(µ) || µ < 0) {
-        // Cambiado a µ <= 0
+      if (isNaN(mu_cm_inv) || mu_cm_inv < 0) {
         Toast.show({
           type: "error",
-          text1: t("radiographyCalculator.alerts.errorTitle"),
-          text2: t("radiographyCalculator.alerts.coefficientNotFound", {
-            material: form.material,
-            isotope: form.isotope,
+          text1: t("errors.errorTitle"),
+          text2: t("radiographyCalculator.alerts.invalidCoefficient", {
+            defaultValue: "Invalid attenuation coefficient.",
           }),
+          position: "bottom",
         });
         return;
       }
-      // Tu fórmula original
-      result = D_0 * (Math.log(2) / µ) * (1 / inputValue);
-      distanceForControlled =
-        D_0Controlled * (Math.log(2) / µ) * (1 / inputValue);
-      distanceForLimited = D_0Limited * (Math.log(2) / µ) * (1 / inputValue);
-      distanceForProhibited =
-        D_0Prohibited * (Math.log(2) / µ) * (1 / inputValue);
+    }
+    const mu_m_inv = mu_cm_inv * 100; // Convert µ from cm^-1 to m^-1
+
+    // --- Perform Calculation ---
+    let finalCalculatedValue; // Will be distance in meters or thickness in mm
+    let calculatedDistance_m; // Primary calculated distance
+    let calculatedThickness_mm; // Primary calculated thickness
+
+    // Helper function to calculate distance (d) for given parameters
+    const calculateDistanceInternal = (
+      targetRate_mSv_h,
+      thickness_m,
+      current_mu_m_inv,
+    ) => {
+      const numerator =
+        Gamma * A_GBq * 1000 * Math.exp(-current_mu_m_inv * thickness_m);
+      const denominator = targetRate_mSv_h * Math.pow(2, Y_effect);
+      if (denominator === 0) return NaN;
+      const d_sq = numerator / denominator;
+      return d_sq >= 0 ? Math.sqrt(d_sq) : NaN;
+    };
+
+    // Helper function to calculate unshielded distance (d0)
+    const calculateUnshieldedDistanceInternal = (targetRate_mSv_h) => {
+      return calculateDistanceInternal(targetRate_mSv_h, 0, 0);
+    };
+
+    if (calculationType === "distance") {
+      const X_input_mm =
+        materialInternalKey === WITHOUT_MATERIAL_KEY ? 0 : inputValueNumeric;
+      const X_m = X_input_mm / 1000.0; // Convert thickness from mm to m
+      const effective_mu_m_inv =
+        materialInternalKey === WITHOUT_MATERIAL_KEY ? 0 : mu_m_inv;
+
+      calculatedDistance_m = calculateDistanceInternal(
+        T_mSv_h,
+        X_m,
+        effective_mu_m_inv,
+      );
+      finalCalculatedValue = calculatedDistance_m; // Result is in meters
+    } else {
+      // calculationType === "thickness"
+      const d_input_m = inputValueNumeric; // Distance is input in meters
+
+      if (mu_m_inv <= 0) {
+        // Material like "Sin Material" or µ=0 defined
+        // Calculate unshielded dose rate at d_input_m
+        const T0_at_d_input =
+          (Gamma * A_GBq * 1000) /
+          (Math.pow(d_input_m, 2) * Math.pow(2, Y_effect));
+        if (T0_at_d_input <= T_mSv_h) {
+          calculatedThickness_mm = 0.0; // No shielding needed
+        } else {
+          calculatedThickness_mm = Infinity; // Cannot achieve target with µ=0 if T0 > T
+        }
+      } else {
+        const term_in_ln_numerator = Gamma * A_GBq * 1000;
+        const term_in_ln_denominator =
+          T_mSv_h * Math.pow(d_input_m, 2) * Math.pow(2, Y_effect);
+
+        if (term_in_ln_denominator === 0) {
+          calculatedThickness_mm = Infinity; // Avoid division by zero
+        } else {
+          const term_in_ln = term_in_ln_numerator / term_in_ln_denominator;
+          if (term_in_ln <= 1) {
+            // Unshielded dose at d_input_m is already <= T_mSv_h
+            calculatedThickness_mm = 0.0;
+          } else {
+            const X_m = Math.log(term_in_ln) / mu_m_inv;
+            calculatedThickness_mm = X_m * 1000.0; // Convert thickness to mm
+          }
+        }
+      }
+      finalCalculatedValue = calculatedThickness_mm; // Result is in mm
     }
 
-    // Validación final del resultado (de tu versión "correcta")
-    if (isNaN(result) || !isFinite(result) || result < 0) {
+    // --- Calculate Zone Distances ---
+    // If calculating distance, zone distances are with the given shielding.
+    // If calculating thickness, zone distances are unshielded (D0 for those limits).
+    let finalDistanceForControlled,
+      finalDistanceForLimited,
+      finalDistanceForProhibited;
+
+    if (calculationType === "distance") {
+      const X_m =
+        (materialInternalKey === WITHOUT_MATERIAL_KEY ? 0 : inputValueNumeric) /
+        1000.0;
+      const effective_mu_m_inv =
+        materialInternalKey === WITHOUT_MATERIAL_KEY ? 0 : mu_m_inv;
+      finalDistanceForControlled = calculateDistanceInternal(
+        0.0005,
+        X_m,
+        effective_mu_m_inv,
+      );
+      finalDistanceForLimited = calculateDistanceInternal(
+        0.011,
+        X_m,
+        effective_mu_m_inv,
+      );
+      finalDistanceForProhibited = calculateDistanceInternal(
+        0.25,
+        X_m,
+        effective_mu_m_inv,
+      );
+    } else {
+      // calculationType === "thickness"
+      finalDistanceForControlled = calculateUnshieldedDistanceInternal(0.0005);
+      finalDistanceForLimited = calculateUnshieldedDistanceInternal(0.011);
+      finalDistanceForProhibited = calculateUnshieldedDistanceInternal(0.25);
+    }
+
+    // --- Validate Final Calculated Value ---
+    if (
+      isNaN(finalCalculatedValue) ||
+      !isFinite(finalCalculatedValue) ||
+      finalCalculatedValue < 0
+    ) {
       Toast.show({
         type: "error",
-        text1: t("radiographyCalculator.alerts.errorTitle"),
-        text2: t("radiographyCalculator.alerts.calculationError"), // Mensaje de error de cálculo genérico
+        text1: t("errors.errorTitle"),
+        text2: t("radiographyCalculator.alerts.calculationError"),
+        position: "bottom",
+      });
+      return;
+    }
+    // Also validate zone distances if they are essential for proceeding
+    if (
+      isNaN(finalDistanceForControlled) ||
+      isNaN(finalDistanceForLimited) ||
+      isNaN(finalDistanceForProhibited)
+    ) {
+      Toast.show({
+        type: "error",
+        text1: t("errors.errorTitle"),
+        text2: t("radiographyCalculator.alerts.zoneCalculationError", {
+          defaultValue: "Error calculating zone distances.",
+        }),
         position: "bottom",
       });
       return;
     }
 
-    // --- Preparación de parámetros para la pantalla de resumen ---
-    let materialNameForSummary = form.material; // Nombre para mostrar en el resumen
+    // --- Prepare Parameters for Summary Screen ---
+    let materialNameForSummary = form.material;
     if (materialInternalKey === OTHER_MATERIAL_KEY) {
       materialNameForSummary =
         form.otherMaterialName.trim() ||
         t("radiographyCalculator.options.materials.Other");
     } else if (customMaterialsFromDB[materialInternalKey]) {
-      materialNameForSummary = materialInternalKey; // El nombre real del material personalizado
+      materialNameForSummary = materialInternalKey;
     }
 
-    let attCoefUsedDisplay = "N/A";
-    if (materialInternalKey !== WITHOUT_MATERIAL_KEY && µ >= 0) {
-      attCoefUsedDisplay = µ.toFixed(3);
-    }
+    const attCoefUsedDisplayCm =
+      materialInternalKey === WITHOUT_MATERIAL_KEY || mu_cm_inv < 0
+        ? "N/A"
+        : mu_cm_inv.toFixed(3);
 
-    // El parámetro 'value' para el resumen es el valor de entrada del formulario (espesor o distancia)
-    let valueForSummary = form.value.replace(/,/g, ".");
+    // `formValueForSummary` is the original user input for thickness (mm) or distance (m)
+    let formValueForSummary = form.value.replace(/,/g, ".");
     if (
       materialInternalKey === WITHOUT_MATERIAL_KEY &&
-      calculationTypeForNav === "distance"
+      calculationType === "distance"
     ) {
-      valueForSummary = t("radiographyCalculator.notApplicable");
-    } else if (!form.value.trim()) {
-      // Si el valor original estaba vacío pero se usó 0 implícitamente (y no dio error antes),
-      // podría representarse como "0" o "N/A" si no aplica.
-      // Dado que las validaciones anteriores deberían haber exigido un valor si era necesario,
-      // si está vacío aquí, es probable que sea el caso de "Sin Material" y distancia.
-      // O un caso donde inputValue se convirtió en 0 y el resultado fue Infinity (ya manejado por isFinite).
-      // Para consistencia, si form.value está vacío, no debería llegar aquí si era requerido.
-      // Si es N/A para "Sin material" y distancia, lo usamos. Sino, el valor del form (o "0" por defecto).
-      valueForSummary = valueForSummary || "0";
+      formValueForSummary = t("radiographyCalculator.notApplicableShort", {
+        defaultValue: "N/A",
+      }); // If it was thickness input for "Sin Material"
     }
 
-    let distanceValueForSummary;
-
-    if (calculationTypeForNav === "distance") {
-      // Si se calculó la distancia, 'result' es la distancia calculada.
-      distanceValueForSummary = result.toFixed(3);
+    // `distanceValueForSummaryNav` is always a distance in meters, relevant to the primary calculation context
+    let distanceValueForSummaryNav;
+    if (calculationType === "distance") {
+      distanceValueForSummaryNav = finalCalculatedValue; // The calculated distance in meters
     } else {
-      // calculationTypeForNav === "thickness" (se calculó el espesor)
-      // Si se calculó el espesor, 'valueForSummary' contiene la distancia que el usuario introdujo.
-      distanceValueForSummary = valueForSummary;
+      // calculationType === "thickness"
+      distanceValueForSummaryNav = inputValueNumeric; // The input distance in meters
     }
-
-    console.log("Distance Value for Summary:", distanceValueForSummary);
-    console.log("Material Name for Summary:", materialNameForSummary);
-    console.log("Attenuation Coefficient Used:", attCoefUsedDisplay);
-    console.log("Result:", result.toFixed(3));
-    console.log("Value for Summary:", valueForSummary);
-    console.log("Calculation Type for Nav:", calculationTypeForNav);
-    console.log("Controlled Distance:", distanceForControlled.toFixed(3));
-    console.log("Limited Distance:", distanceForLimited.toFixed(3));
-    console.log("Prohibited Distance:", distanceForProhibited.toFixed(3));
 
     router.push({
       pathname: "employee/calculationSummary",
       params: {
         isotope: form.isotope,
-        collimator: form.collimator,
-        value: valueForSummary,
-        activity: form.activity,
-        material: materialNameForSummary,
-        attenuationCoefficientUsed: attCoefUsedDisplay,
-        limit: form.limit,
-        calculationType: calculationTypeForNav,
-        result: result.toFixed(3),
-        distanceValueForSummary: distanceValueForSummary,
+        collimator: form.collimator, // Display name
+        value: formValueForSummary, // User's original input value string for X or d
+        activity: form.activity, // Original activity string
+        material: materialNameForSummary, // Display name
+        attenuationCoefficientUsed: attCoefUsedDisplayCm, // µ in cm^-1
+        limit: form.limit, // Display name
+        calculationType: calculationType, // "distance" or "thickness"
+        result: finalCalculatedValue.toFixed(3), // Calculated distance (m) or thickness (mm)
 
-        // Valores de las distancias de las zonas calculadas
-        distanceForControlled: distanceForControlled.toFixed(3),
-        distanceForLimited: distanceForLimited.toFixed(3),
-        distanceForProhibited: distanceForProhibited.toFixed(3),
+        // This is the distance (m) to be prominently displayed or used in summary
+        distanceValueForSummary: distanceValueForSummaryNav.toFixed(3),
+
+        distanceForControlled: finalDistanceForControlled.toFixed(3),
+        distanceForLimited: finalDistanceForLimited.toFixed(3),
+        distanceForProhibited: finalDistanceForProhibited.toFixed(3),
       },
     });
   };

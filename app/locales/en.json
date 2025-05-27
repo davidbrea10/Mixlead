@@ -711,11 +711,14 @@
     "header.title": "Tables",
     "doseRateView": "View Dose Rate",
     "distanceView": "View Distance",
+    "thicknessView": "View Thickness",
     "header": {
       "titleTables": "Calculation tables" 
     },
     "main_title_dose_rate": "Table: Calculated Dose Rate (µSv/h)",
     "main_title_distance": "Table: Calculated Distance (m)",
+    "main_title_thickness": "Table: Calculated Thickness (mm)",
+    "x_axis_distance_description": "Distance (m)",
     "y_axis_distance_m": "Distance (m)",
     "y_axis_target_dose_rate": "Dose Rate (µSv/h)",
     "x_axis_layers_header": "Nº of Shielding Layers (10mm each)",
