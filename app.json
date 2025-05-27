@@ -18,7 +18,7 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarla en el mapa.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Permiso 'Siempre' (si es necesario para futuras funciones).",
-         "UISupportedInterfaceOrientations": [
+        "UISupportedInterfaceOrientations": [
           "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationLandscapeLeft",
           "UIInterfaceOrientationLandscapeRight"
@@ -49,7 +49,8 @@
         }
       ],
       "expo-localization",
-      "expo-asset"
+      "expo-asset",
+      "expo-secure-store"
     ],
     "extra": {
       "router": {

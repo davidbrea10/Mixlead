@@ -415,7 +415,8 @@
     "buttons": {
       "close": "Cerrar",
       "confirm": "Confirmar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "showFormulas": "Ver Fórmulas Utilizadas"
     },
     "labels": {
       "otherMaterialName": "Nombre del Material",
@@ -454,6 +455,30 @@
         "11µSv/h": "11µSv/h",
         "0.5µSv/h": "0.5µSv/h"
       }
+    },
+    "formulas": {
+      "title": "Fórmulas Utilizadas en los Cálculos",
+      "distanceTitle": "2. Cálculo de Distancia (d):",
+      "thicknessTitle": "3. Cálculo de Espesor (Xm):",
+       "doseRateTitle": "1. Cálculo de Tasa de Dosis (T):",
+      "T_desc_doseRate": "Tasa de Dosis resultante en el punto de cálculo (mSv/h o µSv/h).",
+      "d_desc_doseRate": "Distancia desde la fuente (metros) al punto de cálculo.",
+      "X_desc_doseRate": "Espesor del material de blindaje (metros) entre la fuente y el punto de cálculo.",
+      "variables": "Donde:",
+      "d_desc": "Distancia de seguridad objetivo en metros (m).",
+      "Gamma_desc": "Constante Gammagráfica específica del isótopo (ej. 0.13 para ¹⁹²Ir, 0.054 para ⁷⁵Se).",
+      "A_desc": "Actividad de la fuente radiactiva en Gigabecquerels (GBq). (Convertida desde Ci).",
+      "factor1000_desc": "Factor de conversión de unidades (implícito en las constantes para obtener µSv/h si la actividad está en GBq, Γ en sus unidades típicas y d en m).",
+      "e_desc": "Número de Euler, base del logaritmo natural (aprox. 2.71828).",
+      "mu_desc": "Coeficiente de atenuación lineal del material de blindaje (convertido a m⁻¹ para el cálculo).",
+      "X_desc_distance": "Espesor del material de blindaje en metros (m). (Ingresado por el usuario en mm y convertido).",
+      "T_desc": "Tasa de Dosis objetivo en milisieverts por hora (mSv/h). (Convertida desde µSv/h).",
+      "Y_desc": "Valor numérico del efecto del colimador (adimensional).",
+      "Xm_desc": "Espesor del material de blindaje en metros (m). (Resultado final presentado en mm).",
+      "ln_desc": "Logaritmo natural.",
+      "sameAsAbove": "Mismas definiciones que en la fórmula anterior.",
+      "d_desc_thickness": "Distancia en metros (m) a la cual se debe alcanzar la Tasa de Dosis T. (Ingresado por el usuario).",
+      "noteUnits": "Nota: Las unidades se convierten internamente para asegurar la consistencia en los cálculos (ej. Ci a GBq, cm⁻¹ a m⁻¹, mm a m)."
     }
   },
 

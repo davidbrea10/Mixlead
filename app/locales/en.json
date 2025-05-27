@@ -413,7 +413,8 @@
     "buttons": {
       "close": "Close",
       "confirm": "Confirm",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "showFormulas": "View Formulas Used"
     },
     "placeholder": {
       "otherMaterialName": "Ex: Stainless steel"
@@ -455,6 +456,31 @@
         "11µSv/h": "11µSv/h",
         "0.5µSv/h": "0.5µSv/h"
       }
+    },
+
+    "formulas": {
+      "title": "Formulas Used in Calculations",
+      "distanceTitle": "2. Distance Calculation (d):",
+      "thicknessTitle": "3. Thickness Calculation (Xm):",
+      "doseRateTitle": "1. Dose Rate Calculation (T):",
+      "T_desc_doseRate": "Resulting Dose Rate at the calculation point (mSv/h or µSv/h).",
+      "d_desc_doseRate": "Distance from the source (meters) to the calculation point.",
+      "X_desc_doseRate": "Thickness of the shielding material (meters) between the source and the calculation point.",
+      "variables": "Where:",
+      "d_desc": "Target safety distance in meters (m).",
+      "Gamma_desc": "Isotope-specific Gamma Ray Constant (e.g., 0.13 for ¹⁹²Ir, 0.054 for ⁷⁵Se).",
+      "A_desc": "Activity of the radioactive source in Gigabecquerels (GBq). (Converted from Ci).",
+      "factor1000_desc": "Unit conversion factor (implicit in constants to obtain µSv/h if activity is in GBq, Γ in its typical units, and d in m).",
+      "e_desc": "Euler's number, base of the natural logarithm (approx. 2.71828).",
+      "mu_desc": "Linear attenuation coefficient of the shielding material (converted to m⁻¹ for calculation).",
+      "X_desc_distance": "Thickness of the shielding material in meters (m). (Entered by the user in mm and converted).",
+      "T_desc": "Target Dose Rate in millisieverts per hour (mSv/h). (Converted from µSv/h).",
+      "Y_desc": "Numerical value of the collimator effect (dimensionless).",
+      "Xm_desc": "Thickness of the shielding material in meters (m). (Final result presented in mm).",
+      "ln_desc": "Natural logarithm.",
+      "sameAsAbove": "Same definitions as in the previous formula.",
+      "d_desc_thickness": "Distance in meters (m) at which the Dose Rate T must be achieved. (Entered by the user).",
+      "noteUnits": "Note: Units are converted internally to ensure consistency in calculations (e.g., Ci to GBq, cm⁻¹ to m⁻¹, mm to m)."
     }
   },
 

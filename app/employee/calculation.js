@@ -28,6 +28,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 
@@ -59,6 +60,9 @@ export default function Calculation() {
     onConfirm: () => {},
     showCancel: true,
   });
+  const [formulasModalVisible, setFormulasModalVisible] = useState(false);
+  const openFormulasModal = () => setFormulasModalVisible(true);
+  const closeFormulasModal = () => setFormulasModalVisible(false);
 
   const getCurrentEmployeeId = useCallback(() => {
     return auth.currentUser?.uid; // USA 'auth' importado
@@ -1183,359 +1187,10 @@ export default function Calculation() {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text
-              style={[
-                styles.label,
-                {
-                  fontSize: isTablet ? 20 : 18,
-                  marginRight: isTablet ? 15 : 10,
-                },
-              ]}
-            >
-              {t("radiographyCalculator.isotope")}
-            </Text>
-            <Pressable
-              onPress={() => openModal("isotope", OPTIONS.isotopes)}
-              style={[
-                styles.inputContainer,
-                {
-                  height: isTablet ? 65 : 55,
-                  paddingHorizontal: isTablet ? 15 : 10,
-                  marginBottom: isTablet ? 35 : 30,
-                },
-              ]}
-            >
-              <Text style={styles.input}>{form.isotope}</Text>
-            </Pressable>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text
-              style={[
-                styles.label,
-                {
-                  fontSize: isTablet ? 20 : 18,
-                  marginRight: isTablet ? 15 : 10,
-                },
-              ]}
-            >
-              {t("radiographyCalculator.activity")}
-            </Text>
-            <TextInput
-              style={[
-                styles.inputContainer,
-                {
-                  height: isTablet ? 65 : 55,
-                  paddingHorizontal: isTablet ? 15 : 10,
-                  marginBottom: isTablet ? 35 : 30,
-                },
-                styles.input,
-              ]}
-              placeholder={t("radiographyCalculator.valueCi")}
-              placeholderTextColor={"gray"}
-              keyboardType="numeric"
-              value={form.activity}
-              onChangeText={(text) => setForm({ ...form, activity: text })}
-            />
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text
-              style={[
-                styles.label,
-                {
-                  fontSize: isTablet ? 20 : 18,
-                  marginRight: isTablet ? 15 : 10,
-                },
-              ]}
-            >
-              {t("radiographyCalculator.collimator")}
-            </Text>
-            <Pressable
-              onPress={() => openModal("collimator", OPTIONS.collimator)}
-              style={[
-                styles.inputContainer,
-                {
-                  height: isTablet ? 65 : 55,
-                  paddingHorizontal: isTablet ? 15 : 10,
-                  marginBottom: isTablet ? 35 : 30,
-                },
-              ]}
-            >
-              <Text style={styles.input}>{form.collimator}</Text>
-            </Pressable>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text
-              style={[
-                styles.label,
-                {
-                  fontSize: isTablet ? 20 : 18,
-                  marginRight: isTablet ? 15 : 10,
-                },
-              ]}
-            >
-              {t("radiographyCalculator.tLimitFor")}
-            </Text>
-            <Pressable
-              onPress={() => openModal("limit", OPTIONS.limits)}
-              style={[
-                styles.inputContainer,
-                {
-                  height: isTablet ? 65 : 55,
-                  paddingHorizontal: isTablet ? 15 : 10,
-                  marginBottom: isTablet ? 35 : 30,
-                },
-              ]}
-            >
-              <Text style={styles.input}>{form.limit}</Text>
-            </Pressable>
-          </View>
-          {/* Material Selection */}
-          <View
-            style={{ flexDirection: "row", alignItems: "center", width: "93%" }}
-          >
-            <Text
-              style={[
-                styles.label,
-                {
-                  fontSize: isTablet ? 20 : 18,
-                  marginRight: isTablet ? 15 : 10,
-                },
-              ]}
-            >
-              {t("radiographyCalculator.material")}
-            </Text>
-            <Pressable
-              onPress={() => openModal("material", OPTIONS.materials)}
-              style={[
-                styles.inputContainer,
-                {
-                  height: isTablet ? 65 : 55,
-                  paddingHorizontal: isTablet ? 15 : 10,
-                  marginBottom: isTablet ? 35 : 30,
-                },
-              ]}
-            >
-              <Text style={styles.input}>{form.material}</Text>
-            </Pressable>
-          </View>
-          {/* NUEVOS CAMPOS PARA MATERIAL "OTRO" */}
-          {showMaterialDetailFields && (
-            <>
-              {/* Fila para el nombre del material */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  width: "93%", // Manteniendo la consistencia
-                  marginTop: 5,
-                  // marginBottom: 10, // Ajusta si es necesario antes de los coeficientes
-                }}
-              >
-                <Text
-                  style={[
-                    styles.label,
-                    {
-                      fontSize: isTablet ? 20 : 18,
-                      marginRight: isTablet ? 15 : 10,
-                    },
-                  ]}
-                >
-                  {t(
-                    "radiographyCalculator.labels.otherMaterialName",
-                    "Nombre Material",
-                  )}
-                </Text>
-                <TextInput
-                  style={[
-                    styles.inputContainer,
-                    styles.input,
-                    { flex: 1 }, // Allow TextInput to take available space
-                    currentMaterialKey !== OTHER_MATERIAL_KEY &&
-                      styles.inputDisabled,
-                  ]}
-                  placeholder={t(
-                    "radiographyCalculator.placeholders.otherMaterialName",
-                    "Ej: Plomo Especial",
-                  )}
-                  placeholderTextColor="gray"
-                  value={form.otherMaterialName}
-                  onChangeText={(text) =>
-                    setForm({ ...form, otherMaterialName: text })
-                  }
-                  editable={currentMaterialKey === OTHER_MATERIAL_KEY}
-                />
-              </View>
-
-              {/* Etiqueta para coeficientes de atenuación */}
-              <Text
-                style={[
-                  styles.label, // Reutilizando tu estilo de label
-                  {
-                    width: "93%",
-                    textAlign: "left",
-                    marginTop: 15,
-                    marginBottom: 10,
-                    fontSize: 16,
-                    fontWeight: "600",
-                  },
-                ]}
-              >
-                {t(
-                  "radiographyCalculator.labels.attenuationFor",
-                  "Coeficiente de atenuación para:",
-                )}
-              </Text>
-
-              {/* Fila para los inputs de coeficientes de atenuación */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  width: "93%",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  // marginBottom: 15, // Espacio antes del botón +/- si va después
-                }}
-              >
-                {/* Input para 192Ir */}
-                <View style={{ flex: 1, marginRight: 5, alignItems: "center" }}>
-                  <Text
-                    style={[
-                      styles.label,
-                      { marginBottom: 2, fontSize: 16, minWidth: "auto" },
-                    ]}
-                  >
-                    192Ir
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.inputContainer,
-                      styles.input,
-                      { flex: undefined, width: "100%" }, // Quita marginBottom: 20 de aquí si el botón +/- va después de esta fila
-                      currentMaterialKey !== OTHER_MATERIAL_KEY &&
-                        styles.inputDisabled,
-                    ]}
-                    placeholder={placeholderIrText} // Usando tu lógica de placeholder
-                    placeholderTextColor="gray"
-                    keyboardType="numeric"
-                    value={form.attenuationIr}
-                    onChangeText={(text) =>
-                      setForm({ ...form, attenuationIr: text })
-                    }
-                    editable={currentMaterialKey === OTHER_MATERIAL_KEY}
-                  />
-                  <Text style={styles.attenuationUnitText}>μ (Ir)</Text>
-                </View>
-
-                {/* Input para 75Se */}
-                <View style={{ flex: 1, marginLeft: 5, alignItems: "center" }}>
-                  <Text
-                    style={[
-                      styles.label,
-                      { marginBottom: 2, fontSize: 16, minWidth: "auto" },
-                    ]}
-                  >
-                    75Se
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.inputContainer,
-                      styles.input,
-                      { flex: undefined, width: "100%" }, // Quita marginBottom: 20
-                      currentMaterialKey !== OTHER_MATERIAL_KEY &&
-                        styles.inputDisabled,
-                    ]}
-                    placeholder={placeholderSeText} // Usando tu lógica de placeholder
-                    placeholderTextColor="gray"
-                    keyboardType="numeric"
-                    value={form.attenuationSe}
-                    onChangeText={(text) =>
-                      setForm({ ...form, attenuationSe: text })
-                    }
-                    editable={currentMaterialKey === OTHER_MATERIAL_KEY}
-                  />
-                  <Text style={styles.attenuationUnitText}>μ (Se)</Text>
-                </View>
-              </View>
-
-              {/* ÁREA PARA LOS BOTONES DE AGREGAR (+) O ELIMINAR (-) */}
-              {/* El contenedor addMaterialButtonContainer se usa para ambos para la misma ubicación/estilo */}
-              {showAddMaterialButton ? (
-                <View style={styles.addMaterialButtonContainer}>
-                  <Pressable
-                    onPress={handleAddOrUpdateCustomMaterial}
-                    style={styles.addMaterialButton} // Tu estilo existente para el botón "+"
-                  >
-                    <Text style={styles.addMaterialButtonText}>+</Text>
-                  </Pressable>
-                </View>
-              ) : isCustomMaterialSelected ? (
-                <View style={styles.addMaterialButtonContainer}>
-                  <Pressable
-                    onPress={onPressDeleteButton}
-                    style={[
-                      styles.addMaterialButton,
-                      styles.deleteActionButton,
-                    ]} // Reutiliza estilo base y aplica color de borrado
-                  >
-                    <Text style={styles.addMaterialButtonText}>-</Text>
-                  </Pressable>
-                </View>
-              ) : null}
-            </>
-          )}
-
-          {/* Descriptive text for Thickness/Distance input */}
-          <View style={styles.descriptionContainer}>
-            <Text style={styles.descriptionText}>
-              {form.thicknessOrDistance ===
-              t("radiographyCalculator.thicknessOrDistance")
-                ? t("radiographyCalculator.descriptionForThicknessInput")
-                : t("radiographyCalculator.descriptionForDistanceInput")}
-            </Text>
-          </View>
-          <View
-            style={{
-              width: "93%",
-              flexDirection: "row",
-              justifyContent: "center",
-            }}
-          >
-            <Pressable
-              onPress={() =>
-                setForm((prevForm) => {
-                  const currentModeIsCalcDistance =
-                    prevForm.thicknessOrDistance ===
-                    t("radiographyCalculator.thicknessOrDistance");
-                  const newModeWillBeCalcDistance = !currentModeIsCalcDistance;
-
-                  let newValue = prevForm.value;
-                  const materialIsNone =
-                    Object.keys(combinedMaterialMap).find(
-                      (key) => combinedMaterialMap[key] === prevForm.material,
-                    ) === WITHOUT_MATERIAL_KEY;
-
-                  if (newModeWillBeCalcDistance && materialIsNone) {
-                    newValue = "";
-                  }
-                  return {
-                    ...prevForm,
-                    value: newValue,
-                    thicknessOrDistance: newModeWillBeCalcDistance
-                      ? t("radiographyCalculator.thicknessOrDistance")
-                      : t("radiographyCalculator.distance"),
-                  };
-                })
-              }
-              style={[
-                styles.switchButton,
-                {
-                  height: isTablet ? 65 : 55,
-                  paddingHorizontal: isTablet ? 15 : 10,
-                  marginBottom: isTablet ? 35 : 30,
-                },
-              ]}
+        <View style={{ flex: 1, position: "relative" }}>
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
             >
               <Text
                 style={[
@@ -1546,127 +1201,658 @@ export default function Calculation() {
                   },
                 ]}
               >
-                {form.thicknessOrDistance}
+                {t("radiographyCalculator.isotope")}
               </Text>
-            </Pressable>
-            <TextInput
-              style={[
-                styles.inputContainer,
-                {
-                  height: isTablet ? 65 : 55,
-                  paddingHorizontal: isTablet ? 15 : 10,
-                  marginBottom: isTablet ? 35 : 30,
-                },
-                styles.input,
-                !isValueEditable && styles.inputDisabled,
-              ]}
-              placeholder={t("radiographyCalculator.value", {
-                unit:
-                  form.thicknessOrDistance ===
-                  t("radiographyCalculator.thicknessOrDistance")
-                    ? "mm"
-                    : "m",
-              })}
-              placeholderTextColor={"gray"}
-              keyboardType="numeric"
-              value={form.value}
-              onChangeText={(text) => setForm({ ...form, value: text })}
-              editable={isValueEditable}
-            />
-          </View>
-
-          <Pressable
-            style={[
-              styles.button,
-              { height: isTablet ? 70 : 55, width: isTablet ? "85%" : "90%" },
-            ]}
-            onPress={calculateAndNavigate}
-          >
-            <Text
+              <Pressable
+                onPress={() => openModal("isotope", OPTIONS.isotopes)}
+                style={[
+                  styles.inputContainer,
+                  {
+                    height: isTablet ? 65 : 55,
+                    paddingHorizontal: isTablet ? 15 : 10,
+                    marginBottom: isTablet ? 35 : 30,
+                  },
+                ]}
+              >
+                <Text style={styles.input}>{form.isotope}</Text>
+              </Pressable>
+            </View>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginRight: isTablet ? 15 : 10,
+                  },
+                ]}
+              >
+                {t("radiographyCalculator.activity")}
+              </Text>
+              <TextInput
+                style={[
+                  styles.inputContainer,
+                  {
+                    height: isTablet ? 65 : 55,
+                    paddingHorizontal: isTablet ? 15 : 10,
+                    marginBottom: isTablet ? 35 : 30,
+                  },
+                  styles.input,
+                ]}
+                placeholder={t("radiographyCalculator.valueCi")}
+                placeholderTextColor={"gray"}
+                keyboardType="numeric"
+                value={form.activity}
+                onChangeText={(text) => setForm({ ...form, activity: text })}
+              />
+            </View>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginRight: isTablet ? 15 : 10,
+                  },
+                ]}
+              >
+                {t("radiographyCalculator.collimator")}
+              </Text>
+              <Pressable
+                onPress={() => openModal("collimator", OPTIONS.collimator)}
+                style={[
+                  styles.inputContainer,
+                  {
+                    height: isTablet ? 65 : 55,
+                    paddingHorizontal: isTablet ? 15 : 10,
+                    marginBottom: isTablet ? 35 : 30,
+                  },
+                ]}
+              >
+                <Text style={styles.input}>{form.collimator}</Text>
+              </Pressable>
+            </View>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginRight: isTablet ? 15 : 10,
+                  },
+                ]}
+              >
+                {t("radiographyCalculator.tLimitFor")}
+              </Text>
+              <Pressable
+                onPress={() => openModal("limit", OPTIONS.limits)}
+                style={[
+                  styles.inputContainer,
+                  {
+                    height: isTablet ? 65 : 55,
+                    paddingHorizontal: isTablet ? 15 : 10,
+                    marginBottom: isTablet ? 35 : 30,
+                  },
+                ]}
+              >
+                <Text style={styles.input}>{form.limit}</Text>
+              </Pressable>
+            </View>
+            {/* Material Selection */}
+            <View
               style={{
-                color: "#FFF",
-                fontSize: isTablet ? 22 : 18,
-                fontWeight: "bold",
+                flexDirection: "row",
+                alignItems: "center",
+                width: "93%",
               }}
             >
-              {form.thicknessOrDistance ===
-              t("radiographyCalculator.thicknessOrDistance")
-                ? t("radiographyCalculator.calculateDistance")
-                : t("radiographyCalculator.calculateThickness")}
-            </Text>
-          </Pressable>
-
-          <Modal visible={modal.open} transparent animationType="slide">
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <FlatList
-                  data={modal.options}
-                  keyExtractor={(item) => item}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      onPress={() => handleSelect(modal.field, item)}
-                      style={styles.modalItem}
-                    >
-                      <Text style={styles.modalItemText}>{item}</Text>
-                    </TouchableOpacity>
-                  )}
-                />
-                <Pressable onPress={closeModal} style={styles.modalCloseButton}>
-                  <Text style={styles.modalCloseButtonText}>
-                    {t("radiographyCalculator.buttons.close")}
-                  </Text>
-                </Pressable>
-              </View>
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginRight: isTablet ? 15 : 10,
+                  },
+                ]}
+              >
+                {t("radiographyCalculator.material")}
+              </Text>
+              <Pressable
+                onPress={() => openModal("material", OPTIONS.materials)}
+                style={[
+                  styles.inputContainer,
+                  {
+                    height: isTablet ? 65 : 55,
+                    paddingHorizontal: isTablet ? 15 : 10,
+                    marginBottom: isTablet ? 35 : 30,
+                  },
+                ]}
+              >
+                <Text style={styles.input}>{form.material}</Text>
+              </Pressable>
             </View>
-          </Modal>
-
-          {/* Confirmation Modal for Add/Replace Material */}
-          <Modal
-            visible={confirmModalVisible}
-            transparent
-            animationType="slide"
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <Text style={styles.confirmModalTitle}>
-                  {confirmModalConfig.title}
-                </Text>
-                <Text style={styles.confirmModalMessage}>
-                  {confirmModalConfig.message}
-                </Text>
-                <View style={styles.confirmModalButtons}>
-                  {confirmModalConfig.showCancel && (
-                    <Pressable
-                      style={[
-                        styles.confirmModalButton,
-                        styles.confirmModalCancelButton,
-                      ]}
-                      onPress={() => setConfirmModalVisible(false)}
-                    >
-                      <Text style={styles.confirmModalButtonText}>
-                        {t("radiographyCalculator.buttons.cancel")}
-                      </Text>
-                    </Pressable>
-                  )}
-                  <Pressable
+            {/* NUEVOS CAMPOS PARA MATERIAL "OTRO" */}
+            {showMaterialDetailFields && (
+              <>
+                {/* Fila para el nombre del material */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    width: "93%", // Manteniendo la consistencia
+                    marginTop: 5,
+                    // marginBottom: 10, // Ajusta si es necesario antes de los coeficientes
+                  }}
+                >
+                  <Text
                     style={[
-                      styles.confirmModalButton,
-                      styles.confirmModalActionButton,
+                      styles.label,
+                      {
+                        fontSize: isTablet ? 20 : 18,
+                        marginRight: isTablet ? 15 : 10,
+                      },
                     ]}
-                    onPress={() => {
-                      confirmModalConfig.onConfirm();
-                      setConfirmModalVisible(false);
-                    }}
                   >
-                    <Text style={styles.confirmModalButtonText}>
-                      {t("radiographyCalculator.buttons.confirm")}
+                    {t(
+                      "radiographyCalculator.labels.otherMaterialName",
+                      "Nombre Material",
+                    )}
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.inputContainer,
+                      styles.input,
+                      { flex: 1 }, // Allow TextInput to take available space
+                      currentMaterialKey !== OTHER_MATERIAL_KEY &&
+                        styles.inputDisabled,
+                    ]}
+                    placeholder={t(
+                      "radiographyCalculator.placeholders.otherMaterialName",
+                      "Ej: Plomo Especial",
+                    )}
+                    placeholderTextColor="gray"
+                    value={form.otherMaterialName}
+                    onChangeText={(text) =>
+                      setForm({ ...form, otherMaterialName: text })
+                    }
+                    editable={currentMaterialKey === OTHER_MATERIAL_KEY}
+                  />
+                </View>
+
+                {/* Etiqueta para coeficientes de atenuación */}
+                <Text
+                  style={[
+                    styles.label, // Reutilizando tu estilo de label
+                    {
+                      width: "93%",
+                      textAlign: "left",
+                      marginTop: 15,
+                      marginBottom: 10,
+                      fontSize: 16,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
+                  {t(
+                    "radiographyCalculator.labels.attenuationFor",
+                    "Coeficiente de atenuación para:",
+                  )}
+                </Text>
+
+                {/* Fila para los inputs de coeficientes de atenuación */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    width: "93%",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    // marginBottom: 15, // Espacio antes del botón +/- si va después
+                  }}
+                >
+                  {/* Input para 192Ir */}
+                  <View
+                    style={{ flex: 1, marginRight: 5, alignItems: "center" }}
+                  >
+                    <Text
+                      style={[
+                        styles.label,
+                        { marginBottom: 2, fontSize: 16, minWidth: "auto" },
+                      ]}
+                    >
+                      192Ir
+                    </Text>
+                    <TextInput
+                      style={[
+                        styles.inputContainer,
+                        styles.input,
+                        { flex: undefined, width: "100%" }, // Quita marginBottom: 20 de aquí si el botón +/- va después de esta fila
+                        currentMaterialKey !== OTHER_MATERIAL_KEY &&
+                          styles.inputDisabled,
+                      ]}
+                      placeholder={placeholderIrText} // Usando tu lógica de placeholder
+                      placeholderTextColor="gray"
+                      keyboardType="numeric"
+                      value={form.attenuationIr}
+                      onChangeText={(text) =>
+                        setForm({ ...form, attenuationIr: text })
+                      }
+                      editable={currentMaterialKey === OTHER_MATERIAL_KEY}
+                    />
+                    <Text style={styles.attenuationUnitText}>μ (Ir)</Text>
+                  </View>
+
+                  {/* Input para 75Se */}
+                  <View
+                    style={{ flex: 1, marginLeft: 5, alignItems: "center" }}
+                  >
+                    <Text
+                      style={[
+                        styles.label,
+                        { marginBottom: 2, fontSize: 16, minWidth: "auto" },
+                      ]}
+                    >
+                      75Se
+                    </Text>
+                    <TextInput
+                      style={[
+                        styles.inputContainer,
+                        styles.input,
+                        { flex: undefined, width: "100%" }, // Quita marginBottom: 20
+                        currentMaterialKey !== OTHER_MATERIAL_KEY &&
+                          styles.inputDisabled,
+                      ]}
+                      placeholder={placeholderSeText} // Usando tu lógica de placeholder
+                      placeholderTextColor="gray"
+                      keyboardType="numeric"
+                      value={form.attenuationSe}
+                      onChangeText={(text) =>
+                        setForm({ ...form, attenuationSe: text })
+                      }
+                      editable={currentMaterialKey === OTHER_MATERIAL_KEY}
+                    />
+                    <Text style={styles.attenuationUnitText}>μ (Se)</Text>
+                  </View>
+                </View>
+
+                {/* ÁREA PARA LOS BOTONES DE AGREGAR (+) O ELIMINAR (-) */}
+                {/* El contenedor addMaterialButtonContainer se usa para ambos para la misma ubicación/estilo */}
+                {showAddMaterialButton ? (
+                  <View style={styles.addMaterialButtonContainer}>
+                    <Pressable
+                      onPress={handleAddOrUpdateCustomMaterial}
+                      style={styles.addMaterialButton} // Tu estilo existente para el botón "+"
+                    >
+                      <Text style={styles.addMaterialButtonText}>+</Text>
+                    </Pressable>
+                  </View>
+                ) : isCustomMaterialSelected ? (
+                  <View style={styles.addMaterialButtonContainer}>
+                    <Pressable
+                      onPress={onPressDeleteButton}
+                      style={[
+                        styles.addMaterialButton,
+                        styles.deleteActionButton,
+                      ]} // Reutiliza estilo base y aplica color de borrado
+                    >
+                      <Text style={styles.addMaterialButtonText}>-</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+              </>
+            )}
+
+            {/* Descriptive text for Thickness/Distance input */}
+            <View style={styles.descriptionContainer}>
+              <Text style={styles.descriptionText}>
+                {form.thicknessOrDistance ===
+                t("radiographyCalculator.thicknessOrDistance")
+                  ? t("radiographyCalculator.descriptionForThicknessInput")
+                  : t("radiographyCalculator.descriptionForDistanceInput")}
+              </Text>
+            </View>
+            <View
+              style={{
+                width: "93%",
+                flexDirection: "row",
+                justifyContent: "center",
+              }}
+            >
+              <Pressable
+                onPress={() =>
+                  setForm((prevForm) => {
+                    const currentModeIsCalcDistance =
+                      prevForm.thicknessOrDistance ===
+                      t("radiographyCalculator.thicknessOrDistance");
+                    const newModeWillBeCalcDistance =
+                      !currentModeIsCalcDistance;
+
+                    let newValue = prevForm.value;
+                    const materialIsNone =
+                      Object.keys(combinedMaterialMap).find(
+                        (key) => combinedMaterialMap[key] === prevForm.material,
+                      ) === WITHOUT_MATERIAL_KEY;
+
+                    if (newModeWillBeCalcDistance && materialIsNone) {
+                      newValue = "";
+                    }
+                    return {
+                      ...prevForm,
+                      value: newValue,
+                      thicknessOrDistance: newModeWillBeCalcDistance
+                        ? t("radiographyCalculator.thicknessOrDistance")
+                        : t("radiographyCalculator.distance"),
+                    };
+                  })
+                }
+                style={[
+                  styles.switchButton,
+                  {
+                    height: isTablet ? 65 : 55,
+                    paddingHorizontal: isTablet ? 15 : 10,
+                    marginBottom: isTablet ? 35 : 30,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.label,
+                    {
+                      fontSize: isTablet ? 20 : 18,
+                      marginRight: isTablet ? 15 : 10,
+                    },
+                  ]}
+                >
+                  {form.thicknessOrDistance}
+                </Text>
+              </Pressable>
+              <TextInput
+                style={[
+                  styles.inputContainer,
+                  {
+                    height: isTablet ? 65 : 55,
+                    paddingHorizontal: isTablet ? 15 : 10,
+                    marginBottom: isTablet ? 35 : 30,
+                  },
+                  styles.input,
+                  !isValueEditable && styles.inputDisabled,
+                ]}
+                placeholder={t("radiographyCalculator.value", {
+                  unit:
+                    form.thicknessOrDistance ===
+                    t("radiographyCalculator.thicknessOrDistance")
+                      ? "mm"
+                      : "m",
+                })}
+                placeholderTextColor={"gray"}
+                keyboardType="numeric"
+                value={form.value}
+                onChangeText={(text) => setForm({ ...form, value: text })}
+                editable={isValueEditable}
+              />
+            </View>
+
+            <Pressable
+              style={[
+                styles.button,
+                { height: isTablet ? 70 : 55, width: isTablet ? "85%" : "90%" },
+              ]}
+              onPress={calculateAndNavigate}
+            >
+              <Text
+                style={{
+                  color: "#FFF",
+                  fontSize: isTablet ? 22 : 18,
+                  fontWeight: "bold",
+                }}
+              >
+                {form.thicknessOrDistance ===
+                t("radiographyCalculator.thicknessOrDistance")
+                  ? t("radiographyCalculator.calculateDistance")
+                  : t("radiographyCalculator.calculateThickness")}
+              </Text>
+            </Pressable>
+
+            {/* Modal para Mostrar Fórmulas */}
+            <Modal
+              visible={formulasModalVisible}
+              transparent
+              animationType="slide"
+              onRequestClose={closeFormulasModal}
+            >
+              <View style={styles.modalOverlay}>
+                <View
+                  style={[styles.modalContent, styles.formulasModalContent]}
+                >
+                  <ScrollView>
+                    <Text style={styles.formulasModalTitle}>
+                      {t(
+                        "radiographyCalculator.formulas.title",
+                        "Fórmulas Utilizadas en los Cálculos",
+                      )}
+                    </Text>
+
+                    {/* Fórmula de Tasa de Dosis (NUEVA SECCIÓN) */}
+                    <Text style={styles.formulaSectionTitle}>
+                      {t(
+                        "radiographyCalculator.formulas.doseRateTitle", // Nueva traducción
+                        "1. Cálculo de Tasa de Dosis (T):",
+                      )}
+                    </Text>
+                    <Image
+                      source={require("../../assets/formula-rate.png")} // <-- NECESITAS ESTA IMAGEN
+                      style={styles.formulaImage}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.variableExplanationTitle}>
+                      {t("radiographyCalculator.formulas.variables", "Donde:")}
+                    </Text>
+                    <Text style={styles.variableExplanation}>
+                      • <Text style={styles.variableSymbol}>T</Text>:{" "}
+                      {t(
+                        "radiographyCalculator.formulas.T_desc_doseRate", // Nueva traducción
+                        "Tasa de Dosis resultante (mSv/h).",
+                      )}{" "}
+                      {"\n"}• <Text style={styles.variableSymbol}>Γ</Text>{" "}
+                      (Gamma): {t("radiographyCalculator.formulas.Gamma_desc")}{" "}
+                      {"\n"}• <Text style={styles.variableSymbol}>A</Text>:{" "}
+                      {t("radiographyCalculator.formulas.A_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>d</Text>:{" "}
+                      {t(
+                        // Reutilizamos d_desc pero podría ser específico si el contexto cambia mucho
+                        "radiographyCalculator.formulas.d_desc_doseRate",
+                        "Distancia desde la fuente (metros).",
+                      )}{" "}
+                      {"\n"}• <Text style={styles.variableSymbol}>1000</Text>:{" "}
+                      {t("radiographyCalculator.formulas.factor1000_desc")}{" "}
+                      {"\n"}• <Text style={styles.variableSymbol}>e</Text>:{" "}
+                      {t("radiographyCalculator.formulas.e_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>μ</Text> (mu):{" "}
+                      {t("radiographyCalculator.formulas.mu_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>X</Text>:{" "}
+                      {t(
+                        // Reutilizamos X_desc_distance pero podría ser específico
+                        "radiographyCalculator.formulas.X_desc_doseRate",
+                        "Espesor del blindaje (metros).",
+                      )}{" "}
+                      {"\n"}• <Text style={styles.variableSymbol}>Y</Text>:{" "}
+                      {t("radiographyCalculator.formulas.Y_desc")}
+                    </Text>
+
+                    {/* Fórmula de Distancia (Ahora #2) */}
+                    <Text style={styles.formulaSectionTitle}>
+                      {t(
+                        "radiographyCalculator.formulas.distanceTitle", // Actualizar el número en la traducción si es necesario
+                        "2. Cálculo de Distancia (d):",
+                      )}
+                    </Text>
+                    <Image
+                      source={require("../../assets/formula-distance.png")}
+                      style={styles.formulaImage}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.variableExplanationTitle}>
+                      {t("radiographyCalculator.formulas.variables", "Donde:")}
+                    </Text>
+                    <Text style={styles.variableExplanation}>
+                      • <Text style={styles.variableSymbol}>d</Text>:{" "}
+                      {t("radiographyCalculator.formulas.d_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>Γ</Text> (Gamma):{" "}
+                      {t("radiographyCalculator.formulas.Gamma_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>A</Text>:{" "}
+                      {t("radiographyCalculator.formulas.A_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>1000</Text>:{" "}
+                      {t("radiographyCalculator.formulas.factor1000_desc")}{" "}
+                      {"\n"}• <Text style={styles.variableSymbol}>e</Text>:{" "}
+                      {t("radiographyCalculator.formulas.e_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>μ</Text> (mu):{" "}
+                      {t("radiographyCalculator.formulas.mu_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>X</Text>:{" "}
+                      {t("radiographyCalculator.formulas.X_desc_distance")}{" "}
+                      {"\n"}• <Text style={styles.variableSymbol}>T</Text>:{" "}
+                      {t("radiographyCalculator.formulas.T_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>Y</Text>:{" "}
+                      {t("radiographyCalculator.formulas.Y_desc")}
+                    </Text>
+
+                    {/* Fórmula de Espesor (Ahora #3) */}
+                    <Text style={styles.formulaSectionTitle}>
+                      {t(
+                        "radiographyCalculator.formulas.thicknessTitle", // Actualizar el número en la traducción si es necesario
+                        "3. Cálculo de Espesor (Xm):",
+                      )}
+                    </Text>
+                    <Image
+                      source={require("../../assets/formula-thickness.png")}
+                      style={styles.formulaImage}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.variableExplanationTitle}>
+                      {t("radiographyCalculator.formulas.variables", "Donde:")}
+                    </Text>
+                    <Text style={styles.variableExplanation}>
+                      • <Text style={styles.variableSymbol}>Xm</Text>:{" "}
+                      {t("radiographyCalculator.formulas.Xm_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>μ</Text> (mu):{" "}
+                      {t("radiographyCalculator.formulas.mu_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>ln</Text>:{" "}
+                      {t("radiographyCalculator.formulas.ln_desc")} {"\n"}•{" "}
+                      <Text style={styles.variableSymbol}>
+                        Γ, A, 1000, T, Y
+                      </Text>
+                      : {t("radiographyCalculator.formulas.sameAsAbove")} {"\n"}
+                      • <Text style={styles.variableSymbol}>d</Text>:{" "}
+                      {t("radiographyCalculator.formulas.d_desc_thickness")}
+                    </Text>
+                    <Text style={styles.noteText}>
+                      {t(
+                        "radiographyCalculator.formulas.noteUnits",
+                        "Nota: Las unidades se convierten internamente para consistencia en los cálculos. (ej. Ci a GBq, cm⁻¹ a m⁻¹, mm a m).",
+                      )}
+                    </Text>
+                  </ScrollView>
+                  <Pressable
+                    onPress={closeFormulasModal}
+                    style={styles.modalCloseButton}
+                  >
+                    <Text style={styles.modalCloseButtonText}>
+                      {t("radiographyCalculator.buttons.close", "Cerrar")}
                     </Text>
                   </Pressable>
                 </View>
               </View>
-            </View>
-          </Modal>
-        </ScrollView>
+            </Modal>
+
+            <Modal visible={modal.open} transparent animationType="slide">
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <FlatList
+                    data={modal.options}
+                    keyExtractor={(item) => item}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        onPress={() => handleSelect(modal.field, item)}
+                        style={styles.modalItem}
+                      >
+                        <Text style={styles.modalItemText}>{item}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                  <Pressable
+                    onPress={closeModal}
+                    style={styles.modalCloseButton}
+                  >
+                    <Text style={styles.modalCloseButtonText}>
+                      {t("radiographyCalculator.buttons.close")}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            </Modal>
+
+            {/* Confirmation Modal for Add/Replace Material */}
+            <Modal
+              visible={confirmModalVisible}
+              transparent
+              animationType="slide"
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.confirmModalTitle}>
+                    {confirmModalConfig.title}
+                  </Text>
+                  <Text style={styles.confirmModalMessage}>
+                    {confirmModalConfig.message}
+                  </Text>
+                  <View style={styles.confirmModalButtons}>
+                    {confirmModalConfig.showCancel && (
+                      <Pressable
+                        style={[
+                          styles.confirmModalButton,
+                          styles.confirmModalCancelButton,
+                        ]}
+                        onPress={() => setConfirmModalVisible(false)}
+                      >
+                        <Text style={styles.confirmModalButtonText}>
+                          {t("radiographyCalculator.buttons.cancel")}
+                        </Text>
+                      </Pressable>
+                    )}
+                    <Pressable
+                      style={[
+                        styles.confirmModalButton,
+                        styles.confirmModalActionButton,
+                      ]}
+                      onPress={() => {
+                        confirmModalConfig.onConfirm();
+                        setConfirmModalVisible(false);
+                      }}
+                    >
+                      <Text style={styles.confirmModalButtonText}>
+                        {t("radiographyCalculator.buttons.confirm")}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          </ScrollView>
+          <TouchableOpacity
+            style={styles.fixedTopRightHelpButton} // Un nuevo estilo para este botón
+            onPress={() => setFormulasModalVisible(true)} // Asumo que este es el modal que quieres abrir
+          >
+            <Ionicons
+              name="help-circle-outline"
+              size={isTablet ? 30 : 28} // Puedes ajustar el tamaño
+              color="#006892"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View
@@ -1882,5 +2068,76 @@ const styles = {
   },
   deleteActionButton: {
     backgroundColor: "#DC3545", // Simplemente cambia el color de fondo
+  },
+
+  formulasModalContent: {
+    // Para hacer el modal de fórmulas un poco más grande
+    width: "90%",
+    maxHeight: "85%",
+  },
+  formulasModalTitle: {
+    fontSize: isTablet ? 22 : 18,
+    fontWeight: "bold",
+    color: "#333",
+    textAlign: "center",
+    marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    paddingBottom: 10,
+  },
+  formulaSectionTitle: {
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: "600", // Un poco menos que 'bold'
+    color: "#005A85",
+    marginTop: 15,
+    marginBottom: 8,
+  },
+  formulaImage: {
+    width: "100%",
+    height: isTablet ? 80 : 60, // Ajusta según el tamaño de tus imágenes
+    marginBottom: 10,
+    alignSelf: "center",
+  },
+  variableExplanationTitle: {
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: "600",
+    color: "#333",
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  variableExplanation: {
+    fontSize: isTablet ? 15 : 13,
+    color: "#454545",
+    lineHeight: isTablet ? 22 : 18,
+    marginBottom: 15,
+  },
+  variableSymbol: {
+    fontWeight: "bold",
+    fontStyle: "italic", // Para que se parezcan más a variables
+  },
+  noteText: {
+    fontSize: isTablet ? 13 : 11,
+    fontStyle: "italic",
+    color: "#6c757d",
+    marginTop: 10,
+    textAlign: "center",
+  },
+  fixedTopRightHelpButton: {
+    position: "absolute", // Clave para el posicionamiento flotante
+    top: 15, // Distancia desde la parte superior del contenedor padre
+    right: 15, // Distancia desde la parte derecha del contenedor padre
+    backgroundColor: "rgba(255, 255, 255, 0.8)", // Fondo semi-transparente para legibilidad
+    padding: 8,
+    borderRadius: 50, // Para hacerlo circular
+    zIndex: 10, // Para asegurar que esté por encima del contenido del ScrollView
+    // Sombras (opcional pero recomendado para botones flotantes)
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5, // Para Android
   },
 };
