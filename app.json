@@ -50,7 +50,8 @@
       ],
       "expo-localization",
       "expo-asset",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-audio"
     ],
     "extra": {
       "router": {

@@ -785,6 +785,21 @@
     "warningTitle": "Warning",
     "goBack": "Go Back",
     "loading": "Loading..."
+  },
+  "timer": {
+    "time_up_title": "Time's Up!",
+    "time_up_message": "The countdown has finished.",
+    "error_invalid_time": "Please set a valid duration greater than zero.",
+    "screen_title": "Timer",
+    "set_duration_title": "Set Duration",
+    "hours_short": "HH",
+    "minutes_short": "MM",
+    "seconds_short": "SS",
+    "set_time_button": "Set Time",
+    "from_time": "from {{time}}",
+    "reset_button": "Reset",
+    "pause_button": "Pause",
+    "play_button": "Play"
   }
   
 }

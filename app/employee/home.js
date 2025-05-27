@@ -61,6 +61,7 @@ export default function Home() {
   const handleMyAgenda = () => router.push("/employee/myAgenda");
   const handleCalculation = () => router.push("/employee/calculation");
   const handleSettings = () => router.push("/employee/settings");
+  const handleTimer = () => router.push("/employee/timer");
 
   return (
     <LinearGradient
@@ -108,7 +109,7 @@ export default function Home() {
         </Pressable>
         <Pressable
           onPress={handleCalculation} // Add onPress handler
-          style={[styles.actionButton, styles.lastActionButton]} // Use StyleSheet, remove bottom margin
+          style={[styles.actionButton]} // Use StyleSheet, remove bottom margin
         >
           <Image
             source={require("../../assets/calculation.png")}
@@ -118,6 +119,21 @@ export default function Home() {
             <Text style={styles.actionButtonText}>
               {/* Use StyleSheet */}
               {t("radiographyCalculator.buttonTitle")}
+            </Text>
+          </View>
+        </Pressable>
+        <Pressable
+          onPress={handleTimer} // Add onPress handler
+          style={[styles.actionButton, styles.lastActionButton]} // Use StyleSheet, remove bottom margin
+        >
+          <Image
+            source={require("../../assets/temporizador.png")}
+            style={styles.actionButtonIcon} // Use StyleSheet
+          />
+          <View style={styles.actionButtonTextContainer}>
+            <Text style={styles.actionButtonText}>
+              {/* Use StyleSheet */}
+              {t("timer.screen_title")}
             </Text>
           </View>
         </Pressable>

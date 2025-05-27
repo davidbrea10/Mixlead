@@ -767,6 +767,22 @@
     "warningTitle": "Advertencia",
     "goBack": "Volver",
     "loading": "Cargando..."
+  },
+
+  "timer": {
+    "time_up_title": "¡Tiempo Terminado!",
+    "time_up_message": "La cuenta atrás ha finalizado.",
+    "error_invalid_time": "Por favor, establece una duración válida mayor que cero.",
+    "screen_title": "Temporizador",
+    "set_duration_title": "Configurar Duración",
+    "hours_short": "HH",
+    "minutes_short": "MM",
+    "seconds_short": "SS",
+    "set_time_button": "Establecer Tiempo",
+    "from_time": "de {{time}}",
+    "reset_button": "Reiniciar",
+    "pause_button": "Pausar",
+    "play_button": "Iniciar"
   }
 }
   

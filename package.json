@@ -59,7 +59,9 @@
     "expo-notifications": "~0.31.2",
     "expo-screen-orientation": "~8.1.6",
     "expo-local-authentication": "~16.0.4",
-    "expo-secure-store": "~14.2.3"
+    "expo-secure-store": "~14.2.3",
+    "expo-av": "~15.1.4",
+    "expo-audio": "~0.4.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
