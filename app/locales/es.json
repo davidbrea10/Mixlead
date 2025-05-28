@@ -812,6 +812,9 @@
     "reset_button": "Reiniciar",
     "pause_button": "Pausar",
     "play_button": "Iniciar"
-  }
+  },
+  "biometric_prompt": "Autenticación Requerida",
+  "cancel": "Cancelar",
+  "biometric_failed": "La autenticación biométrica falló."
 }
   

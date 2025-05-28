@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { collectionGroup, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../firebase/config";
@@ -21,6 +21,8 @@ import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import i18n from "../locales/i18n";
 import Toast from "react-native-toast-message";
+import * as LocalAuthentication from "expo-local-authentication";
+import * as SecureStore from "expo-secure-store";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const isTablet = SCREEN_WIDTH >= 700;
@@ -31,6 +33,59 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+
+  // Reemplaza tu useEffect actual por este
+  useEffect(() => {
+    const debugBiometrics = async () => {
+      console.log("--- [Depuración Biométrica] ---");
+
+      // 1. Comprobación de hardware
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      console.log(
+        `[Depuración Biométrica] 1. ¿El hardware es compatible?: ${compatible}`,
+      );
+
+      // 2. Comprobación de huellas/caras registradas en el dispositivo
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      console.log(
+        `[Depuración Biométrica] 2. ¿Hay huellas/caras registradas en el móvil?: ${enrolled}`,
+      );
+
+      // 3. Comprobación de credenciales guardadas en la app
+      const savedEmail = await SecureStore.getItemAsync("savedEmail");
+      console.log(
+        `[Depuración Biométrica] 3. ¿Hay credenciales guardadas en la app?: ${savedEmail ? `Sí (${savedEmail})` : "No"}`,
+      );
+
+      // 4. Decisión final
+      if (compatible && enrolled && savedEmail) {
+        console.log(
+          "[Depuración Biométrica] ✅ Todas las condiciones se cumplen. El botón debería mostrarse.",
+        );
+        setIsBiometricSupported(true);
+      } else {
+        console.log(
+          "[Depuración Biométrica] ❌ Una o más condiciones fallaron. El botón permanecerá oculto.",
+        );
+        if (!compatible)
+          console.log(
+            "--> Causa: La librería no detecta el hardware biométrico.",
+          );
+        if (!enrolled)
+          console.log(
+            "--> Causa: El móvil no tiene ninguna huella/cara configurada en sus ajustes.",
+          );
+        if (!savedEmail)
+          console.log(
+            "--> Causa: Aún no has iniciado sesión una vez con contraseña para guardar las credenciales.",
+          );
+      }
+      console.log("--- [Fin Depuración Biométrica] ---");
+    };
+
+    debugBiometrics();
+  }, []);
 
   const flag =
     i18n.language === "es"
@@ -112,12 +167,24 @@ export default function Login() {
         });
 
         // Redirigir según el rol (sin cambios)
-        if (userRole === "admin") {
-          router.replace("/admin/home");
-        } else if (userRole === "coordinator") {
-          router.replace("/coordinator/home");
-        } else {
-          router.replace("/employee/home");
+        if (
+          userRole === "admin" ||
+          userRole === "coordinator" ||
+          userRole === "employee"
+        ) {
+          // Guarda las credenciales solo si el login fue exitoso
+          await SecureStore.setItemAsync("savedEmail", email);
+          await SecureStore.setItemAsync("savedPassword", password);
+          console.log("Credentials saved for biometric login.");
+
+          // Redirección (sin cambios)
+          if (userRole === "admin") {
+            router.replace("/admin/home");
+          } else if (userRole === "coordinator") {
+            router.replace("/coordinator/home");
+          } else {
+            router.replace("/employee/home");
+          }
         }
       } else {
         // Autenticado, pero no se encontró el documento en Firestore con ese email
@@ -156,6 +223,64 @@ export default function Login() {
         text1: t("error_title"),
         text2: errorMessage,
         visibilityTime: 4000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    try {
+      // 1. Muestra el diálogo de autenticación biométrica
+      const biometricAuth = await LocalAuthentication.authenticateAsync({
+        promptMessage: t("biometric_prompt"), // Añade esta traducción
+        disableDeviceFallback: true, // No permite usar el PIN del dispositivo
+        cancelLabel: t("cancel"), // Añade esta traducción
+      });
+
+      // 2. Si la autenticación es exitosa
+      if (biometricAuth.success) {
+        setLoading(true);
+        // Recupera las credenciales guardadas
+        const savedEmail = await SecureStore.getItemAsync("savedEmail");
+        const savedPassword = await SecureStore.getItemAsync("savedPassword");
+
+        if (savedEmail && savedPassword) {
+          // Inicia sesión con las credenciales recuperadas
+          // (Esta es la misma lógica que en handleLogin)
+          const userCredential = await signInWithEmailAndPassword(
+            auth,
+            savedEmail,
+            savedPassword,
+          );
+          const userDoc = (
+            await getDocs(
+              query(
+                collectionGroup(db, "employees"),
+                where("email", "==", savedEmail),
+              ),
+            )
+          ).docs[0];
+          const userRole = userDoc.data().role;
+
+          Toast.show({
+            type: "success",
+            text1: t("success_title"),
+            text2: t("login_successful"),
+          });
+
+          if (userRole === "admin") router.replace("/admin/home");
+          else if (userRole === "coordinator")
+            router.replace("/coordinator/home");
+          else router.replace("/employee/home");
+        }
+      }
+    } catch (error) {
+      console.error("Biometric login error:", error);
+      Toast.show({
+        type: "error",
+        text1: t("error_title"),
+        text2: t("biometric_failed"),
       });
     } finally {
       setLoading(false);
@@ -269,26 +394,44 @@ export default function Login() {
           </View>
 
           {/* Sign In Button */}
-          <Pressable
-            onPress={handleLogin}
-            disabled={loading}
-            style={({ pressed }) => [
-              styles.signInButtonBase,
-              loading && styles.signInButtonLoading,
-              pressed && !loading && styles.signInButtonPressed,
-            ]}
-          >
-            {loading ? (
-              <ActivityIndicator
-                size="small"
-                color="#fff"
-                style={styles.spinner}
-              />
-            ) : null}
-            <Text style={styles.signInButtonText}>
-              {loading ? t("signing_in") : t("sign_in")}
-            </Text>
-          </Pressable>
+          <View style={styles.signInContainer}>
+            <Pressable
+              onPress={handleLogin}
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.signInButtonBase,
+                isBiometricSupported && styles.signInButtonWithBiometric, // Estilo para hacer espacio
+                loading && styles.signInButtonLoading,
+                pressed && !loading && styles.signInButtonPressed,
+              ]}
+            >
+              {loading && !isBiometricSupported ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#fff"
+                  style={styles.spinner}
+                />
+              ) : null}
+              <Text style={styles.signInButtonText}>
+                {loading ? t("signing_in") : t("sign_in")}
+              </Text>
+            </Pressable>
+
+            {/* --- BOTÓN BIOMÉTRICO --- */}
+            {isBiometricSupported && (
+              <TouchableOpacity
+                onPress={handleBiometricLogin}
+                disabled={loading}
+                style={styles.biometricButton}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#006892" />
+                ) : (
+                  <Ionicons name="finger-print" size={32} color="#006892" />
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Register Link */}
           <View style={styles.registerContainer}>
@@ -386,14 +529,20 @@ const styles = StyleSheet.create({
   },
   recoverPasswordText: { color: "gray", fontSize: 16 },
 
-  signInButtonBase: {
+  signInContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     width: "100%",
+    marginTop: 10,
+  },
+
+  signInButtonBase: {
     height: 55,
+    flex: 1, // Ocupa el espacio disponible
     backgroundColor: "#006892",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 10,
-    marginTop: 10,
     flexDirection: "row",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
@@ -414,4 +563,20 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   registerLink: { color: "#006892", fontWeight: "bold" },
+
+  signInButtonWithBiometric: {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  biometricButton: {
+    width: 60,
+    height: 55,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#006892",
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
+  },
 });

@@ -24,6 +24,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { Ionicons } from "@expo/vector-icons";
+import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get("window");
 
@@ -48,6 +49,10 @@ export default function Home() {
     setIsLogoutModalVisible(false); // Cierra el modal primero
     try {
       await signOut(auth); // Cierra sesión en Firebase
+
+      await SecureStore.deleteItemAsync("savedEmail");
+      await SecureStore.deleteItemAsync("savedPassword");
+      console.log("Saved credentials deleted on logout.");
       // Optional: Show success toast
       Toast.show({
         type: "success",

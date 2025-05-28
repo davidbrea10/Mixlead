@@ -826,7 +826,9 @@
     "reset_button": "Reset",
     "pause_button": "Pause",
     "play_button": "Play"
-  }
-  
+  },
+  "biometric_prompt": "Authentication Required",
+  "cancel": "Cancel",
+  "biometric_failed": "Biometric authentication failed."
 }
   
