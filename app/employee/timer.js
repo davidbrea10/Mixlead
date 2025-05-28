@@ -657,10 +657,12 @@ export default function TimerScreen() {
                 style={styles.controlButton}
                 onPress={handleCancelReset}
               >
-                <Ionicons
-                  name="stop-circle-outline"
-                  size={isTablet ? 80 : 70}
-                  color="#FF6347"
+                <Image
+                  source={require("../../assets/reiniciar.png")}
+                  style={{
+                    width: isTablet ? 80 : 70,
+                    height: isTablet ? 80 : 70,
+                  }}
                 />
                 <Text style={styles.controlButtonText}>
                   {t("timer.reset_button", "Reiniciar")}
@@ -670,12 +672,16 @@ export default function TimerScreen() {
                 style={styles.controlButton}
                 onPress={handlePlayPause}
               >
-                <Ionicons
-                  name={
-                    isActive ? "pause-circle-outline" : "play-circle-outline"
+                <Image
+                  source={
+                    isActive
+                      ? require("../../assets/pausar.png")
+                      : require("../../assets/iniciar.png")
                   }
-                  size={isTablet ? 80 : 70}
-                  color="#007AFF"
+                  style={{
+                    width: isTablet ? 80 : 70,
+                    height: isTablet ? 80 : 70,
+                  }}
                 />
                 <Text style={styles.controlButtonText}>
                   {isActive
@@ -759,7 +765,7 @@ export default function TimerScreen() {
                 />
               </View>
               <Text style={styles.label}>
-                {t("home.modal.startTime", "Hora Inicio")}{" "}
+                {t("home.modal.startTime", "Hora Inicio")}
                 <Text style={styles.optionalText}>
                   {t("home.modal.optional", "(Opcional)")}
                 </Text>

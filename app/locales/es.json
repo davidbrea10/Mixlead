@@ -505,6 +505,26 @@
   },
 
   "home": {
+    "doseWarning": {
+      "title": "Atención: Límite de Dosis",
+      "close": "Entendido",
+      "errorTitle": "Error de Dosis",
+      "errorMessage": "No se pudieron verificar los límites de dosis.",
+      "yearlyMessage": "Anual: Llevas {{currentDose}} mSv de un límite de {{limitDose}} mSv.",
+      "monthlyMessage": "Mensual: Llevas {{currentDose}} mSv de un límite de {{limitDose}} mSv.",
+      "dailyMessage": "Diario: Llevas {{currentDose}} μSv de un límite de {{limitDose}} μSv."
+    },
+
+    "helpModal": {
+      "title": "Límites de Dosis para Trabajadores Expuestos",
+      "fiveYearLimit": "▪ Por período de 5 años consecutivos: 100 mSv",
+      "yearlyLimit": "▪ Por año: 20 mSv",
+      "monthlyLimit": "▪ Por mes: 1,67 mSv",
+      "dailyLimit": "▪ Por día laborable (250 días/año): 0,08 mSv = 80 µSv",
+      "hourlyLimit": "▪ Por hora (1800 horas/año): 0,011 mSv = 11 µSv",
+      "closeButton": "Cerrar"
+    },
+     
     "yearPlaceholder": "Seleccionar Año",
     "header": {
       "title": "Mi Agenda",

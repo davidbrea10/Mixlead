@@ -506,6 +506,24 @@
   },
 
   "home": {
+     "doseWarning": {
+      "title": "Attention: Dose Limit",
+      "close": "Got It",
+      "errorTitle": "Dose Error",
+      "errorMessage": "Could not verify dose limits.",
+      "yearlyMessage": "Yearly: You have accumulated {{currentDose}} mSv of a {{limitDose}} mSv limit.",
+      "monthlyMessage": "Monthly: You have accumulated {{currentDose}} mSv of a {{limitDose}} mSv limit.",
+      "dailyMessage": "Daily: You have accumulated {{currentDose}} μSv of a {{limitDose}} μSv limit."
+    },
+    "helpModal": {
+      "title": "Dose Limits for Exposed Workers",
+      "fiveYearLimit": "▪ Per 5 consecutive years: 100 mSv",
+      "yearlyLimit": "▪ Per year: 20 mSv",
+      "monthlyLimit": "▪ Per month: 1.67 mSv",
+      "dailyLimit": "▪ Per workday (250 days/year): 0.08 mSv = 80 µSv",
+      "hourlyLimit": "▪ Per hour (1800 hours/year): 0.011 mSv = 11 µSv",
+      "closeButton": "Close"
+    },
     "yearPlaceholder": "Select Year",
     "header": {
       "title": "My Agenda",

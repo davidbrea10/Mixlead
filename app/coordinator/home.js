@@ -15,7 +15,16 @@ import { auth } from "../../firebase/config"; // Importa la configuración de Fi
 import { signOut } from "firebase/auth";
 import { useTranslation } from "react-i18next"; // Import i18n hook
 import Toast from "react-native-toast-message"; // Import Toast
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  collectionGroup,
+} from "firebase/firestore";
+import { db } from "../../firebase/config";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 
@@ -26,6 +35,11 @@ export default function Home() {
   const router = useRouter();
 
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+
+  const [isWarningModalVisible, setIsWarningModalVisible] = useState(false);
+  const [warningMessages, setWarningMessages] = useState([]);
+
+  const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
 
   const handleLogout = () => {
     setIsLogoutModalVisible(true); // <-- Solo abre el modal
@@ -63,6 +77,126 @@ export default function Home() {
       });
     }
   };
+
+  useEffect(() => {
+    const checkDoseLimits = async () => {
+      const user = auth.currentUser;
+      if (!user) return; // No hacer nada si no hay usuario
+
+      // --- Definir límites y umbral de aviso (80%) ---
+      const limits = {
+        year: 20, // mSv
+        month: 1.67, // mSv
+        day: 80, // μSv
+      };
+      const WARNING_THRESHOLD = 0.8; // 80%
+
+      try {
+        // 1. Encontrar el companyId del empleado
+        const employeesRef = collectionGroup(db, "employees");
+        const q = query(employeesRef, where("email", "==", user.email));
+        const employeeSnapshot = await getDocs(q);
+
+        if (employeeSnapshot.empty) {
+          console.log("Documento de empleado no encontrado.");
+          return;
+        }
+        const employeeData = employeeSnapshot.docs[0].data();
+        const companyId = employeeData.companyId;
+
+        if (!companyId) {
+          console.log("El empleado no tiene companyId.");
+          return;
+        }
+
+        // 2. Obtener dosis del año, mes y día actual
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+        const currentDay = today.getDate();
+
+        const dosesRef = collection(
+          db,
+          "companies",
+          companyId,
+          "employees",
+          user.uid,
+          "doses",
+        );
+
+        const yearQuery = query(dosesRef, where("year", "==", currentYear));
+        const yearDosesSnap = await getDocs(yearQuery);
+        let totalYearlyDose = 0;
+        yearDosesSnap.forEach((doc) => {
+          totalYearlyDose += doc.data().dose;
+        });
+
+        // Filtramos en el cliente para el mes y día para ahorrar lecturas
+        let totalMonthlyDose = 0;
+        let totalDailyDose = 0;
+        yearDosesSnap.docs.forEach((doc) => {
+          const doseData = doc.data();
+          if (doseData.month === currentMonth) {
+            totalMonthlyDose += doseData.dose;
+            if (doseData.day === currentDay) {
+              totalDailyDose += doseData.dose;
+            }
+          }
+        });
+
+        // 3. Comprobar límites y generar mensajes
+        const messages = [];
+
+        // Comprobación Anual
+        if (totalYearlyDose / 1000 >= limits.year * WARNING_THRESHOLD) {
+          messages.push(
+            t("home.doseWarning.yearlyMessage", {
+              // Clave de traducción
+              currentDose: (totalYearlyDose / 1000).toFixed(3), // Variable para el valor actual
+              limitDose: limits.year, // Variable para el límite
+            }),
+          );
+        }
+
+        // Comprobación Mensual
+        if (totalMonthlyDose / 1000 >= limits.month * WARNING_THRESHOLD) {
+          messages.push(
+            t("home.doseWarning.monthlyMessage", {
+              // Clave de traducción
+              currentDose: (totalMonthlyDose / 1000).toFixed(3),
+              limitDose: limits.month,
+            }),
+          );
+        }
+
+        // Comprobación Diaria
+        if (totalDailyDose >= limits.day * WARNING_THRESHOLD) {
+          messages.push(
+            t("home.doseWarning.dailyMessage", {
+              // Clave de traducción
+              currentDose: totalDailyDose.toFixed(3),
+              limitDose: limits.day,
+            }),
+          );
+        }
+
+        // 4. Mostrar el modal si hay advertencias
+        if (messages.length > 0) {
+          setWarningMessages(messages);
+          setIsWarningModalVisible(true);
+        }
+      } catch (error) {
+        console.error("Error al verificar los límites de dosis:", error);
+        Toast.show({
+          type: "error",
+          text1: "Error de Dosis",
+          text2: "No se pudieron verificar los límites de dosis.",
+        });
+      }
+    };
+
+    checkDoseLimits();
+  }, []);
 
   const handleMyAgenda = () => router.push("/employee/myAgenda");
   const handleCalculation = () => router.push("/employee/calculation");
@@ -195,6 +329,97 @@ export default function Home() {
           />
         </Pressable>
       </View>
+
+      {/* --- MODAL DE ADVERTENCIA DE LÍMITES DE DOSIS --- */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isWarningModalVisible}
+        onRequestClose={() => setIsWarningModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.warningModalContent}>
+            {/* --- BOTÓN DE AYUDA EN LA ESQUINA --- */}
+            <Pressable
+              style={styles.helpButton}
+              onPress={() => {
+                setIsWarningModalVisible(false); // <-- 1. Cierra el modal actual
+                setIsHelpModalVisible(true); // <-- 2. Abre el nuevo modal
+              }}
+            >
+              <Ionicons name="help-circle-outline" size={32} color="#006892" />
+            </Pressable>
+            {/* -------------------------------------- */}
+
+            <Image
+              source={require("../../assets/alert.png")}
+              style={styles.warningIcon}
+            />
+            <Text style={styles.warningModalTitle}>
+              {t("home.doseWarning.title")}
+            </Text>
+            {warningMessages.map((msg, index) => (
+              <Text key={index} style={styles.warningModalMessage}>
+                {msg}
+              </Text>
+            ))}
+            <Pressable
+              style={styles.warningModalCloseButton}
+              onPress={() => setIsWarningModalVisible(false)}
+            >
+              <Text style={styles.warningModalCloseButtonText}>
+                {t("home.doseWarning.close")}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- MODAL DE INFORMACIÓN DE AYUDA --- */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isHelpModalVisible}
+        onRequestClose={() => setIsHelpModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.helpModalContent}>
+            <Text style={styles.helpModalTitle}>
+              {t("home.helpModal.title")}
+            </Text>
+
+            <View style={styles.helpModalList}>
+              <Text style={styles.helpModalListItem}>
+                {t("home.helpModal.fiveYearLimit")}
+              </Text>
+              <Text style={styles.helpModalListItem}>
+                {t("home.helpModal.yearlyLimit")}
+              </Text>
+              <Text style={styles.helpModalListItem}>
+                {t("home.helpModal.monthlyLimit")}
+              </Text>
+              <Text style={styles.helpModalListItem}>
+                {t("home.helpModal.dailyLimit")}
+              </Text>
+              <Text style={styles.helpModalListItem}>
+                {t("home.helpModal.hourlyLimit")}
+              </Text>
+            </View>
+
+            <Pressable
+              style={styles.warningModalCloseButton} // Reutilizamos el estilo del botón
+              onPress={() => {
+                setIsHelpModalVisible(false); // <-- 1. Cierra el modal de ayuda
+                setIsWarningModalVisible(true); // <-- 2. Vuelve a abrir el de advertencia
+              }}
+            >
+              <Text style={styles.warningModalCloseButtonText}>
+                {t("home.helpModal.closeButton")}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* --- MODAL DE CONFIRMACIÓN DE LOGOUT --- */}
       <Modal
@@ -406,5 +631,80 @@ const styles = StyleSheet.create({
   },
   modalConfirmButtonText: {
     color: "#FFFFFF", // Puedes mantenerlo blanco o cambiarlo si es necesario
+  },
+
+  warningModalContent: {
+    width: "85%",
+    backgroundColor: "#fff", // Fondo blanco para la alerta
+    borderRadius: 15,
+    padding: 25,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  warningIcon: {
+    width: isTablet ? 80 : 60,
+    height: isTablet ? 80 : 60,
+    marginBottom: 15,
+  },
+  warningModalTitle: {
+    fontSize: isTablet ? 26 : 21,
+    fontWeight: "bold",
+    color: "#D32F2F", // Color rojo para el título
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  warningModalMessage: {
+    fontSize: isTablet ? 20 : 16,
+    color: "#333", // Texto oscuro para legibilidad
+    textAlign: "center",
+    marginBottom: 10,
+    lineHeight: 24,
+  },
+  warningModalCloseButton: {
+    backgroundColor: "#007AFF", // Un color primario para el botón de cerrar
+    borderRadius: 10,
+    paddingVertical: isTablet ? 16 : 12,
+    paddingHorizontal: 40,
+    marginTop: 20,
+  },
+  warningModalCloseButtonText: {
+    color: "#FFFFFF",
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: "600",
+  },
+
+  helpButton: {
+    position: "absolute", // Clave para posicionarlo en la esquina
+    top: 10,
+    right: 15,
+    zIndex: 10, // Para asegurar que esté por encima de otros elementos
+  },
+  helpModalContent: {
+    width: "90%",
+    backgroundColor: "#F0F4F8", // Un fondo claro para la información
+    borderRadius: 15,
+    padding: 25,
+    alignItems: "center",
+  },
+  helpModalTitle: {
+    fontSize: isTablet ? 24 : 20,
+    fontWeight: "bold",
+    color: "#005A85", // Color principal
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  helpModalList: {
+    alignSelf: "flex-start", // Alinea el contenedor de la lista a la izquierda
+    marginBottom: 25,
+  },
+  helpModalListItem: {
+    fontSize: isTablet ? 18 : 15,
+    color: "#333",
+    marginBottom: 12,
+    lineHeight: 22,
   },
 });
