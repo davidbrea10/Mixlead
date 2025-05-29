@@ -578,7 +578,8 @@
         "userNotAuthenticated": "Usuario no autenticado.",
         "couldNotSave": "No se pudieron guardar los datos de la dosis.",
         "emptyOrInvalidFields": "Por favor, rellena todos los campos con valores válidos.",
-        "dailyDoseLimitReached": "Has alcanzado el límite de 15 dosis diarias."
+        "dailyDoseLimitReached": "Has alcanzado el límite de 15 dosis diarias.",
+        "emptyFieldsOrTimeOrDuration": "Por favor, completa todos los campos y asegúrate de que el tiempo de exposición sea mayor que cero."
       },
       "userNotAuthenticated": "Usuario no autenticado.",
       "success": {
