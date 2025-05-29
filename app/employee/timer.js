@@ -91,17 +91,10 @@ export default function TimerScreen() {
       clearInterval(intervalRef.current);
       setIsActive(false);
 
-      // 1. Mostrar notificación
-      Toast.show({
-        type: "info",
-        text1: t("timer.time_up_title"),
-        text2: t("timer.time_up_message"),
-      });
-
-      // 2. Reproducir sonido
+      // Reproducir sonido
       playAlarmSound();
 
-      // 3. Rellenar los campos de duración para el modal
+      // Rellenar los campos de duración para el modal
       const h = Math.floor(totalSeconds / 3600);
       const m = Math.floor((totalSeconds % 3600) / 60);
       const s = totalSeconds % 60;
@@ -109,7 +102,7 @@ export default function TimerScreen() {
       setDurationMinutes(String(m).padStart(2, "0"));
       setDurationSeconds(String(s).padStart(2, "0"));
 
-      // 4. Abrir el modal
+      // Abrir el modal
       setModalVisible(true);
     }
     // eslint-disable-next-line no-undef

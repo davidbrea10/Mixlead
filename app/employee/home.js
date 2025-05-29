@@ -195,7 +195,7 @@ export default function Home() {
     };
 
     checkDoseLimits();
-  }, []);
+  }, [t]);
 
   const handleMyAgenda = () => router.push("/employee/myAgenda");
   const handleCalculation = () => router.push("/employee/calculation");
