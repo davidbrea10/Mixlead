@@ -1,3 +1,4 @@
+```
 @startuml
 !theme vibrant
 
@@ -46,3 +47,4 @@ employees "1" *-- "0..*" doses : logs >
 employees "1" *-- "0..*" materials : uses >
 
 @enduml
+```
