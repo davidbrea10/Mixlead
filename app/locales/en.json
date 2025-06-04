@@ -24,6 +24,7 @@
 
   "errors": {
     "errorTitle": "Error",
+    "cannotProceedMissingInfo": "Missing information to proceed.",
     "fillAllFields": "Please fill in all required fields.",
     "passwordsMismatch": "Passwords do not match.",
     "fixValidationErrors": "Please fix the errors before submitting.",
@@ -322,6 +323,10 @@
     "birthDate": "Birthdate",
     "saveButton": "Save Changes",
     "deleteButton": "Delete Employee",
+    "moveSuccess": "Employee moved to 'No Company' successfully.",
+    "moveError": "Error moving employee.",
+    "alreadyInNoCompanyTitle": "Information",
+    "alreadyInNoCompanyMsg": "The employee is already in the target company.",
     "alert": {
       "notFound": "Employee not found",
       "fetchError": "Error fetching employee",

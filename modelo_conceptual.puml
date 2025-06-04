@@ -1,0 +1,81 @@
+@startuml modelo_conceptual
+!theme vibrant
+
+enum EmployeeRole {
+  admin
+  coordinator
+  employee
+}
+
+enum ApplicationStatus {
+  pending
+  approved
+  rejected
+}
+
+class companies {
+  + cif: string
+  + contactPerson: string
+  + name: string
+  + securityNumber: string
+  + telephone: string
+  + createdAt: timestamp
+}
+
+class employees {
+  + birthDate: string
+  + companyId: string  
+  + createdAt: timestamp
+  + dni: string
+  + email: string
+  + firstName: string
+  + lastName: string
+  + phone: string
+  + role: EmployeeRole
+}
+
+class applications {
+  + createdAt: timestamp
+  + dni: string           
+  + email: string          
+  + firstName: string      
+  + id: string             
+  + lastName: string       
+  + status: ApplicationStatus
+  ' Esta solicitud es para la empresa del empleado padre.
+}
+
+class doses {
+  + day: number
+  + dose: number
+  + entryMethod: string
+  + month: number
+  + startTime: timestamp
+  + timestamp: timestamp
+  + totalExposures: number
+  + totalTime: number
+  + year: number
+}
+
+class materials {
+  + {materialName}: string
+  .. fields ..
+  + attenuationIr: number
+  + attenuationSe: number
+}
+
+companies "1" *-- "0..*" employees : contiene >
+employees "1" *-- "0..*" applications : envía / tiene >
+employees "1" *-- "0..*" doses : registra >
+employees "1" *-- "0..*" materials : usa >
+
+note right of applications
+  Cuando se crea una nueva solicitud, un proceso debería:
+  1. Identificar el companyId de la
+     ruta de la solicitud.
+  2. Encontrar todos los empleados en esa empresa
+     con el rol 'coordinator'.
+  3. Notificar a estos coordinadores.
+end note
+
+@enduml

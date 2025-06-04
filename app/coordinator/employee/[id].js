@@ -14,7 +14,14 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import { db } from "../../../firebase/config";
-import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  runTransaction,
+  collection,
+  getDocs,
+} from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message"; // 1. Import Toast
@@ -23,6 +30,8 @@ import { Ionicons } from "@expo/vector-icons"; // Import icons for modal if desi
 const { width } = Dimensions.get("window");
 
 const isTablet = width >= 700;
+
+const TARGET_COMPANY_ID_FOR_UNASSIGNED_EMPLOYEES = "lctYf9VrAfykMwxcSjRk";
 
 export default function EmployeeDetailCoordinatorView() {
   // Renamed component for clarity
@@ -205,53 +214,131 @@ export default function EmployeeDetailCoordinatorView() {
 
   const handleConfirmDelete = async () => {
     setIsDeleteModalVisible(false);
+
     if (!employeeId || !companyIdFromParams) {
-      // Validar contra los params originales
       Toast.show({
         type: "error",
         text1: t("errors.errorTitle"),
         text2: t(
-          "errors.cannotDeleteMissingInfo",
-          "Falta información para eliminar.",
+          "errors.cannotProceedMissingInfo", // Consider a more generic key if reusing
+          "Falta información para proceder.",
         ),
       });
       return;
     }
 
-    setIsSaving(true); // Reutilizar isSaving o crear isDeleting
-    try {
-      // 5. Construir la ruta CORRECTA para eliminar
-      const docRef = doc(
-        db,
-        "companies",
-        companyIdFromParams,
-        "employees",
-        employeeId,
-      );
+    setIsSaving(true); // Indicate an operation is in progress
 
-      // ADVERTENCIA: Esto solo elimina el documento del empleado.
-      // Las subcolecciones (doses, materials) NO se eliminarán automáticamente.
-      // Para una eliminación completa, necesitarías una Cloud Function o eliminar manualmente cada subcolección.
-      await deleteDoc(docRef);
+    try {
+      const originalCompanyId = companyIdFromParams;
+      const targetCompanyId = TARGET_COMPANY_ID_FOR_UNASSIGNED_EMPLOYEES;
+
+      if (originalCompanyId === targetCompanyId) {
+        Toast.show({
+          type: "info",
+          text1: t("employee_detail.alreadyInNoCompanyTitle", "Información"),
+          text2: t(
+            "employee_detail.alreadyInNoCompanyMsg",
+            "El empleado ya está en la compañía destino.",
+          ),
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      await runTransaction(db, async (transaction) => {
+        // 1. Define references for the original employee location
+        const oldEmployeeDocRef = doc(
+          db,
+          "companies",
+          originalCompanyId,
+          "employees",
+          employeeId,
+        );
+        const oldDosesColRef = collection(oldEmployeeDocRef, "doses");
+        const oldMaterialsColRef = collection(oldEmployeeDocRef, "materials");
+
+        // 2. Define references for the new employee location ("No Company")
+        const newEmployeeDocRef = doc(
+          db,
+          "companies",
+          targetCompanyId,
+          "employees",
+          employeeId,
+        );
+        const newDosesColRef = collection(newEmployeeDocRef, "doses");
+        const newMaterialsColRef = collection(newEmployeeDocRef, "materials");
+
+        // 3. Get the employee document
+        const employeeSnap = await transaction.get(oldEmployeeDocRef);
+        if (!employeeSnap.exists()) {
+          // This error will be caught by the outer catch block
+          throw new Error(
+            t("employee_detail.alert.notFound", "Empleado no encontrado."),
+          );
+        }
+        const employeeData = employeeSnap.data();
+
+        // 4. Update companyId in employee data for the new location
+        const updatedEmployeeData = {
+          ...employeeData,
+          companyId: targetCompanyId, // Critical update
+        };
+
+        // 5. Get 'doses' subcollection from original location
+        // These reads are done before the transaction writes, using the snapshot of data.
+        const dosesSnapshot = await getDocs(oldDosesColRef);
+
+        // 6. Get 'materials' subcollection from original location
+        const materialsSnapshot = await getDocs(oldMaterialsColRef);
+
+        // --- Transactional Writes and Deletes ---
+
+        // 7. Set the new employee document in "No Company"
+        transaction.set(newEmployeeDocRef, updatedEmployeeData);
+
+        // 8. Move 'doses' subcollection
+        dosesSnapshot.forEach((doseDoc) => {
+          const newDoseDocRef = doc(newDosesColRef, doseDoc.id);
+          transaction.set(newDoseDocRef, doseDoc.data()); // Add to new location
+          transaction.delete(doc(oldDosesColRef, doseDoc.id)); // Delete from old location
+        });
+
+        // 9. Move 'materials' subcollection
+        materialsSnapshot.forEach((materialDoc) => {
+          const newMaterialDocRef = doc(newMaterialsColRef, materialDoc.id);
+          transaction.set(newMaterialDocRef, materialDoc.data()); // Add to new location
+          transaction.delete(doc(oldMaterialsColRef, materialDoc.id)); // Delete from old location
+        });
+
+        // 10. Delete the old employee document
+        transaction.delete(oldEmployeeDocRef);
+      });
 
       Toast.show({
         type: "success",
-        text1: t("success.title"),
-        text2: t("employee_detail.deleteSuccess"),
+        text1: t("success.title", "Éxito"),
+        text2: t(
+          "employee_detail.moveSuccess",
+          "Empleado movido a 'No Company' exitosamente.",
+        ),
       });
+
       router.replace({
         pathname: "/coordinator/myEmployees",
-        params: { refresh: Date.now() },
+        params: { refresh: Date.now() }, // To refresh the list on the previous screen
       });
     } catch (error) {
-      console.error("Error deleting employee:", error);
+      console.error("Error moving employee:", error);
       Toast.show({
         type: "error",
-        text1: t("errors.errorTitle"),
-        text2: t("employee_detail.deleteError"),
+        text1: t("errors.errorTitle", "Error"),
+        text2:
+          error.message ||
+          t("employee_detail.moveError", "Error al mover el empleado."),
       });
     } finally {
-      setIsSaving(false); // Reutilizar isSaving o crear isDeleting
+      setIsSaving(false);
     }
   };
 

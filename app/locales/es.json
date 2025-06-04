@@ -38,7 +38,8 @@
     "invalidEmail": "Formato de correo electrónico inválido",
     "ageRestriction": "Debes tener al menos 18 años",
     "invalidPassword": "La contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número.",
-    "prohibitedRadiusMissing": "El radio de prohibición no puede estar vacío."
+    "prohibitedRadiusMissing": "El radio de prohibición no puede estar vacío.",
+    "cannotProceedMissingInfo": "Falta información para proceder."
   },
   "register": {
     "successTitle": "Registro Exitoso",
@@ -321,6 +322,10 @@
     "birthDate": "Fecha de nacimiento",
     "saveButton": "Guardar cambios",
     "deleteButton": "Eliminar",
+    "moveSuccess": "Empleado movido a 'No Company' exitosamente.",
+    "moveError": "Error al mover el empleado.",
+    "alreadyInNoCompanyTitle": "Información",
+    "alreadyInNoCompanyMsg": "El empleado ya está en la compañía destino.",
     "alert": {
       "notFound": "Empleado no encontrado",
       "fetchError": "Error al obtener el empleado",
