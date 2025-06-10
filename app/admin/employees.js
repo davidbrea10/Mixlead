@@ -19,6 +19,7 @@ import { db } from "../../firebase/config";
 import DropDownPicker from "react-native-dropdown-picker";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -34,6 +35,8 @@ export default function EmployeesScreen() {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [companyOptions, setCompanyOptions] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   const { t } = useTranslation();
 
@@ -204,11 +207,7 @@ export default function EmployeesScreen() {
           shadowRadius: 10,
           elevation: 10,
           marginBottom: 20,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          paddingTop: insets.top + 15,
         }}
       >
         <Pressable onPress={handleBack}>
@@ -254,7 +253,7 @@ export default function EmployeesScreen() {
         setItems={setCompanyOptions}
         placeholder={t("employees.selectCompany")}
         placeholderTextColor={"gray"}
-        containerStyle={{ marginTop: 10, marginHorizontal: 20, width: "90%" }}
+        containerStyle={{ marginHorizontal: 20, width: "90%" }}
       />
 
       <View
@@ -354,7 +353,7 @@ export default function EmployeesScreen() {
       <TouchableOpacity
         style={{
           position: "absolute",
-          bottom: 80,
+          bottom: 60,
           right: 20,
           backgroundColor: "#006892",
           width: 70,
@@ -379,7 +378,7 @@ export default function EmployeesScreen() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",

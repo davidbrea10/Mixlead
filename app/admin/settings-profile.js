@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import Toast from "react-native-toast-message"; // 1. Import Toast
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -30,6 +31,8 @@ export default function Profile() {
   const { t } = useTranslation();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -201,11 +204,7 @@ export default function Profile() {
           shadowRadius: 10,
           elevation: 10,
           marginBottom: 20,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          paddingTop: insets.top + 15,
         }}
       >
         <Pressable onPress={handleBack}>
@@ -289,7 +288,7 @@ export default function Profile() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           borderTopStartRadius: 40, // Round both corners

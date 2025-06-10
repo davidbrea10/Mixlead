@@ -26,6 +26,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message"; // 1. Import Toast
 import { Ionicons } from "@expo/vector-icons"; // Import icons for modal if desired
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -38,6 +39,8 @@ export default function EmployeeDetailCoordinatorView() {
   const router = useRouter();
   const { t } = useTranslation();
   const params = useLocalSearchParams(); // Obtener todos los parámetros
+
+  const insets = useSafeAreaInsets();
 
   // 1. Extraer y renombrar parámetros para claridad
   const employeeId = params.id;
@@ -409,11 +412,7 @@ export default function EmployeeDetailCoordinatorView() {
           shadowRadius: 10,
           elevation: 10,
           marginBottom: 20,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          paddingTop: insets.top + 15,
         }}
       >
         <Pressable onPress={() => router.replace("/coordinator/myEmployees")}>
@@ -565,7 +564,7 @@ export default function EmployeeDetailCoordinatorView() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",
@@ -663,7 +662,12 @@ const styles = StyleSheet.create({
     elevation: 0,
     shadowOpacity: 0,
   },
-  buttonText: { color: "white", fontSize: 18, fontWeight: "bold" },
+  buttonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
   buttonSpinner: {
     /* marginRight: 5 */
   },

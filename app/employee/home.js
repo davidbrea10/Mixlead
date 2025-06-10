@@ -460,12 +460,12 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   headerIcon: {
-    marginTop: 20,
+    marginTop: 10,
     width: isTablet ? 70 : 50,
     height: isTablet ? 70 : 50,
   },
   headerTitle: {
-    marginTop: 20,
+    marginTop: 10,
     fontSize: isTablet ? 32 : 24,
     fontWeight: "bold",
     color: "white",

@@ -27,6 +27,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { t } from "i18next";
 import Toast from "react-native-toast-message";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -43,6 +44,8 @@ export default function ApplicationsScreen() {
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [isLoading, setIsLoading] = useState(true); // Add loading state for initial fetch
   const [actionLoading, setActionLoading] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   const [coordinatorInfo, setCoordinatorInfo] = useState({
     id: null, // UID del coordinador
@@ -461,11 +464,7 @@ export default function ApplicationsScreen() {
           shadowRadius: 10,
           elevation: 10,
           marginBottom: 20,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          paddingTop: insets.top + 15,
         }}
       >
         <Pressable onPress={handleBack}>
@@ -622,7 +621,7 @@ export default function ApplicationsScreen() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",

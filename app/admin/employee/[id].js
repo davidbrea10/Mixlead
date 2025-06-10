@@ -28,6 +28,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message"; // 2. Import Toast
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -38,6 +39,8 @@ export default function EmployeeDetail() {
   const employeeId = id;
   const router = useRouter();
   const { t } = useTranslation();
+
+  const insets = useSafeAreaInsets();
 
   const [employee, setEmployee] = useState(null); // Datos del empleado
   const [employeeDocRef, setEmployeeDocRef] = useState(null); // <-- NUEVO ESTADO para guardar la referencia completa
@@ -535,7 +538,7 @@ export default function EmployeeDetail() {
       style={styles.gradient}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
         <Pressable onPress={() => router.replace("/admin/employees")}>
           <Image
             source={require("../../../assets/go-back.png")}
@@ -824,7 +827,7 @@ export default function EmployeeDetail() {
       </Modal>
 
       {/* Footer (Optional) */}
-      <View style={styles.footer}></View>
+      <View style={[styles.footer, { paddingTop: insets.bottom + 40 }]}></View>
     </LinearGradient>
   );
 }
@@ -996,7 +999,6 @@ const styles = StyleSheet.create({
   }, // Optional margin
   footer: {
     backgroundColor: "#006892",
-    padding: 30,
     borderTopEndRadius: 40,
     borderTopStartRadius: 40,
   },

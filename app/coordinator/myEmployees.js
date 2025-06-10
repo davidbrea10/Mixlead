@@ -23,6 +23,7 @@ import {
 import { db, auth } from "../../firebase/config";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -36,6 +37,8 @@ export default function EmployeesScreen() {
   const [searchText, setSearchText] = useState("");
   const [loading, setIsLoading] = useState(true);
   const [coordinatorCompanyId, setCoordinatorCompanyId] = useState(null); // Para guardar el ID de la compañía del coordinador
+
+  const insets = useSafeAreaInsets();
 
   useFocusEffect(
     useCallback(() => {
@@ -200,11 +203,7 @@ export default function EmployeesScreen() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          paddingTop: insets.top + 15,
         }}
       >
         <Pressable onPress={() => router.replace("/coordinator/home")}>
@@ -329,7 +328,7 @@ export default function EmployeesScreen() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",

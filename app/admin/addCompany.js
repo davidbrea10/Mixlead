@@ -18,6 +18,7 @@ import { collection, addDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message"; // 3. Import Toast
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -36,6 +37,8 @@ export default function AddCompany() {
   const [isSaving, setIsSaving] = useState(false); // 4. Add saving state
 
   const { t } = useTranslation(); // Initialize i18n
+
+  const insets = useSafeAreaInsets();
 
   // Define fields using current state keys
   const fields = [
@@ -152,7 +155,7 @@ export default function AddCompany() {
     >
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
           <Pressable onPress={handleBack}>
             <Image
               source={require("../../assets/go-back.png")}
@@ -225,7 +228,7 @@ export default function AddCompany() {
       </View>
 
       {/* Footer (Optional) */}
-      <View style={styles.footer}></View>
+      <View style={[styles.footer, { paddingTop: insets.bottom + 40 }]}></View>
     </LinearGradient>
   );
 }
@@ -360,7 +363,6 @@ const styles = StyleSheet.create({
   footer: {
     // Optional footer style
     backgroundColor: "#006892",
-    padding: 30, // Adjust padding as needed
     borderTopEndRadius: 40,
     borderTopStartRadius: 40,
     // Removed shadow/elevation if purely decorative

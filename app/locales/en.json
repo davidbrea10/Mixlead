@@ -539,7 +539,7 @@
       "dose": "Dose",
       "month": "Month",
       "view": "View",
-      "noData": "No dose data available for {{year}}."
+      "noData": "Click Download Annual Data to download data for {{year}} or select an employee."
     },
     "months": {
       "1": "January",
@@ -614,7 +614,7 @@
       "dose": "Dose",
       "month": "Month",
       "view": "View",
-      "noData": "No dose data available for {{year}}."
+      "noData": "Click Download Annual Data to download data for {{year}} or select an employee."
     },
     "months": {
       "1": "January",

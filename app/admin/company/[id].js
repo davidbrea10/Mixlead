@@ -19,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message"; // 1. Import Toast
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -27,6 +28,9 @@ const isTablet = width >= 700;
 export default function CompanyDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+
+  const insets = useSafeAreaInsets();
+
   const [company, setCompany] = useState({
     Name: "",
     Cif: "",
@@ -218,7 +222,7 @@ export default function CompanyDetailsScreen() {
       style={styles.gradient}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
         <Pressable onPress={() => router.replace("/admin/companies")}>
           <Image
             source={require("../../../assets/go-back.png")}
@@ -364,7 +368,7 @@ export default function CompanyDetailsScreen() {
       </Modal>
 
       {/* Footer (Optional - can be removed if not needed) */}
-      <View style={styles.footer}></View>
+      <View style={[styles.footer, { paddingTop: insets.bottom + 40 }]}></View>
     </LinearGradient>
   );
 }
@@ -392,11 +396,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
     marginBottom: 20,
-    paddingTop: Platform.select({
-      // Apply platform-specific padding
-      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-      android: 40, // Base padding on Android (adjust value as needed)
-    }),
   },
   headerIcon: {
     width: isTablet ? 70 : 50,
@@ -520,10 +519,8 @@ const styles = StyleSheet.create({
   footer: {
     // Optional Footer style (can be empty if not used)
     backgroundColor: "#006892",
-    padding: 30, // Adjusted padding
     borderTopEndRadius: 40,
     borderTopStartRadius: 40,
-    // Removed shadow/elevation if footer is just for spacing/visuals
   },
 
   modalOverlay: {

@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -29,6 +30,8 @@ export default function CompaniesScreen() {
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
+
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -94,11 +97,7 @@ export default function CompaniesScreen() {
           shadowRadius: 10,
           elevation: 10,
           marginBottom: 20,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          paddingTop: insets.top + 15,
         }}
       >
         <Pressable onPress={handleBack}>
@@ -138,7 +137,6 @@ export default function CompaniesScreen() {
           backgroundColor: "white",
           padding: 8,
           borderRadius: 10,
-          marginTop: 10,
           paddingHorizontal: 10,
           marginHorizontal: 20,
         }}
@@ -215,7 +213,7 @@ export default function CompaniesScreen() {
       <TouchableOpacity
         style={{
           position: "absolute",
-          bottom: 80,
+          bottom: 60,
           right: 20,
           backgroundColor: "#006892",
           width: 70,
@@ -240,7 +238,7 @@ export default function CompaniesScreen() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",

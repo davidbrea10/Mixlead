@@ -540,7 +540,7 @@
       "dose": "Dosis",
       "month": "Mes",
       "view": "Ver",
-      "noData": "No hay datos de dosis disponibles para {{year}}."
+      "noData": "Haga clic en Descargar datos anuales para descargar datos de {{year}} o selecciona un empleado."
     },
     "months": {
       "1": "Enero",
@@ -615,7 +615,7 @@
       "dose": "Dosis",
       "month": "Mes",
       "view": "Ver",
-      "noData": "No hay datos de dosis disponibles para {{year}}."
+      "noData": "Haga clic en Descargar datos anuales para descargar datos de {{year}} o selecciona un empleado."
     },
     "months": {
       "1": "Enero",

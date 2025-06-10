@@ -31,6 +31,7 @@ import { t } from "i18next"; // Import t function for translation
 import RNHTMLtoPDF from "react-native-html-to-pdf";
 import * as Sharing from "expo-sharing";
 import RNPickerSelect from "react-native-picker-select";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -240,6 +241,8 @@ export default function Home() {
   const [isLoadingCompanyTotal, setIsLoadingCompanyTotal] = useState(false); // <-- NUEVO ESTADO DE CARGA (opcional pero recomendado)
 
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   // Store companyId to avoid fetching it repeatedly
   const companyIdRef = useRef(null);
@@ -898,11 +901,7 @@ export default function Home() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          paddingTop: insets.top + 15,
         }}
       >
         <Pressable onPress={handleBack}>
@@ -1128,7 +1127,7 @@ export default function Home() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",

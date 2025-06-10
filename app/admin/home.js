@@ -15,6 +15,7 @@ import { signOut } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -25,6 +26,8 @@ export default function Home() {
 
   const { t } = useTranslation();
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   const handleLogout = () => {
     setIsLogoutModalVisible(true); // <-- Solo abre el modal
@@ -77,7 +80,7 @@ export default function Home() {
       style={styles.gradient} // Use StyleSheet
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
         {/* Apply style from StyleSheet */}
         <Image
           source={require("../../assets/icon.png")}
@@ -136,7 +139,7 @@ export default function Home() {
         <Pressable onPress={handleSettings}>
           <Image
             source={require("../../assets/gear-icon.png")}
-            style={styles.footerIcon} // Use StyleSheet
+            style={[styles.footerIcon, { paddingBottom: insets.bottom }]} // Use StyleSheet
           />
         </Pressable>
       </View>
@@ -201,11 +204,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    paddingTop: Platform.select({
-      // Apply platform-specific padding
-      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-      android: 40, // Base padding on Android (adjust value as needed)
-    }),
   },
   headerIcon: {
     width: isTablet ? 70 : 50,
@@ -272,8 +270,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   footer: {
-    paddingTop: 16,
-    paddingBottom: Platform.OS === "ios" ? 16 : 40,
+    paddingTop: 15,
+    paddingBottom: 15,
     paddingHorizontal: 20,
     backgroundColor: "#006892",
     alignItems: "flex-end",

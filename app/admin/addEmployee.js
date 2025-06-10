@@ -28,6 +28,7 @@ import { collection, getDocs, doc, setDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message"; // 3. Import Toast
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -36,6 +37,8 @@ const isTablet = width >= 700;
 export default function AddEmployee() {
   const router = useRouter();
   const { t } = useTranslation();
+
+  const insets = useSafeAreaInsets();
 
   const [form, setForm] = useState({
     firstName: "",
@@ -264,7 +267,7 @@ export default function AddEmployee() {
     >
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
           <Pressable onPress={handleBack}>
             <Image
               source={require("../../assets/go-back.png")}
@@ -513,7 +516,7 @@ export default function AddEmployee() {
         </Modal>
       </View>
       {/* Footer */}
-      <View style={styles.footer}></View>
+      <View style={[styles.footer, { paddingTop: insets.bottom + 40 }]}></View>
     </LinearGradient>
   );
 }
@@ -533,11 +536,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    paddingTop: Platform.select({
-      // Apply platform-specific padding
-      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-      android: 40, // Base padding on Android (adjust value as needed)
-    }),
   },
   headerIcon: {
     width: isTablet ? 70 : 50,
@@ -681,7 +679,6 @@ const styles = StyleSheet.create({
   modalCloseButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
   footer: {
     backgroundColor: "#006892",
-    padding: 30,
     borderTopEndRadius: 40,
     borderTopStartRadius: 40,
   }, // Adjusted padding
