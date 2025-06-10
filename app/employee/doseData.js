@@ -678,7 +678,7 @@ export default function Home() {
           </Text>
           <Text
             style={{
-              fontSize: 24,
+              fontSize: 18,
               fontWeight: "light",
               color: "white",
               textAlign: "center",

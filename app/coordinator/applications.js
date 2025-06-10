@@ -8,7 +8,6 @@ import {
   Pressable,
   Image,
   Modal,
-  Platform,
   ActivityIndicator,
   Dimensions,
 } from "react-native";
@@ -478,7 +477,7 @@ export default function ApplicationsScreen() {
         <View style={{ flex: 1, alignItems: "center" }}>
           <Text
             style={{
-              fontSize: isTablet ? 32 : 24,
+              fontSize: isTablet ? 28 : 20,
               fontWeight: "bold",
               color: "white",
               textAlign: "center",

@@ -632,7 +632,7 @@ export default function DoseDetails() {
           </Text>
           <Text
             style={{
-              fontSize: 24,
+              fontSize: 18,
               fontWeight: "light",
               color: "white",
               letterSpacing: 2,

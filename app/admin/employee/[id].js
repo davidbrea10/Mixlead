@@ -875,7 +875,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 1,
   },
   headerTitleSub: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: "light",
     color: "white",
     textAlign: "center",
