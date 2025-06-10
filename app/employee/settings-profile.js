@@ -33,6 +33,7 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import Toast from "react-native-toast-message";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -53,6 +54,8 @@ export default function Profile() {
   const [noCompanyDocId, setNoCompanyDocId] = useState(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const fadeErrorAnim = useRef(new Animated.Value(1)).current;
+
+  const insets = useSafeAreaInsets();
 
   const authInstance = getAuth();
   const dbInstance = getFirestore();
@@ -558,11 +561,7 @@ export default function Profile() {
           shadowRadius: 10,
           elevation: 10,
           marginBottom: 20,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          paddingTop: insets.top + 15, // Añadir padding superior para evitar solapamiento con la barra de estado
         }}
       >
         <Pressable onPress={handleBack}>
@@ -813,7 +812,7 @@ export default function Profile() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.top + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           elevation: 10,

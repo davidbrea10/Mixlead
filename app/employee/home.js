@@ -25,6 +25,7 @@ import {
 import { db } from "../../firebase/config";
 import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -40,6 +41,8 @@ export default function Home() {
   const [warningMessages, setWarningMessages] = useState([]);
 
   const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   const handleLogout = () => {
     setIsLogoutModalVisible(true); // <-- Solo abre el modal
@@ -79,8 +82,15 @@ export default function Home() {
 
   useEffect(() => {
     const checkDoseLimits = async () => {
+      // ---- INICIA LA MEDICIÓN ----
+      console.log("Iniciando la comprobación de límites de dosis...");
+      console.time("checkDoseLimitsExecution");
+
       const user = auth.currentUser;
-      if (!user) return; // No hacer nada si no hay usuario
+      if (!user) {
+        console.timeEnd("checkDoseLimitsExecution"); // Termina si no hay usuario
+        return;
+      }
 
       // --- Definir límites y umbral de aviso (80%) ---
       const limits = {
@@ -98,6 +108,7 @@ export default function Home() {
 
         if (employeeSnapshot.empty) {
           console.log("Documento de empleado no encontrado.");
+          console.timeEnd("checkDoseLimitsExecution");
           return;
         }
         const employeeData = employeeSnapshot.docs[0].data();
@@ -105,6 +116,7 @@ export default function Home() {
 
         if (!companyId) {
           console.log("El empleado no tiene companyId.");
+          console.timeEnd("checkDoseLimitsExecution");
           return;
         }
 
@@ -184,8 +196,13 @@ export default function Home() {
           setWarningMessages(messages);
           setIsWarningModalVisible(true);
         }
+
+        // ---- FINALIZA LA MEDICIÓN (en el caso de éxito) ----
+        console.timeEnd("checkDoseLimitsExecution");
       } catch (error) {
         console.error("Error al verificar los límites de dosis:", error);
+        // ---- FINALIZA LA MEDICIÓN (en el caso de error) ----
+        console.timeEnd("checkDoseLimitsExecution");
         Toast.show({
           type: "error",
           text1: "Error de Dosis",
@@ -208,7 +225,7 @@ export default function Home() {
       style={styles.gradient} // Use StyleSheet
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         {/* Apply style */}
         <Image
           source={require("../../assets/icon.png")}
@@ -284,7 +301,7 @@ export default function Home() {
         <Pressable onPress={handleSettings}>
           <Image
             source={require("../../assets/gear-icon.png")}
-            style={styles.footerIcon} // Use StyleSheet
+            style={[styles.footerIcon, { paddingBottom: insets.bottom }]} // Use StyleSheet
           />
         </Pressable>
       </View>
@@ -426,7 +443,6 @@ export default function Home() {
 }
 
 // Add StyleSheet below the component
-// Add StyleSheet below the component
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
@@ -442,17 +458,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    paddingTop: Platform.select({
-      // Apply platform-specific padding
-      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-      android: 40, // Base padding on Android (adjust value as needed)
-    }),
   },
   headerIcon: {
+    marginTop: 20,
     width: isTablet ? 70 : 50,
     height: isTablet ? 70 : 50,
   },
   headerTitle: {
+    marginTop: 20,
     fontSize: isTablet ? 32 : 24,
     fontWeight: "bold",
     color: "white",
@@ -513,8 +526,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   footer: {
-    paddingTop: 16,
-    paddingBottom: Platform.OS === "ios" ? 16 : 40,
+    paddingTop: 15,
+    paddingBottom: 15,
     paddingHorizontal: 20,
     backgroundColor: "#006892",
     alignItems: "flex-end",

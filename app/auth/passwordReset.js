@@ -18,12 +18,16 @@ import i18n from "../locales/i18n";
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 export default function PasswordResetScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false); // 2. Add loading state
   const { t } = useTranslation();
   const auth = getAuth();
+
+  const insets = useSafeAreaInsets();
 
   const handleLanguageChange = () => {
     const newLang = i18n.language === "en" ? "es" : "en";
@@ -97,20 +101,20 @@ export default function PasswordResetScreen() {
         <View
           style={{
             backgroundColor: "#FF9300",
-            paddingHorizontal: 16,
-            paddingTop: Platform.OS === "android" ? 20 : 50, // Espacio para status bar, ajusta según sea necesario
-            paddingBottom: 20, // Espacio inferior en el header
-            borderBottomStartRadius: 35, // Curvatura más suave
-            borderBottomEndRadius: 35, // Curvatura más suave
+            paddingHorizontal: 20, // Espaciado horizontal
+            paddingBottom: 25, // Espaciado inferior
+            borderBottomStartRadius: 35,
+            borderBottomEndRadius: 35,
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.2, // Sombra más sutil
+            shadowOpacity: 0.2,
             shadowRadius: 5,
             elevation: 7,
+            paddingTop: insets.top,
           }}
         >
           {/* Header with Back and Language Buttons */}
-          <View style={styles.headerIcons}>
+          <View style={styles.headerTopRow}>
             {/* Back Button */}
             <TouchableOpacity onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={28} color="black" />
@@ -132,8 +136,7 @@ export default function PasswordResetScreen() {
 
           <Text
             style={{
-              marginTop: 20,
-              paddingTop: 60,
+              marginTop: 10,
               fontSize: 30,
               fontWeight: "bold",
               textAlign: "center",
@@ -209,31 +212,25 @@ export default function PasswordResetScreen() {
 // Use StyleSheet for better organization and performance
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  container: { flex: 1 },
   header: {
     backgroundColor: "#FF9300",
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "android" ? 20 : 50, // Espacio para status bar, ajusta según sea necesario
-    paddingBottom: 20, // Espacio inferior en el header
-    borderBottomStartRadius: 35, // Curvatura más suave
-    borderBottomEndRadius: 35, // Curvatura más suave
+    paddingHorizontal: 20, // Espaciado horizontal
+    paddingBottom: 25, // Espaciado inferior
+    borderBottomStartRadius: 35,
+    borderBottomEndRadius: 35,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, // Sombra más sutil
+    shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 7,
+    // NO tiene position: 'absolute', fluye normalmente
   },
-  headerIcons: {
-    position: "absolute",
-    top: Platform.OS === "android" ? 50 : 55, // Adjust based on your header style
-    left: 20,
-    right: 20,
+  headerTopRow: {
+    paddingTop: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    zIndex: 10,
   },
-  headerButton: { padding: 5 },
   languageSelector: {
     flexDirection: "row",
     alignItems: "center",
@@ -245,21 +242,14 @@ const styles = StyleSheet.create({
   flagImage: { width: 28, height: 28, borderRadius: 14 },
   languageText: { marginLeft: 8, fontSize: 16, color: "#333" },
   headerTitle: {
+    // Ya NO necesita padding o margin manual para la barra de estado
     fontSize: 32,
     fontWeight: "bold",
     textAlign: "center",
-    color: "#000000",
-    // Add platform-specific padding OR margin top here
-    // Option 1: Using paddingTop (adds space within the text element's box)
-    paddingTop: Platform.select({
-      ios: 40, // Add extra padding above the text on iOS
-      android: 0, // No extra padding needed on Android (or a smaller value if desired)
-    }),
-    // Option 2: Using marginTop (pushes the whole text element down)
-    // marginTop: Platform.select({
-    //     ios: 15,     // Add extra margin above the text on iOS
-    //     android: 0   // No extra margin needed on Android
-    // }),
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   content: {
     flex: 1,

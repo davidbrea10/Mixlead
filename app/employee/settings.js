@@ -27,6 +27,7 @@ import {
 } from "firebase/firestore";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -36,6 +37,8 @@ export default function Settings() {
   const router = useRouter();
   const { t } = useTranslation();
   const auth = getAuth();
+
+  const insets = useSafeAreaInsets();
 
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -395,7 +398,7 @@ export default function Settings() {
       style={styles.flexOne}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
         <Pressable onPress={handleBack}>
           <Image
             source={require("../../assets/go-back.png")}
@@ -541,11 +544,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    paddingTop: Platform.select({
-      // Apply platform-specific padding
-      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-      android: 40, // Base padding on Android (adjust value as needed)
-    }),
   },
   headerIcon: {
     width: isTablet ? 70 : 50,
@@ -569,15 +567,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 20,
   },
-  optionIcon: { width: 40, height: 40, marginRight: 10 },
+  optionIcon: { width: 40, height: 40 },
   optionIconDelete: {
     width: 40,
     height: 40,
-    marginRight: 10,
     textAlign: "center",
   },
   optionText: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "500",
     marginLeft: 20,
     color: "#333",

@@ -33,6 +33,7 @@ import Toast from "react-native-toast-message";
 import { useAudioPlayer } from "expo-audio";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { format } from "date-fns";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const audioSource = require("../../assets/sounds/timer-alarm.mp3");
 
@@ -42,6 +43,8 @@ const isTablet = width >= 700;
 export default function TimerScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+
+  const insets = useSafeAreaInsets();
 
   // Estados del temporiazador
   const [initialHours, setInitialHours] = useState("00");
@@ -547,7 +550,7 @@ export default function TimerScreen() {
       style={styles.fullScreenGradient}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
         <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
           <Image
             source={require("../../assets/go-back.png")} // Ajusta la ruta

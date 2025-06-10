@@ -21,6 +21,7 @@ import { collectionGroup, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "../../firebase/config";
 import Toast from "react-native-toast-message";
 import * as ScreenOrientation from "expo-screen-orientation";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -47,6 +48,8 @@ export default function Tables() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
+
+  const insets = useSafeAreaInsets();
 
   const [currentView, setCurrentView] = useState("doseRate"); // 'doseRate', 'distance' o 'thickness'
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -658,7 +661,7 @@ export default function Tables() {
       style={{ flex: 1 }}
     >
       <View style={{ flex: 1 }}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
           <Pressable onPress={() => router.back()}>
             <Image
               source={require("../../assets/go-back.png")}
@@ -1004,10 +1007,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    paddingTop: Platform.select({
-      ios: 60,
-      android: 40,
-    }),
   },
   icon: { width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 },
   title: {

@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 // Add a second document with a generated ID.
 import { auth, db } from "../../firebase/config"; // Asegúrate de la ruta correcta
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
@@ -65,6 +66,8 @@ export default function Register() {
   const [birthDate, setBirthDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
   const [isTermsModalVisible, setIsTermsModalVisible] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   const flag =
     i18n.language === "es"
@@ -407,7 +410,6 @@ export default function Register() {
           style={{
             backgroundColor: "#FF9300",
             paddingHorizontal: 16,
-            paddingTop: Platform.OS === "android" ? 20 : 50, // Espacio para status bar, ajusta según sea necesario
             paddingBottom: 20, // Espacio inferior en el header
             borderBottomStartRadius: 35, // Curvatura más suave
             borderBottomEndRadius: 35, // Curvatura más suave
@@ -416,6 +418,7 @@ export default function Register() {
             shadowOpacity: 0.2, // Sombra más sutil
             shadowRadius: 5,
             elevation: 7,
+            paddingTop: insets.top,
           }}
         >
           {/* Header with Back and Language Buttons */}
@@ -441,8 +444,7 @@ export default function Register() {
 
           <Text
             style={{
-              marginTop: 20,
-              paddingTop: 60,
+              marginTop: 10,
               fontSize: 30,
               fontWeight: "bold",
               textAlign: "center",
@@ -818,14 +820,10 @@ const styles = StyleSheet.create({
   // Use StyleSheet.create
   // ... (keep existing styles: headerIcons, languageSelector, flagImage, languageText, label, input, clearIcon, eyeIcon, errorText, button, buttonLoading, buttonPressed, spinner, buttonText, footer)
   headerIcons: {
-    position: "absolute",
-    top: Platform.OS === "android" ? 50 : 55, // Adjust based on your header style
-    left: 20,
-    right: 20,
+    paddingTop: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    zIndex: 10,
   },
   languageSelector: {
     flexDirection: "row",

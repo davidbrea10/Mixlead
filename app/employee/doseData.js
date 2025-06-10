@@ -30,6 +30,7 @@ import { useTranslation } from "react-i18next"; // Import the translation hook
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
 import * as Sharing from "expo-sharing"; // Import Sharing
 import Toast from "react-native-toast-message";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -45,6 +46,8 @@ export default function Home() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserCompanyId, setCurrentUserCompanyId] = useState(null);
+
+  const insets = useSafeAreaInsets();
 
   // Consistent month names array (assuming keys like 'months.1', 'months.2' etc.)
   const monthNames = Array.from({ length: 12 }, (_, i) =>
@@ -648,10 +651,7 @@ export default function Home() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
-          paddingTop: Platform.select({
-            ios: 60,
-            android: 40,
-          }),
+          paddingTop: insets.top + 15,
         }}
       >
         <Pressable onPress={handleBack}>
@@ -824,7 +824,7 @@ export default function Home() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",
@@ -842,7 +842,7 @@ const styles = {
   // Selector Styles
   selectorOuterContainer: {
     paddingHorizontal: 16,
-    paddingTop: 16, // Add top padding if needed
+    paddingTop: 10, // Add top padding if needed
     paddingBottom: 8, // Add bottom padding if needed
   },
   pickerWrapper: {

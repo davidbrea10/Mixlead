@@ -30,6 +30,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -39,6 +40,8 @@ export default function CalculationSummary() {
   const router = useRouter();
   const { t } = useTranslation(); // Inicializar traducción
   const params = useLocalSearchParams();
+
+  const insets = useSafeAreaInsets();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [dose, setDose] = useState(""); // Dose value from modal input
@@ -474,10 +477,7 @@ export default function CalculationSummary() {
             shadowRadius: 10,
             elevation: 10,
             marginBottom: isTablet ? 30 : 20, // Increased margin for tablet
-            paddingTop: Platform.select({
-              ios: isTablet ? 70 : 60, // Adjusted for tablet
-              android: isTablet ? 50 : 40, // Adjusted for tablet
-            }),
+            paddingTop: insets.top + 15,
           }}
         >
           <Pressable onPress={handleBack}>
@@ -825,7 +825,7 @@ export default function CalculationSummary() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: isTablet ? 50 : 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",
@@ -1111,7 +1111,8 @@ export default function CalculationSummary() {
 
 const styles = {
   scrollContainer: {
-    paddingVertical: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
   },
 
   label: {

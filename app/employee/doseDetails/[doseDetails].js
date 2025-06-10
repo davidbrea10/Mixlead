@@ -30,6 +30,7 @@ import { Ionicons } from "@expo/vector-icons";
 import RNHTMLtoPDF from "react-native-html-to-pdf"; // Import PDF library
 import * as Sharing from "expo-sharing"; // Import Sharing
 import Toast from "react-native-toast-message";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -55,6 +56,8 @@ export default function DoseDetails() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false); // State for PDF generation
   const [isLoading, setIsLoading] = useState(true); // State for initial data loading
   const [error, setError] = useState(null);
+
+  const insets = useSafeAreaInsets();
 
   // Consistent month names array
   const monthNames = Array.from({ length: 12 }, (_, i) =>
@@ -591,10 +594,7 @@ export default function DoseDetails() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
           elevation: 10,
-          paddingTop: Platform.select({
-            ios: 60,
-            android: 40,
-          }),
+          paddingTop: insets.top + 15, // Añadir padding superior para evitar solapamiento con la barra de estado
         }}
       >
         {/* Contenedor Izquierdo (Ancho Fijo) */}
@@ -857,7 +857,7 @@ export default function DoseDetails() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",

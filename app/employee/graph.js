@@ -23,6 +23,7 @@ import { CUSTOM_MARKER_ICON_BASE64 } from "../../components/CustomMarkerIcon"; /
 import { collectionGroup, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "../../firebase/config"; // Adjust path if necessary
 import Toast from "react-native-toast-message"; // Ensure Toast is imported if not already for this specific file
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -40,6 +41,8 @@ export default function Graph() {
   const params = useLocalSearchParams();
   const webViewRef = useRef(null);
   const mapCenterPromiseResolveRef = useRef(null);
+
+  const insets = useSafeAreaInsets();
 
   const [activityStates, setActivityStates] = useState({
     isGettingPermissions: true,
@@ -684,7 +687,7 @@ export default function Graph() {
     >
       <View style={{ flex: 1 }}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
           <Pressable onPress={() => router.back()}>
             <Image
               source={require("../../assets/go-back.png")}
@@ -967,11 +970,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    paddingTop: Platform.select({
-      // Apply platform-specific padding
-      ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-      android: 40, // Base padding on Android (adjust value as needed)
-    }),
   },
   icon: { width: isTablet ? 70 : 50, height: isTablet ? 70 : 50 },
   title: {

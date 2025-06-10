@@ -1,3 +1,4 @@
+import React from "react";
 import {
   View,
   Text,
@@ -6,9 +7,7 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView, // Importa SafeAreaView
   StyleSheet, // Importa StyleSheet para una mejor organización
-  Platform, // Importa Platform para ajustes específicos si fueran necesarios
   Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,6 +22,7 @@ import i18n from "../locales/i18n";
 import Toast from "react-native-toast-message";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const isTablet = SCREEN_WIDTH >= 700;
@@ -34,6 +34,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   // Reemplaza tu useEffect actual por este
   useEffect(() => {
@@ -307,7 +309,15 @@ export default function Login() {
       style={styles.fullScreenGradient} // Use a style that ensures it fills the screen
     >
       {/* 2. Place SafeAreaView INSIDE the gradient */}
-      <SafeAreaView style={styles.safeArea}>
+      <View
+        style={{
+          flex: 1,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+        }}
+      >
         {/* Nuevo contenedor para encabezado */}
         <View style={styles.headerContainer}>
           <TouchableOpacity
@@ -421,6 +431,7 @@ export default function Login() {
             {isBiometricSupported && (
               <TouchableOpacity
                 onPress={handleBiometricLogin}
+                testID="biometric-button"
                 disabled={loading}
                 style={styles.biometricButton}
               >
@@ -443,7 +454,7 @@ export default function Login() {
             </Text>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     </LinearGradient>
   );
 }
@@ -459,7 +470,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 20 : 60,
+    paddingVertical: 10,
   },
   languageSelector: {
     flexDirection: "row",

@@ -5,4 +5,7 @@ module.exports = {
   rules: {
     "prettier/prettier": "error",
   },
+  env: {
+    jest: true,
+  },
 };

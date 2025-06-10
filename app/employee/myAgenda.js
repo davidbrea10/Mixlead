@@ -29,6 +29,7 @@ import Toast from "react-native-toast-message";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -49,6 +50,7 @@ export default function Home() {
   const [startTime, setStartTime] = useState(new Date());
   const [formattedStartTime, setFormattedStartTime] = useState("");
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // Inside your Home component, typically after other hooks
 
@@ -435,11 +437,7 @@ export default function Home() {
           shadowRadius: 10,
           elevation: 10,
           marginBottom: 20,
-          paddingTop: Platform.select({
-            // Apply platform-specific padding
-            ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-            android: 40, // Base padding on Android (adjust value as needed)
-          }),
+          paddingTop: insets.top + 15,
         }}
       >
         <Pressable onPress={handleBack}>
@@ -700,7 +698,7 @@ export default function Home() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",

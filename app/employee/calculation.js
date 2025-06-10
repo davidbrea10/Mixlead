@@ -29,6 +29,7 @@ import {
   where,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -51,6 +52,8 @@ const OTHER_MATERIAL_KEY = "Other";
 export default function Calculation() {
   const { t } = useTranslation(); // Initialize translation hook
   const router = useRouter();
+
+  const insets = useSafeAreaInsets();
 
   const [customMaterialsFromDB, setCustomMaterialsFromDB] = useState({});
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
@@ -1147,11 +1150,7 @@ export default function Calculation() {
             shadowRadius: 10,
             elevation: 10,
             marginBottom: 20,
-            paddingTop: Platform.select({
-              // Apply platform-specific padding
-              ios: 60, // More padding on iOS (adjust value as needed, e.g., 55, 60)
-              android: 40, // Base padding on Android (adjust value as needed)
-            }),
+            paddingTop: insets.top + 15,
           }}
         >
           <Pressable onPress={handleBack}>
@@ -1309,7 +1308,7 @@ export default function Calculation() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                width: "93%",
+                flex: 1,
               }}
             >
               <Text
@@ -1858,7 +1857,7 @@ export default function Calculation() {
       <View
         style={{
           backgroundColor: "#006892",
-          padding: 40,
+          paddingTop: insets.bottom + 40,
           alignItems: "flex-end",
           borderTopEndRadius: 40,
           shadowColor: "#000",
