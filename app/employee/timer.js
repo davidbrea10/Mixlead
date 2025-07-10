@@ -544,6 +544,11 @@ export default function TimerScreen() {
     }
   };
 
+  const handleDoseChange = (text) => {
+    const formattedText = text.replace(",", ".");
+    setDose(formattedText);
+  };
+
   return (
     <LinearGradient
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
@@ -702,7 +707,7 @@ export default function TimerScreen() {
               <TextInput
                 style={styles.input}
                 value={dose}
-                onChangeText={setDose}
+                onChangeText={handleDoseChange}
                 keyboardType="numeric"
                 placeholder={t("home.modal.enterDose")}
                 placeholderTextColor={"gray"}

@@ -264,7 +264,7 @@ export default function CalculationSummary() {
       Toast.show({
         type: "error",
         text1: t("home.alerts.error.title"),
-        text2: t("home.alerts.emptyFieldsOrTimeOrDuration"),
+        text2: t("home.alerts.error.emptyFieldsOrTimeOrDuration"),
         position: "bottom",
       });
       return;
@@ -455,6 +455,11 @@ export default function CalculationSummary() {
       // El usuario canceló la selección (Android) o cerró el spinner (iOS)
       setShowTimePicker(false);
     }
+  };
+
+  const handleDoseChange = (text) => {
+    const formattedText = text.replace(",", ".");
+    setDose(formattedText);
   };
 
   return (
@@ -874,7 +879,7 @@ export default function CalculationSummary() {
                   },
                 ]}
                 value={dose}
-                onChangeText={setDose}
+                onChangeText={handleDoseChange}
                 keyboardType="numeric"
                 placeholder={t("home.modal.enterDose")}
                 placeholderTextColor={"gray"}

@@ -228,7 +228,7 @@ export default function Home() {
       Toast.show({
         type: "error",
         text1: t("home.alerts.error.title"),
-        text2: t("home.alerts.emptyFieldsOrTimeOrDuration"),
+        text2: t("home.alerts.error.emptyFieldsOrTimeOrDuration"),
         position: "bottom",
       });
       return;
@@ -418,6 +418,11 @@ export default function Home() {
     }
   };
 
+  const handleDoseChange = (text) => {
+    const formattedText = text.replace(",", ".");
+    setDose(formattedText);
+  };
+
   return (
     <LinearGradient
       colors={["rgba(35, 117, 249, 0.1)", "rgba(255, 176, 7, 0.1)"]}
@@ -489,7 +494,7 @@ export default function Home() {
                 <TextInput
                   style={styles.input}
                   value={dose}
-                  onChangeText={setDose}
+                  onChangeText={handleDoseChange} // Use the new handler here
                   keyboardType="numeric"
                   placeholder={t("home.modal.enterDose")}
                   placeholderTextColor={"gray"}
